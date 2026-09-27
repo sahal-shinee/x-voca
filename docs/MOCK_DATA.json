@@ -1,0 +1,444 @@
+{
+  "auth": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock_token_for_development",
+    "user": {
+      "id": 1,
+      "name": "Xion Regalia",
+      "email": "xionregalia@gmail.com",
+      "role": "superadmin",
+      "avatar_url": null,
+      "rig_name": "Obsidian Rig #03",
+      "rig_version": "v3.4",
+      "is_broadcasting": false,
+      "created_at": "2026-08-01T00:00:00Z"
+    }
+  },
+
+  "dashboard_stats": {
+    "success": true,
+    "data": {
+      "total_votes_this_month": 1247,
+      "votes_change_percent": 12,
+      "upcoming_schedules": 3,
+      "top_voted_game": "GTA V",
+      "top_voted_share": 48,
+      "pending_tasks": 5,
+      "urgent_tasks": 2,
+      "active_content": 18,
+      "pending_game_requests": 5,
+      "current_period_key": "2026-09"
+    }
+  },
+
+  "schedules": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "title": "Cyberpunk 2077 – Main Story Exploration",
+        "game_category": "Cyberpunk 2077",
+        "scheduled_at": "2026-09-27T13:00:00.000Z",
+        "scheduled_at_wib": "2026-09-27T20:00:00+07:00",
+        "description": "Lanjutan main story arc Night City.",
+        "youtube_url": "https://youtube.com/live/x7K9vQ",
+        "thumbnail_url": "https://i.ytimg.com/vi/placeholder/maxresdefault.jpg",
+        "stream_platform": "YouTube",
+        "countdown_enabled": true,
+        "status": "upcoming",
+        "created_at": "2026-09-26T10:00:00Z"
+      },
+      {
+        "id": 2,
+        "title": "Minecraft Chill Stream – Mega Build Project",
+        "game_category": "Minecraft",
+        "scheduled_at": "2026-09-28T12:30:00.000Z",
+        "scheduled_at_wib": "2026-09-28T19:30:00+07:00",
+        "description": null,
+        "youtube_url": null,
+        "thumbnail_url": null,
+        "stream_platform": "YouTube",
+        "countdown_enabled": true,
+        "status": "upcoming",
+        "created_at": "2026-09-26T10:00:00Z"
+      },
+      {
+        "id": 3,
+        "title": "Genshin Impact Live – New Region Pulls & Lore",
+        "game_category": "Genshin Impact",
+        "scheduled_at": "2026-09-28T14:00:00.000Z",
+        "scheduled_at_wib": "2026-09-28T21:00:00+07:00",
+        "description": "Pull showcase + lore deep dive region baru.",
+        "youtube_url": null,
+        "thumbnail_url": null,
+        "stream_platform": "Twitch + YouTube",
+        "countdown_enabled": true,
+        "status": "upcoming",
+        "created_at": "2026-09-26T10:00:00Z"
+      },
+      {
+        "id": 4,
+        "title": "Elden Ring – Boss Rush No Hit Malenia Practice",
+        "game_category": "Elden Ring",
+        "scheduled_at": "2026-09-18T13:00:00.000Z",
+        "scheduled_at_wib": "2026-09-18T20:00:00+07:00",
+        "description": "Practice run Malenia no hit challenge.",
+        "youtube_url": "https://youtube.com/live/eldring123",
+        "thumbnail_url": null,
+        "stream_platform": "YouTube",
+        "countdown_enabled": false,
+        "status": "live",
+        "created_at": "2026-09-18T08:00:00Z"
+      },
+      {
+        "id": 5,
+        "title": "Stardew Valley Relaxing – Greenhouse Expansion & Rain Chill",
+        "game_category": "Stardew Valley",
+        "scheduled_at": "2026-09-15T14:00:00.000Z",
+        "scheduled_at_wib": "2026-09-15T21:00:00+07:00",
+        "description": null,
+        "youtube_url": "https://youtube.com/live/stardew456",
+        "thumbnail_url": null,
+        "stream_platform": "YouTube",
+        "countdown_enabled": false,
+        "status": "done",
+        "created_at": "2026-09-15T00:00:00Z"
+      }
+    ],
+    "meta": {
+      "total": 14,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 2
+    }
+  },
+
+  "schedule_next": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "title": "Cyberpunk 2077 – Main Story Exploration",
+      "game_category": "Cyberpunk 2077",
+      "scheduled_at": "2026-09-27T13:00:00.000Z",
+      "scheduled_at_wib": "2026-09-27T20:00:00+07:00",
+      "countdown_enabled": true,
+      "status": "upcoming"
+    }
+  },
+
+  "games": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "title": "Elden Ring: Shadow of the Erdtree",
+        "genre": "Action RPG",
+        "publisher": "FromSoftware",
+        "cover_url": "https://placeholder.com/game1.jpg",
+        "vote_count": 247,
+        "vote_percentage": 45.2,
+        "status": "requested",
+        "added_by": "viewer",
+        "requester_info": "Viewer #4021",
+        "period_key": "2026-09"
+      },
+      {
+        "id": 2,
+        "title": "Hollow Knight: Silksong",
+        "genre": "Metroidvania",
+        "publisher": "Team Cherry",
+        "cover_url": "https://placeholder.com/game2.jpg",
+        "vote_count": 198,
+        "vote_percentage": 36.2,
+        "status": "accepted",
+        "added_by": "viewer",
+        "requester_info": "Viewer #1088",
+        "period_key": "2026-09"
+      },
+      {
+        "id": 3,
+        "title": "Minecraft: Regalia Sanctuary Megabuild",
+        "genre": "Sandbox",
+        "publisher": "Mojang",
+        "cover_url": "https://placeholder.com/game3.jpg",
+        "vote_count": 156,
+        "vote_percentage": 28.5,
+        "status": "playing",
+        "added_by": "creator",
+        "requester_info": "Creator (Xion)",
+        "period_key": "2026-09"
+      },
+      {
+        "id": 4,
+        "title": "Silent Hill 2 Remake",
+        "genre": "Atmospheric Horror",
+        "publisher": "Bloober Team",
+        "cover_url": "https://placeholder.com/game4.jpg",
+        "vote_count": 142,
+        "vote_percentage": 25.9,
+        "status": "requested",
+        "added_by": "viewer",
+        "requester_info": "Viewer #891",
+        "period_key": "2026-09"
+      },
+      {
+        "id": 5,
+        "title": "Subnautica: Void Depths",
+        "genre": "Survival",
+        "publisher": "Unknown Worlds",
+        "cover_url": "https://placeholder.com/game5.jpg",
+        "vote_count": 95,
+        "vote_percentage": 17.3,
+        "status": "done",
+        "added_by": "creator",
+        "requester_info": "Creator (Xion)",
+        "period_key": "2026-09"
+      },
+      {
+        "id": 6,
+        "title": "Resident Evil 4 Remake",
+        "genre": "Survival Horror",
+        "publisher": "Capcom",
+        "cover_url": "https://placeholder.com/game6.jpg",
+        "vote_count": 0,
+        "vote_percentage": 0,
+        "status": "requested",
+        "added_by": "viewer",
+        "requester_info": "@KuroNeko",
+        "period_key": "2026-09"
+      }
+    ],
+    "meta": {
+      "period_key": "2026-09",
+      "total_votes": 1480,
+      "total_games": 18
+    }
+  },
+
+  "todos": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "title": "Render & Export YouTube Shorts Clip",
+        "description": "High moment compilation dari stream Cyberpunk semalam",
+        "priority": "high",
+        "status": "pending",
+        "deadline": "2026-09-26T11:00:00Z",
+        "deadline_wib": "2026-09-26T18:00:00+07:00",
+        "tags": ["#Shorts", "#Clip"],
+        "resource_info": "4K ProRes",
+        "completed_at": null,
+        "created_at": "2026-09-26T05:00:00Z"
+      },
+      {
+        "id": 2,
+        "title": "Setup Audio Filters & Noise Gate in OBS",
+        "description": "Virtual DSP gain compensation -3.2dB",
+        "priority": "medium",
+        "status": "pending",
+        "deadline": "2026-09-27T07:00:00Z",
+        "deadline_wib": "2026-09-27T14:00:00+07:00",
+        "tags": ["#TechSetup", "#OBS"],
+        "resource_info": "VST Plugin",
+        "completed_at": null,
+        "created_at": "2026-09-26T05:00:00Z"
+      },
+      {
+        "id": 3,
+        "title": "Review Superchat Fanart Submissions",
+        "description": "12 entri fanart dari event minggu lalu",
+        "priority": "medium",
+        "status": "pending",
+        "deadline": "2026-09-26T14:00:00Z",
+        "deadline_wib": "2026-09-26T21:00:00+07:00",
+        "tags": ["#Community", "#Artwork"],
+        "resource_info": "12 entries",
+        "completed_at": null,
+        "created_at": "2026-09-25T10:00:00Z"
+      },
+      {
+        "id": 4,
+        "title": "Research Indie Horror Game Horizon",
+        "description": null,
+        "priority": "low",
+        "status": "completed",
+        "deadline": null,
+        "deadline_wib": null,
+        "tags": ["#Gaming", "#Steam"],
+        "resource_info": null,
+        "completed_at": "2026-09-26T04:20:00Z",
+        "created_at": "2026-09-25T08:00:00Z"
+      },
+      {
+        "id": 5,
+        "title": "Check OBS Audio Filters – Virtual DSP",
+        "description": "Cek gain compensation sebelum stream malam ini",
+        "priority": "urgent",
+        "status": "pending",
+        "deadline": "2026-09-26T10:00:00Z",
+        "deadline_wib": "2026-09-26T17:00:00+07:00",
+        "tags": ["#OBS", "#Audio"],
+        "resource_info": null,
+        "completed_at": null,
+        "created_at": "2026-09-26T03:00:00Z"
+      }
+    ],
+    "meta": {
+      "total": 5,
+      "completed_today": 1,
+      "pending_deadlines": 2
+    }
+  },
+
+  "content_guides": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "title": "Elden Ring: Shadow of the Erdtree — Ekspedisi Gerbang Sunyi",
+        "game_tag": "Elden Ring",
+        "youtube_url": "https://youtube.com/playlist?list=example1",
+        "thumbnail_url": "https://placeholder.com/content1.jpg",
+        "video_count": 14,
+        "total_duration": "48.5 Jam",
+        "content_type": "playlist",
+        "is_featured": true,
+        "is_visible": true,
+        "sort_order": 1
+      },
+      {
+        "id": 2,
+        "title": "Signalis: Solitary Resonance — Full Story Arc",
+        "game_tag": "Signalis",
+        "youtube_url": "https://youtube.com/playlist?list=example2",
+        "thumbnail_url": "https://placeholder.com/content2.jpg",
+        "video_count": 6,
+        "total_duration": "19 Jam",
+        "content_type": "playlist",
+        "is_featured": false,
+        "is_visible": true,
+        "sort_order": 2
+      },
+      {
+        "id": 3,
+        "title": "Midnight Tea & Fan Letters: Season 2",
+        "game_tag": "Chat/Zatsu",
+        "youtube_url": "https://youtube.com/playlist?list=example3",
+        "thumbnail_url": "https://placeholder.com/content3.jpg",
+        "video_count": 21,
+        "total_duration": "52 Jam",
+        "content_type": "playlist",
+        "is_featured": false,
+        "is_visible": true,
+        "sort_order": 3
+      },
+      {
+        "id": 4,
+        "title": "Hollow Knight: Pantheon of Hallownest Climax",
+        "game_tag": "Hollow Knight",
+        "youtube_url": "https://youtube.com/playlist?list=example4",
+        "thumbnail_url": "https://placeholder.com/content4.jpg",
+        "video_count": 8,
+        "total_duration": "19 Jam",
+        "content_type": "playlist",
+        "is_featured": false,
+        "is_visible": true,
+        "sort_order": 4
+      }
+    ],
+    "meta": {
+      "total": 18,
+      "visible": 15,
+      "hidden": 3,
+      "featured": 1
+    }
+  },
+
+  "audit_logs": {
+    "success": true,
+    "data": [
+      {
+        "id": 142,
+        "action_type": "vote_in",
+        "detail": "58 vote baru ditambahkan",
+        "sub_detail": "Outer Wilds: Echoes of the Eye",
+        "created_at": "2026-09-26T09:50:00Z",
+        "time_ago": "10 mnt lalu"
+      },
+      {
+        "id": 141,
+        "action_type": "schedule_updated",
+        "detail": "Siaran diset ke LIVE NOW",
+        "sub_detail": "Signalis: Solitary Resonance · Slot 21:00 UTC+7",
+        "created_at": "2026-09-26T07:50:00Z",
+        "time_ago": "2 jam lalu"
+      },
+      {
+        "id": 140,
+        "action_type": "game_requested",
+        "detail": "Viewer #1042 mengajukan usulan baru",
+        "sub_detail": "Silent Hill 2 Remake",
+        "created_at": "2026-09-25T10:00:00Z",
+        "time_ago": "1 hari lalu"
+      },
+      {
+        "id": 139,
+        "action_type": "asset_archived",
+        "detail": "VOD Night 14 berhasil diekspor",
+        "sub_detail": "Ghost in the Shell Soundscape Archive 4K",
+        "created_at": "2026-09-24T10:00:00Z",
+        "time_ago": "2 hari lalu"
+      }
+    ],
+    "meta": {
+      "total": 142,
+      "page": 1,
+      "limit": 5,
+      "totalPages": 29
+    }
+  },
+
+  "youtube_fetch_example": {
+    "success": true,
+    "data": {
+      "title": "Cyberpunk 2077 Night Stream",
+      "thumbnail_url": "https://i.ytimg.com/vi/x7K9vQ/maxresdefault.jpg",
+      "category": "Gaming",
+      "published_at": "2026-09-27T13:00:00Z"
+    }
+  },
+
+  "vote_success": {
+    "success": true,
+    "data": {
+      "game_id": 1,
+      "new_vote_count": 248,
+      "vote_percentage": 45.5
+    },
+    "message": "Vote berhasil dicatat"
+  },
+
+  "vote_duplicate": {
+    "success": false,
+    "data": null,
+    "message": "Kamu sudah memberikan suara untuk game ini di periode ini"
+  },
+
+  "game_request_success": {
+    "success": true,
+    "data": {
+      "id": 19,
+      "title": "Alan Wake 2",
+      "status": "requested"
+    },
+    "message": "Request game berhasil dikirim! Menunggu review Creator."
+  },
+
+  "period_reset_success": {
+    "success": true,
+    "data": {
+      "new_period_key": "2026-10"
+    },
+    "message": "Periode voting berhasil direset. Periode baru: Oktober 2026"
+  }
+}
