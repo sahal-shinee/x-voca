@@ -1,5 +1,7 @@
 # USAGE_GUIDE.md — Panduan Lengkap X-VOCA
+
 # Satu-satunya file yang perlu dibaca manusia sebelum dan selama development
+
 # Sahal baca Bagian 1 | Choirul baca Bagian 2 | Berdua baca Bagian 3 & 4
 
 ---
@@ -25,6 +27,7 @@ docs/
 ```
 
 **Catatan penting:**
+
 - File `AI_RULES_WEB.md` tidak perlu dibaca Sahal — agent membacanya otomatis
 - File `AI_RULES_MOBILE.md` tidak perlu dibaca Choirul — isinya sudah ada di template prompt di Bagian 2
 - Choirul hanya perlu baca file ini + `UI_SPEC_MOBILE.md` + `API_CONTRACT.md` + `MOCK_DATA.json`
@@ -52,6 +55,7 @@ Agent akan otomatis membaca file yang relevan dari folder `docs/` setiap kali di
 Setiap prompt di bawah ini **langsung bisa di-copy-paste** ke agent VSCode. Tidak perlu tambah apapun — semua instruksi sudah lengkap di dalamnya.
 
 **Satu aturan:** Selalu mulai prompt dengan perintah baca file dulu, baru minta kerjakan sesuatu. Contoh polanya:
+
 ```
 Baca [file yang relevan], kemudian [kerjakan ini]
 ```
@@ -60,7 +64,8 @@ Baca [file yang relevan], kemudian [kerjakan ini]
 
 ## FASE 1 — Setup Project & Database
 
-### Prompt 1A — Setup Frontend React (Vite)
+### Prompt 1A — Setup Frontend React (Vite) -- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/ARCHITECTURE.md,
 dan docs/DESIGN_TOKENS.md.
@@ -105,7 +110,8 @@ Setup project React.js dengan Vite di folder web/frontend/:
 
 ---
 
-### Prompt 1B — Setup Backend Express.js
+### Prompt 1B — Setup Backend Express.js --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/ARCHITECTURE.md,
 dan docs/DATABASE_SCHEMA.md.
@@ -151,7 +157,8 @@ Format response API WAJIB konsisten:
 
 ---
 
-### Prompt 1C — Setup Database & Seed Data
+### Prompt 1C — Setup Database & Seed Data --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, dan docs/DATABASE_SCHEMA.md.
 
@@ -183,7 +190,8 @@ Setup database X-VOCA:
 
 ## FASE 2 — Backend API (Express.js)
 
-### Prompt 2A — Auth Endpoints
+### Prompt 2A — Auth Endpoints --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/API_CONTRACT.md,
 dan docs/DATABASE_SCHEMA.md.
@@ -218,7 +226,8 @@ Format response wajib: { success, data, message }
 
 ---
 
-### Prompt 2B — Schedule Endpoints
+### Prompt 2B — Schedule Endpoints --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/API_CONTRACT.md,
 dan docs/DATABASE_SCHEMA.md.
@@ -243,7 +252,8 @@ Buat: src/routes/schedule.routes.js dan src/controllers/schedule.controller.js
 
 ---
 
-### Prompt 2C — Game & Vote Endpoints
+### Prompt 2C — Game & Vote Endpoints --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/API_CONTRACT.md,
 dan docs/DATABASE_SCHEMA.md.
@@ -288,7 +298,8 @@ Buat: src/routes/game.routes.js, src/routes/vote.routes.js
 
 ---
 
-### Prompt 2D — Content, Todo, YouTube, Dashboard Endpoints
+### Prompt 2D — Content, Todo, YouTube, Dashboard Endpoints --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/API_CONTRACT.md,
 dan docs/DATABASE_SCHEMA.md.
@@ -338,9 +349,10 @@ Buat semua routes dan controllers yang dibutuhkan.
 
 ---
 
-## FASE 3 — Web Viewer (React.js)
+## FASE 3 — Web Viewer (React.js) --- done tapi kurang mirip
 
 ### Prompt 3A — HomePage
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -379,7 +391,8 @@ Listen ke node /schedules/next — update state saat data berubah
 
 ---
 
-### Prompt 3B — VotingPage
+### Prompt 3B — VotingPage --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -424,7 +437,8 @@ Buat juga:
 
 ---
 
-### Prompt 3C — ContentGuidePage
+### Prompt 3C — ContentGuidePage --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -458,12 +472,13 @@ Buat juga:
 - src/components/viewer/ContentCard.jsx — card konten reusable
 - src/components/viewer/FeaturedCard.jsx — featured card
 ```
-
+Evaluasi untuk fase 3, tampilan masih kaku dan jelek
 ---
 
-## FASE 4 — Web Admin (React.js)
+## FASE 4 — Web Admin (React.js) --- done
 
 ### Prompt 4A — Layout Admin + Login
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -498,7 +513,8 @@ Buat komponen admin:
 
 ---
 
-### Prompt 4B — Dashboard Admin
+### Prompt 4B — Dashboard Admin --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -541,7 +557,8 @@ Buat juga:
 
 ---
 
-### Prompt 4C — Halaman Jadwal Admin
+### Prompt 4C — Halaman Jadwal Admin --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -577,7 +594,8 @@ Buat juga:
 
 ---
 
-### Prompt 4D — Moderasi Voting Admin
+### Prompt 4D — Moderasi Voting Admin --- done 
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -621,7 +639,8 @@ Fitur yang harus ada:
 
 ---
 
-### Prompt 4E — Manajemen Content Guide Admin
+### Prompt 4E — Manajemen Content Guide Admin --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/UI_SPEC_WEB.md,
 dan docs/DESIGN_TOKENS.md.
@@ -661,9 +680,10 @@ Buat juga:
 
 ---
 
-## FASE 5 — Firebase Real-time & Integrasi
+## FASE 5 — Firebase Real-time & Integrasi --- done
 
 ### Prompt 5A — Setup Firebase di Frontend
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, dan docs/ARCHITECTURE.md.
 
@@ -694,7 +714,8 @@ Setup Firebase Realtime Database di frontend React:
 
 ---
 
-### Prompt 5B — Testing & Bug Fix
+### Prompt 5B — Testing & Bug Fix --- done
+
 ```
 Baca docs/PROJECT_CONTEXT.md, docs/AI_RULES_WEB.md, docs/API_CONTRACT.md,
 dan docs/UI_SPEC_WEB.md.
@@ -732,6 +753,7 @@ Baca file yang relevan sebelum memperbaiki bug.
 ## Prompt Utilitas — Bisa Dipakai Kapanpun
 
 ### Sesi Token Habis, Lanjut Sesi Baru
+
 ```
 Baca docs/PROJECT_CONTEXT.md dan docs/AI_RULES_WEB.md.
 Baca juga file yang sedang dikerjakan: [path file]
@@ -744,6 +766,7 @@ Lanjutkan dari bagian: [jelaskan yang belum selesai]
 ---
 
 ### Ada Error / Bug
+
 ```
 Baca docs/PROJECT_CONTEXT.md dan docs/AI_RULES_WEB.md.
 Baca juga file yang bermasalah: [path file]
@@ -757,6 +780,7 @@ Perbaiki error ini dan jelaskan penyebabnya.
 ---
 
 ### Cek Kesesuaian UI dengan Mockup
+
 ```
 Baca docs/UI_SPEC_WEB.md bagian [nama halaman].
 Baca juga file: [path file JSX]
@@ -768,6 +792,7 @@ Jika ada yang tidak sesuai, perbaiki langsung.
 ---
 
 ### Refactor / Rapikan Kode
+
 ```
 Baca docs/AI_RULES_WEB.md dan file berikut: [path file]
 
@@ -787,6 +812,7 @@ Rapikan kode ini sesuai aturan di AI_RULES_WEB.md:
 Gemini web free tier tidak bisa baca folder project dan tidak bisa upload file. Choirul hanya bisa **copy-paste teks** ke chat Gemini.
 
 **Alurnya setiap sesi:**
+
 1. Buka chat Gemini baru di gemini.google.com
 2. Copy-paste **Template Wajib** (ada di bawah) — SELALU di setiap sesi baru
 3. Copy-paste bagian **Spesifikasi Screen** dari `UI_SPEC_MOBILE.md` yang relevan
@@ -928,6 +954,7 @@ Setelah paste template di atas, **lanjutkan dengan salah satu prompt screen di b
 ## Prompt Screen Choirul — Per Screen
 
 ### Prompt Setup Awal (Fase 1)
+
 ```
 [PASTE TEMPLATE WAJIB DI ATAS DULU]
 
@@ -1266,12 +1293,12 @@ Tolong perbaiki dan jelaskan penyebabnya.
 
 ## Referensi Cepat Choirul
 
-| Choirul butuh... | Buka file... | Ambil bagian... |
-|---|---|---|
-| Spesifikasi visual screen | `UI_SPEC_MOBILE.md` | "SCREEN X — [nama]" |
-| Format request/response endpoint | `API_CONTRACT.md` | Endpoint yang relevan |
-| Data dummy sementara | `MOCK_DATA.json` | Key yang sesuai |
-| Cara setup Flutter dari awal | `SETUP_GUIDE_CHOIRUL.md` | Semua tahap |
+| Choirul butuh...                 | Buka file...             | Ambil bagian...       |
+| -------------------------------- | ------------------------ | --------------------- |
+| Spesifikasi visual screen        | `UI_SPEC_MOBILE.md`      | "SCREEN X — [nama]"   |
+| Format request/response endpoint | `API_CONTRACT.md`        | Endpoint yang relevan |
+| Data dummy sementara             | `MOCK_DATA.json`         | Key yang sesuai       |
+| Cara setup Flutter dari awal     | `SETUP_GUIDE_CHOIRUL.md` | Semua tahap           |
 
 ---
 
@@ -1279,13 +1306,13 @@ Tolong perbaiki dan jelaskan penyebabnya.
 
 ## Kapan Harus Komunikasi
 
-| Situasi | Yang harus dilakukan |
-|---|---|
-| Choirul mau mulai connect ke API asli | Tanya Sahal: URL Railway atau IP lokal |
-| Response API berbeda dari MOCK_DATA | Sahal cek format response, update MOCK_DATA.json |
-| Ada perubahan endpoint | Sahal update API_CONTRACT.md DULU, baru info Choirul |
-| Backend endpoint baru selesai dibuat | Sahal info Choirul: endpoint apa yang sudah siap |
-| Choirul stuck dengan error API | Kirim screenshot error ke Sahal untuk dicek di backend |
+| Situasi                               | Yang harus dilakukan                                   |
+| ------------------------------------- | ------------------------------------------------------ |
+| Choirul mau mulai connect ke API asli | Tanya Sahal: URL Railway atau IP lokal                 |
+| Response API berbeda dari MOCK_DATA   | Sahal cek format response, update MOCK_DATA.json       |
+| Ada perubahan endpoint                | Sahal update API_CONTRACT.md DULU, baru info Choirul   |
+| Backend endpoint baru selesai dibuat  | Sahal info Choirul: endpoint apa yang sudah siap       |
+| Choirul stuck dengan error API        | Kirim screenshot error ke Sahal untuk dicek di backend |
 
 ## Aturan Wajib Berdua
 
@@ -1309,6 +1336,7 @@ Tolong perbaiki dan jelaskan penyebabnya.
 # BAGIAN 4 — CHECKLIST PROGRESS
 
 ## Milestone 1 — Setup
+
 - [ ] Sahal: Railway MySQL + semua tabel + seed data berhasil
 - [ ] Sahal: Firebase Realtime Database aktif
 - [ ] Sahal: Backend Express jalan di localhost:3001
@@ -1317,12 +1345,14 @@ Tolong perbaiki dan jelaskan penyebabnya.
 - [ ] Choirul: Firebase terhubung ke Flutter (tidak ada error)
 
 ## Milestone 2 — Backend Selesai
+
 - [ ] Semua endpoint di API_CONTRACT.md sudah dibuat Sahal
 - [ ] Semua endpoint sudah ditest dengan Thunder Client
 - [ ] Firebase update otomatis saat ada perubahan data
 - [ ] Anti-spam voting berfungsi (test 3 lapis)
 
 ## Milestone 3 — Mobile App Selesai
+
 - [ ] Login Screen — bisa login dan logout
 - [ ] Dashboard Screen — countdown, stats, tasks
 - [ ] Schedule Screen — CRUD jadwal + YouTube auto-fill
@@ -1333,6 +1363,7 @@ Tolong perbaiki dan jelaskan penyebabnya.
 - [ ] Semua screen connect ke API asli (bukan mock)
 
 ## Milestone 4 — Web Selesai
+
 - [ ] HomePage — hero, profil, upcoming broadcast
 - [ ] VotingPage — grid game, vote anti-spam, real-time Firebase
 - [ ] ContentGuidePage — katalog, filter, load more
@@ -1343,6 +1374,7 @@ Tolong perbaiki dan jelaskan penyebabnya.
 - [ ] Content Admin — grid + form panel + toggle visible/featured
 
 ## Milestone 5 — Deploy & Demo
+
 - [ ] Frontend React di-deploy ke Vercel
 - [ ] Backend Express di-deploy ke Railway
 - [ ] APK Flutter ter-install di HP Xion Regalia

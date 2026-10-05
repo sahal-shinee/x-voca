@@ -1,21 +1,50 @@
 const { Schedule, User, AuditLog } = require('../models');
-const firebaseDb = require('../config/firebase');
+const { updateNextSchedule } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
+
+/**
+ * Convert UTC date to WIB (UTC+7)
+ */
+const toWIB = (date) => {
+  if (!date) return null;
+  return new Date(date).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+};
+
+/**
+ * Add scheduled_at_wib to schedule object
+ */
+const addWIBField = (schedule) => {
+  if (!schedule) return null;
+  const data = schedule.toJSON ? schedule.toJSON() : { ...schedule };
+  data.scheduled_at_wib = toWIB(data.scheduled_at);
+  return data;
+};
+
+/**
+ * Add scheduled_at_wib to array of schedules
+ */
+const addWIBFieldToArray = (schedules) => {
+  return schedules.map(addWIBField);
+};
 
 /**
  * Get all schedules
  * GET /api/schedules
+ * Query params: status, limit, page
  */
 const getSchedules = async (req, res) => {
   try {
-    const { status, limit = 50 } = req.query;
+    const { status, limit = 10, page = 1 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
     const where = {};
     if (status) {
       where.status = status;
     }
 
-    const schedules = await Schedule.findAll({
+    const { count, rows: schedules } = await Schedule.findAndCountAll({
       where,
       include: [{
         model: User,
@@ -23,12 +52,21 @@ const getSchedules = async (req, res) => {
         attributes: ['id', 'name', 'avatar_url']
       }],
       order: [['scheduled_at', 'ASC']],
-      limit: parseInt(limit)
+      limit: limitNum,
+      offset: offset
     });
 
     return res.status(200).json({
       success: true,
-      data: schedules,
+      data: {
+        schedules: addWIBFieldToArray(schedules),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(count / limitNum)
+        }
+      },
       message: 'Daftar jadwal berhasil diambil.'
     });
   } catch (error) {
@@ -65,7 +103,7 @@ const getNextSchedule = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: schedule,
+      data: schedule ? addWIBField(schedule) : null,
       message: schedule ? 'Jadwal berikutnya berhasil diambil.' : 'Tidak ada jadwal mendatang.'
     });
   } catch (error) {
@@ -104,7 +142,7 @@ const getScheduleById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: schedule,
+      data: addWIBField(schedule),
       message: 'Jadwal berhasil diambil.'
     });
   } catch (error) {
@@ -165,14 +203,14 @@ const createSchedule = async (req, res) => {
     });
 
     // Update Firebase if this is the next upcoming schedule
-    const nextSchedule = await getNextScheduleData();
-    if (nextSchedule && nextSchedule.id === schedule.id) {
-      await firebaseDb.updateNextSchedule(schedule);
+    const nextScheduleData = await getNextScheduleData();
+    if (nextScheduleData && nextScheduleData.id === schedule.id) {
+      await updateNextSchedule(schedule);
     }
 
     return res.status(201).json({
       success: true,
-      data: schedule,
+      data: addWIBField(schedule),
       message: 'Jadwal berhasil dibuat.'
     });
   } catch (error) {
@@ -213,7 +251,11 @@ const updateSchedule = async (req, res) => {
 
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
-        schedule[field] = updates[field];
+        if (field === 'scheduled_at') {
+          schedule[field] = new Date(updates[field]);
+        } else {
+          schedule[field] = updates[field];
+        }
       }
     });
 
@@ -227,14 +269,14 @@ const updateSchedule = async (req, res) => {
     });
 
     // Update Firebase if this schedule is the next one
-    const nextSchedule = await getNextScheduleData();
-    if (nextSchedule && nextSchedule.id === schedule.id) {
-      await firebaseDb.updateNextSchedule(schedule);
+    const nextScheduleData = await getNextScheduleData();
+    if (nextScheduleData && nextScheduleData.id === schedule.id) {
+      await updateNextSchedule(schedule);
     }
 
     return res.status(200).json({
       success: true,
-      data: schedule,
+      data: addWIBField(schedule),
       message: 'Jadwal berhasil diperbarui.'
     });
   } catch (error) {
@@ -275,13 +317,10 @@ const deleteSchedule = async (req, res) => {
       sub_detail: scheduleTitle
     });
 
-    // Update Firebase
-    const nextSchedule = await getNextScheduleData();
-    if (nextSchedule) {
-      await firebaseDb.updateNextSchedule(nextSchedule);
-    } else {
-      // Clear the next schedule in Firebase
-      await firebaseDb.updateNextSchedule(null);
+    // Update Firebase with next schedule
+    const nextScheduleData = await getNextScheduleData();
+    if (nextScheduleData) {
+      await updateNextSchedule(nextScheduleData);
     }
 
     return res.status(200).json({

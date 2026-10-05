@@ -4,6 +4,7 @@ const axios = require('axios');
  * Extract YouTube video ID from various URL formats
  */
 const extractVideoId = (url) => {
+  // Support: youtube.com/live/ID, youtu.be/ID, watch?v=ID
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
     /youtube\.com\/live\/([^&\n?#]+)/,
@@ -28,8 +29,9 @@ const extractPlaylistId = (url) => {
 };
 
 /**
- * Fetch YouTube video/playlist info
+ * Fetch YouTube video info
  * POST /api/youtube/fetch
+ * Returns: { title, thumbnail_url, category, published_at }
  */
 const fetchYouTubeInfo = async (req, res) => {
   try {
@@ -53,11 +55,10 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
-    // Check if it's a video or playlist
+    // Extract video ID
     const videoId = extractVideoId(url);
-    const playlistId = extractPlaylistId(url);
 
-    if (!videoId && !playlistId) {
+    if (!videoId) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -65,98 +66,48 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
-    // Determine content type
-    const contentType = playlistId ? 'playlist' : 'video';
-
-    // Fetch video/playlist details
-    if (contentType === 'video') {
-      const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
-        params: {
-          part: 'snippet,contentDetails',
-          id: videoId,
-          key: apiKey
-        }
-      });
-
-      if (!response.data.items || response.data.items.length === 0) {
-        return res.status(404).json({
-          success: false,
-          data: null,
-          message: 'Video tidak ditemukan.'
-        });
+    // Fetch video details using YouTube Data API v3
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+      params: {
+        part: 'snippet',
+        id: videoId,
+        key: apiKey
       }
+    });
 
-      const video = response.data.items[0].snippet;
-      const contentDetails = response.data.items[0].contentDetails;
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          title: video.title,
-          thumbnail: video.thumbnails?.high?.url || video.thumbnails?.medium?.url,
-          category: video.categoryId,
-          publishedAt: video.publishedAt,
-          channelTitle: video.channelTitle,
-          duration: contentDetails.duration,
-          contentType: 'video'
-        },
-        message: 'Info video berhasil diambil.'
-      });
-    } else {
-      // Fetch playlist details
-      const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
-        params: {
-          part: 'snippet',
-          id: playlistId,
-          key: apiKey
-        }
-      });
-
-      if (!response.data.items || response.data.items.length === 0) {
-        return res.status(404).json({
-          success: false,
-          data: null,
-          message: 'Playlist tidak ditemukan.'
-        });
-      }
-
-      const playlist = response.data.items[0].snippet;
-
-      // Get playlist items count
-      const itemsResponse = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
-        params: {
-          part: 'contentDetails',
-          playlistId: playlistId,
-          maxResults: 1,
-          key: apiKey
-        }
-      });
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          title: playlist.title,
-          thumbnail: playlist.thumbnails?.high?.url || playlist.thumbnails?.medium?.url,
-          channelTitle: playlist.channelTitle,
-          contentType: 'playlist',
-          videoCount: itemsResponse.data.pageInfo?.totalResults || 0
-        },
-        message: 'Info playlist berhasil diambil.'
+    if (!response.data.items || response.data.items.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'Video tidak ditemukan.'
       });
     }
+
+    const snippet = response.data.items[0].snippet;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        title: snippet.title,
+        thumbnail_url: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url,
+        category: snippet.categoryId || null,
+        published_at: snippet.publishedAt
+      },
+      message: 'Info video berhasil diambil.'
+    });
   } catch (error) {
     console.error('YouTube fetch error:', error.response?.data || error.message);
 
     // Handle YouTube API errors
-    if (error.response?.data?.error?.code === 404) {
+    if (error.response?.status === 404) {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Video/playlist tidak ditemukan.'
+        message: 'Video tidak ditemukan.'
       });
     }
 
-    if (error.response?.data?.error?.code === 403) {
+    if (error.response?.status === 403) {
       return res.status(403).json({
         success: false,
         data: null,

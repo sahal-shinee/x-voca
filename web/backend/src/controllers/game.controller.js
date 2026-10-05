@@ -1,14 +1,15 @@
 const { Game, Vote, AuditLog } = require('../models');
-const firebaseDb = require('../config/firebase');
+const { updateVoteCount, updateAllGamesVotes } = require('../utils/firebase.helper');
 const { Op, fn, col, literal } = require('sequelize');
 
 /**
  * Get all games with voting stats
  * GET /api/games
+ * Query: status, period_key, sort, search
  */
 const getGames = async (req, res) => {
   try {
-    const { period_key, status, limit = 100 } = req.query;
+    const { period_key, status, sort = 'vote_count', search } = req.query;
 
     // Default to current month if no period_key provided
     const currentPeriod = period_key || new Date().toISOString().slice(0, 7);
@@ -17,12 +18,29 @@ const getGames = async (req, res) => {
     if (status) {
       where.status = status;
     }
+    if (search) {
+      where.title = { [Op.like]: `%${search}%` };
+    }
+
+    // Determine sort order
+    let order;
+    if (sort === 'title') {
+      order = [['title', 'ASC']];
+    } else if (sort === 'status') {
+      order = [['status', 'ASC']];
+    } else {
+      order = [['vote_count', 'DESC']]; // default: by votes
+    }
 
     // Get all games with total vote count in current period
     const games = await Game.findAll({
       where,
-      order: [['vote_count', 'DESC']],
-      limit: parseInt(limit)
+      order,
+      attributes: {
+        include: [
+          [fn('SUM', col('vote_count')), 'total_votes']
+        ]
+      }
     });
 
     // Calculate total votes for percentage
@@ -41,7 +59,8 @@ const getGames = async (req, res) => {
       data: gamesWithPercentage,
       meta: {
         period_key: currentPeriod,
-        total_votes: totalVotes
+        total_votes: totalVotes,
+        total_games: games.length
       },
       message: 'Daftar game berhasil diambil.'
     });
@@ -136,7 +155,9 @@ const createGame = async (req, res) => {
     });
 
     // Update Firebase
-    await firebaseDb.updateVoteCount(game.id, game.vote_count, game.status);
+    const totalVotes = await Game.sum('vote_count', { where: { period_key: game.period_key } }) || 0;
+    const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
+    await updateVoteCount(game.id, game.vote_count, percentage);
 
     return res.status(201).json({
       success: true,
@@ -194,7 +215,9 @@ const updateGameStatus = async (req, res) => {
     });
 
     // Update Firebase
-    await firebaseDb.updateVoteCount(game.id, game.vote_count, game.status);
+    const totalVotes = await Game.sum('vote_count', { where: { period_key: game.period_key } }) || 0;
+    const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
+    await updateVoteCount(game.id, game.vote_count, percentage);
 
     return res.status(200).json({
       success: true,

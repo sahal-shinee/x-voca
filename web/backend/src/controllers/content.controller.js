@@ -2,12 +2,16 @@ const { ContentGuide, User, AuditLog } = require('../models');
 const { Op } = require('sequelize');
 
 /**
- * Get all content guides
+ * Get all visible content guides (public)
  * GET /api/content
+ * Query: featured, game_tag, search, page, limit
  */
 const getContents = async (req, res) => {
   try {
-    const { game_tag, content_type, is_featured, limit = 50 } = req.query;
+    const { game_tag, content_type, is_featured, search, page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
     const where = { is_visible: true };
 
@@ -23,7 +27,14 @@ const getContents = async (req, res) => {
       where.is_featured = is_featured === 'true';
     }
 
-    const contents = await ContentGuide.findAll({
+    if (search) {
+      where[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { game_tag: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: contents } = await ContentGuide.findAndCountAll({
       where,
       include: [{
         model: User,
@@ -35,12 +46,21 @@ const getContents = async (req, res) => {
         ['sort_order', 'ASC'],
         ['created_at', 'DESC']
       ],
-      limit: parseInt(limit)
+      limit: limitNum,
+      offset: offset
     });
 
     return res.status(200).json({
       success: true,
-      data: contents,
+      data: {
+        contents,
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(count / limitNum)
+        }
+      },
       message: 'Daftar konten berhasil diambil.'
     });
   } catch (error) {

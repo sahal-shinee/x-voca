@@ -61,6 +61,18 @@ const syncDatabase = async (options = {}) => {
   }
 };
 
+// Test database connection
+const testConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Database connection established successfully.');
+    return true;
+  } catch (error) {
+    console.error('❌ Unable to connect to the database:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   sequelize,
   User,
@@ -70,5 +82,6 @@ module.exports = {
   ContentGuide,
   Todo,
   AuditLog,
-  syncDatabase
+  syncDatabase,
+  testConnection
 };

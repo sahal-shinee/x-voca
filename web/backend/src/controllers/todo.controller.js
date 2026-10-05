@@ -4,10 +4,12 @@ const { Op } = require('sequelize');
 /**
  * Get all todos for current user
  * GET /api/todos
+ * Query: status, priority
+ * Returns meta: { total, completed_today, pending_deadlines }
  */
 const getTodos = async (req, res) => {
   try {
-    const { status, priority, limit = 100 } = req.query;
+    const { status, priority } = req.query;
 
     const where = { user_id: req.userId };
 
@@ -25,13 +27,49 @@ const getTodos = async (req, res) => {
         ['priority', 'ASC'], // urgent=1, high=2, medium=3, low=4
         ['deadline', 'ASC'],
         ['created_at', 'DESC']
-      ],
-      limit: parseInt(limit)
+      ]
+    });
+
+    // Calculate meta stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const total = await Todo.count({ where: { user_id: req.userId } });
+
+    const completedToday = await Todo.count({
+      where: {
+        user_id: req.userId,
+        status: 'completed',
+        completed_at: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
+
+    const pendingDeadlines = await Todo.count({
+      where: {
+        user_id: req.userId,
+        status: { [Op.in]: ['pending', 'in_progress'] },
+        deadline: {
+          [Op.ne]: null,
+          [Op.lte]: tomorrow
+        }
+      }
     });
 
     return res.status(200).json({
       success: true,
-      data: todos,
+      data: {
+        todos,
+        meta: {
+          total,
+          completed_today: completedToday,
+          pending_deadlines: pendingDeadlines
+        }
+      },
       message: 'Daftar todo berhasil diambil.'
     });
   } catch (error) {

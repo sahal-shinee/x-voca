@@ -1,16 +1,28 @@
 const { Game, Vote, AuditLog } = require('../models');
-const firebaseDb = require('../config/firebase');
+const { updateVoteCount, updateAllGamesVotes, resetVotingPeriod } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
+
+/**
+ * Get client IP address
+ */
+const getClientIP = (req) => {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.headers['x-real-ip']
+    || req.ip
+    || req.connection?.remoteAddress
+    || 'unknown';
+};
 
 /**
  * Submit vote for a game
  * POST /api/votes/:gameId
+ * Anti-spam: IP + fingerprint check
  */
 const submitVote = async (req, res) => {
   try {
     const { gameId } = req.params;
     const { fingerprint } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const ipAddress = getClientIP(req);
 
     // Validate game ID
     const game = await Game.findByPk(gameId);
@@ -34,7 +46,7 @@ const submitVote = async (req, res) => {
 
     const period_key = game.period_key;
 
-    // Check if already voted (by IP or fingerprint)
+    // Anti-spam check: IP OR fingerprint in votes table
     const existingVote = await Vote.findOne({
       where: {
         game_id: gameId,
@@ -73,14 +85,17 @@ const submitVote = async (req, res) => {
       sub_detail: game.title
     });
 
-    // Update Firebase
-    await firebaseDb.updateVoteCount(game.id, game.vote_count, game.status);
+    // Update Firebase with new percentage
+    const totalVotes = await Game.sum('vote_count', { where: { period_key } }) || 0;
+    const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
+    await updateVoteCount(game.id, game.vote_count, percentage, totalVotes);
 
     return res.status(200).json({
       success: true,
       data: {
         game_id: game.id,
-        vote_count: game.vote_count
+        vote_count: game.vote_count,
+        vote_percentage: percentage
       },
       message: 'Vote berhasil diberikan.'
     });
@@ -97,11 +112,12 @@ const submitVote = async (req, res) => {
 /**
  * Submit game request
  * POST /api/votes/request
+ * Rate limit: 1x per device per 7 days
  */
 const submitGameRequest = async (req, res) => {
   try {
     const { title, genre, publisher, cover_url } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const ipAddress = getClientIP(req);
     const fingerprint = req.body.fingerprint || ipAddress;
 
     // Validate required fields
@@ -113,25 +129,31 @@ const submitGameRequest = async (req, res) => {
       });
     }
 
-    // Generate period key
-    const period_key = new Date().toISOString().slice(0, 7);
+    // Check if viewer already requested within 7 days (rate limit)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Check if viewer already requested a game this period
     const existingRequest = await Vote.findOne({
       where: {
-        ip_address: ipAddress,
         fingerprint,
-        period_key
-      }
+        voted_at: { [Op.gte]: sevenDaysAgo }
+      },
+      include: [{
+        model: Game,
+        as: 'game',
+        where: { added_by: 'viewer' }
+      }]
     });
 
     if (existingRequest) {
       return res.status(429).json({
         success: false,
         data: null,
-        message: 'Anda sudah mengajukan request game di periode ini.'
+        message: 'Anda sudah mengajukan request game dalam 7 hari terakhir.'
       });
     }
+
+    // Generate period key
+    const period_key = new Date().toISOString().slice(0, 7);
 
     // Create new game with requested status
     const game = await Game.create({
@@ -179,34 +201,31 @@ const submitGameRequest = async (req, res) => {
 /**
  * Reset voting period
  * POST /api/votes/reset-period
+ * Generate new period_key (current month), reset all non-done games
  */
 const resetPeriod = async (req, res) => {
   try {
-    // Generate new period key (next month)
-    const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const newPeriodKey = nextMonth.toISOString().slice(0, 7);
+    // Generate new period key (current month)
+    const newPeriodKey = new Date().toISOString().slice(0, 7);
 
-    // Get all games from current period
-    const currentPeriod = new Date().toISOString().slice(0, 7);
-    const games = await Game.findAll({
+    // Get all games from current period that are NOT done
+    const currentPeriodGames = await Game.findAll({
       where: {
-        period_key: currentPeriod,
         status: { [Op.ne]: 'done' }
       }
     });
 
     // Reset vote counts and update period keys
-    for (const game of games) {
+    for (const game of currentPeriodGames) {
       game.vote_count = 0;
       game.status = 'requested';
       game.period_key = newPeriodKey;
       await game.save();
     }
 
-    // Delete all vote records from current period
+    // Delete all vote records (archived data stays, just reset active ones)
     await Vote.destroy({
-      where: { period_key: currentPeriod }
+      where: {}
     });
 
     // Create audit log
@@ -216,21 +235,14 @@ const resetPeriod = async (req, res) => {
       sub_detail: `Periode baru: ${newPeriodKey}`
     });
 
-    // Update Firebase with new period
-    const newPeriodGames = {};
-    games.forEach(game => {
-      newPeriodGames[game.id] = {
-        voteCount: 0,
-        status: 'requested'
-      };
-    });
-    await firebaseDb.updateVotingPeriod(newPeriodKey, newPeriodGames);
+    // Update Firebase with new period (reset all)
+    await resetVotingPeriod(newPeriodKey);
 
     return res.status(200).json({
       success: true,
       data: {
         new_period: newPeriodKey,
-        games_reset: games.length
+        games_reset: currentPeriodGames.length
       },
       message: `Periode voting berhasil di-reset ke ${newPeriodKey}.`
     });

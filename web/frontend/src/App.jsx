@@ -1,122 +1,92 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/common/Toast';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Admin Components
+import AdminLayout from './components/admin/AdminLayout';
+import PrivateRoute from './components/admin/PrivateRoute';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Viewer Pages
+import HomePage from './pages/viewer/HomePage';
+import VotingPage from './pages/viewer/VotingPage';
+import ContentGuidePage from './pages/viewer/ContentGuidePage';
 
-      <div className="ticks"></div>
+// Admin Pages
+import LoginPage from './pages/admin/LoginPage';
+import DashboardPage from './pages/admin/DashboardPage';
+import SchedulePage from './pages/admin/SchedulePage';
+import VotingModerationPage from './pages/admin/VotingModerationPage';
+import ContentManagementPage from './pages/admin/ContentManagementPage';
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+/**
+ * PublicAdminRoute - Redirects authenticated users away from login page
+ */
+function PublicAdminRoute({ children }) {
+  const token = localStorage.getItem('xvoca_admin_token');
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  // If token exists, user is likely logged in - redirect to dashboard
+  if (token) {
+    // Don't render children, redirect immediately
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
 }
 
-export default App
+/**
+ * AppRouter - Main router component with auth protection
+ * This wrapper handles auth navigation protection
+ */
+function AppRouter() {
+  return (
+    <Routes>
+      {/* ========== PUBLIC VIEWER ROUTES ========== */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/voting" element={<VotingPage />} />
+      <Route path="/content" element={<ContentGuidePage />} />
+      <Route path="/games" element={<VotingPage />} />
+
+      {/* ========== PUBLIC ADMIN ROUTES ========== */}
+      <Route
+        path="/admin/login"
+        element={
+          <PublicAdminRoute>
+            <LoginPage />
+          </PublicAdminRoute>
+        }
+      />
+
+      {/* ========== PROTECTED ADMIN ROUTES ========== */}
+      {/* All admin routes are wrapped in PrivateRoute for security */}
+      <Route
+        element={
+          <PrivateRoute>
+            <AdminLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route path="/admin/dashboard" element={<DashboardPage />} />
+        <Route path="/admin/schedules" element={<SchedulePage />} />
+        <Route path="/admin/voting" element={<VotingModerationPage />} />
+        <Route path="/admin/content" element={<ContentManagementPage />} />
+      </Route>
+
+      {/* ========== CATCH ALL ========== */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+      </ToastProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;

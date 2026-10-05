@@ -82,9 +82,10 @@ const updateNextSchedule = async (scheduleData) => {
  * @param {number} gameId - Game ID
  * @param {number} voteCount - Total vote count
  * @param {number} percentage - Persentase vote (0-100)
+ * @param {number} totalVotes - Total semua vote di periode ini
  * @returns {Promise<boolean>} Success status
  */
-const updateVoteCount = async (gameId, voteCount, percentage) => {
+const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
   const fb = getFirebaseAdmin();
   if (!fb) {
     console.warn('⚠️ Firebase not available, skipping vote update');
@@ -92,15 +93,23 @@ const updateVoteCount = async (gameId, voteCount, percentage) => {
   }
 
   try {
-    const ref = fb.database().ref(`/votes/games/${gameId}`);
+    const db = fb.database();
+    const gameRef = db.ref(`/votes/games/${gameId}`);
+    const totalRef = db.ref('/votes/totalVotes');
 
-    await ref.set({
+    // Update game vote count
+    await gameRef.set({
       voteCount: voteCount,
       percentage: percentage,
       updatedAt: new Date().toISOString()
     });
 
-    console.log(`✅ Firebase: Updated /votes/games/${gameId} (votes: ${voteCount}, %: ${percentage})`);
+    // Also update totalVotes at root level for frontend useVotes hook
+    if (totalVotes !== undefined) {
+      await totalRef.set(totalVotes);
+    }
+
+    console.log(`✅ Firebase: Updated /votes/games/${gameId} (votes: ${voteCount}, %: ${percentage}, total: ${totalVotes})`);
     return true;
   } catch (error) {
     console.error('❌ Firebase updateVoteCount error:', error.message);
@@ -123,14 +132,16 @@ const updateBroadcastingStatus = async (isReady) => {
   }
 
   try {
-    const ref = fb.database().ref('/broadcasting/isReady');
+    // Note: Frontend useBroadcastingStatus listens to /broadcasting
+    // and expects isReady property at root level
+    const ref = fb.database().ref('/broadcasting');
 
     await ref.set({
-      value: isReady,
+      isReady: isReady,
       updatedAt: new Date().toISOString()
     });
 
-    console.log(`✅ Firebase: Updated /broadcasting/isReady (${isReady})`);
+    console.log(`✅ Firebase: Updated /broadcasting (isReady: ${isReady})`);
     return true;
   } catch (error) {
     console.error('❌ Firebase updateBroadcastingStatus error:', error.message);
@@ -187,7 +198,7 @@ const updateAllGamesVotes = async (games, periodKey) => {
   }
 
   try {
-    const ref = fb.database().ref('/votes');
+    const db = fb.database();
 
     // Hitung total votes untuk persentase
     const totalVotes = games.reduce((sum, g) => sum + (g.vote_count || 0), 0);
@@ -207,7 +218,8 @@ const updateAllGamesVotes = async (games, periodKey) => {
       };
     });
 
-    await ref.set({
+    // Update entire votes node at once for consistency
+    await db.ref('/votes').set({
       period: periodKey,
       games: gamesData,
       totalVotes: totalVotes,

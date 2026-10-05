@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, AuditLog } = require('../models');
 
 /**
  * JWT Authentication Middleware
@@ -34,9 +34,20 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    // Check if user is active
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'Akun Anda tidak aktif. Hubungi administrator.'
+      });
+    }
+
     // Attach user to request
     req.user = user;
     req.userId = user.id;
+    req.userRole = user.role;
+    req.tokenData = decoded;
 
     next();
   } catch (error) {
@@ -65,11 +76,50 @@ const authMiddleware = async (req, res, next) => {
 };
 
 /**
+ * Admin Only Middleware
+ * Restricts access to admin and superadmin roles only
+ */
+const adminOnly = async (req, res, next) => {
+  // Must be used after authMiddleware
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      data: null,
+      message: 'Autentikasi diperlukan.'
+    });
+  }
+
+  const allowedRoles = ['admin', 'superadmin'];
+
+  if (!allowedRoles.includes(req.userRole)) {
+    // Log unauthorized access attempt
+    try {
+      await AuditLog.create({
+        user_id: req.userId,
+        action_type: 'unauthorized_access_attempt',
+        detail: 'Percobaan akses tidak sah ke route admin',
+        sub_detail: `${req.method} ${req.path}`
+      });
+    } catch (logError) {
+      console.error('Failed to log unauthorized access:', logError);
+    }
+
+    return res.status(403).json({
+      success: false,
+      data: null,
+      message: 'Akses ditolak. Hanya admin yang memiliki izin.'
+    });
+  }
+
+  next();
+};
+
+/**
  * SuperAdmin Only Middleware
  * Restricts access to superadmin role only
  */
 const superAdminOnly = (req, res, next) => {
-  if (req.user.role !== 'superadmin') {
+  if (req.userRole !== 'superadmin') {
     return res.status(403).json({
       success: false,
       data: null,
@@ -83,19 +133,35 @@ const superAdminOnly = (req, res, next) => {
  * Generate JWT Token
  */
 const generateToken = (user) => {
-  return jwt.sign(
+  const expiresIn = '24h'; // Shorter expiry for better security
+  const token = jwt.sign(
     {
       id: user.id,
       email: user.email,
       role: user.role
     },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn }
   );
+
+  return { token, expiresIn };
+};
+
+/**
+ * Verify JWT Token (without attaching to request)
+ */
+const verifyToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
 };
 
 module.exports = {
   authMiddleware,
+  adminOnly,
   superAdminOnly,
-  generateToken
+  generateToken,
+  verifyToken
 };

@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getDatabase } = require('firebase-admin/database');
 const path = require('path');
 
 // Initialize Firebase Admin SDK
@@ -10,18 +11,20 @@ const initializeFirebase = () => {
     if (serviceAccountPath) {
       const serviceAccount = require(path.resolve(serviceAccountPath));
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: process.env.FIREBASE_DATABASE_URL
-      });
+      // Check if already initialized
+      if (getApps().length === 0) {
+        initializeApp({
+          credential: cert(serviceAccount),
+          databaseURL: process.env.FIREBASE_DATABASE_URL
+        });
+      }
     } else {
       // For development without service account file
-      // You can use a mock or limited initialization
       console.warn('⚠️ Firebase service account not configured. Real-time features will be limited.');
     }
 
     console.log('✅ Firebase Admin SDK initialized successfully.');
-    return admin;
+    return getDatabase();
   } catch (error) {
     console.error('❌ Firebase initialization error:', error.message);
     // Return null instead of crashing - allows app to run without Firebase
@@ -45,7 +48,7 @@ const firebaseDb = {
   updateNextSchedule: async (schedule) => {
     if (!firebaseAdmin) return null;
     try {
-      return await firebaseAdmin.database().ref('/schedules/next').set({
+      return await firebaseAdmin.ref('/schedules/next').set({
         id: schedule.id,
         title: schedule.title,
         game: schedule.game_category,
@@ -62,7 +65,7 @@ const firebaseDb = {
   updateVoteCount: async (gameId, voteCount, status) => {
     if (!firebaseAdmin) return null;
     try {
-      return await firebaseAdmin.database().ref(`/votes/games/${gameId}`).set({
+      return await firebaseAdmin.ref(`/votes/games/${gameId}`).set({
         voteCount,
         status
       });
@@ -76,8 +79,7 @@ const firebaseDb = {
   updateVotingPeriod: async (periodKey, games) => {
     if (!firebaseAdmin) return null;
     try {
-      const votesRef = firebaseAdmin.database().ref('/votes');
-      await votesRef.set({
+      await firebaseAdmin.ref('/votes').set({
         period: periodKey,
         games: games || {},
         totalVotes: 0
@@ -93,8 +95,8 @@ const firebaseDb = {
   updateBroadcasting: async (isReady) => {
     if (!firebaseAdmin) return null;
     try {
-      return await firebaseAdmin.database().ref('/broadcasting').set({
-        isReady,
+      return await firebaseAdmin.ref('/broadcasting').set({
+        isReady: isReady,
         updatedAt: new Date().toISOString()
       });
     } catch (error) {

@@ -1,5 +1,24 @@
-const { Game, Schedule, Todo, ContentGuide, AuditLog, User } = require('../models');
+const { Game, Schedule, Todo, ContentGuide, AuditLog, User, Vote } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
+
+/**
+ * Calculate time_ago string from date
+ */
+const getTimeAgo = (date) => {
+  if (!date) return null;
+  const now = new Date();
+  const past = new Date(date);
+  const diffMs = now - past;
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays} hari lalu`;
+  if (diffHours > 0) return `${diffHours} jam lalu`;
+  if (diffMins > 0) return `${diffMins} menit lalu`;
+  return 'Baru saja';
+};
 
 /**
  * Get dashboard statistics
@@ -9,15 +28,25 @@ const getDashboardStats = async (req, res) => {
   try {
     const currentPeriod = new Date().toISOString().slice(0, 7);
 
+    // Get previous month period
+    const prevDate = new Date();
+    prevDate.setMonth(prevDate.getMonth() - 1);
+    const previousPeriod = prevDate.toISOString().slice(0, 7);
+
     // Get total votes for current period
-    const voteStats = await Game.findAll({
-      where: { period_key: currentPeriod },
-      attributes: [
-        [fn('SUM', col('vote_count')), 'total_votes'],
-        [fn('COUNT', col('id')), 'total_games']
-      ],
-      raw: true
-    });
+    const currentVotes = await Game.sum('vote_count', {
+      where: { period_key: currentPeriod }
+    }) || 0;
+
+    // Get total votes for previous period
+    const previousVotes = await Game.sum('vote_count', {
+      where: { period_key: previousPeriod }
+    }) || 0;
+
+    // Calculate vote change percentage
+    const voteChange = previousVotes > 0
+      ? Math.round(((currentVotes - previousVotes) / previousVotes) * 100)
+      : currentVotes > 0 ? 100 : 0;
 
     // Get upcoming schedules count
     const upcomingSchedules = await Schedule.count({
@@ -27,7 +56,7 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
-    // Get pending todos count
+    // Get pending and in_progress todos count
     const pendingTodos = await Todo.count({
       where: {
         user_id: req.userId,
@@ -35,9 +64,26 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
+    // Get urgent todos count
+    const urgentTodos = await Todo.count({
+      where: {
+        user_id: req.userId,
+        status: { [Op.in]: ['pending', 'in_progress'] },
+        priority: 'urgent'
+      }
+    });
+
     // Get visible content count
     const visibleContent = await ContentGuide.count({
       where: { is_visible: true }
+    });
+
+    // Get requested games count (pending review)
+    const requestedGames = await Game.count({
+      where: {
+        period_key: currentPeriod,
+        status: 'requested'
+      }
     });
 
     // Get recent audit logs
@@ -56,8 +102,9 @@ const getDashboardStats = async (req, res) => {
 
     const stats = {
       votes: {
-        total: parseInt(voteStats[0]?.total_votes) || 0,
-        games: parseInt(voteStats[0]?.total_games) || 0,
+        total: currentVotes,
+        previous_total: previousVotes,
+        change_percent: voteChange,
         breakdown: gameStatusBreakdown.reduce((acc, item) => {
           acc[item.status] = parseInt(item.count);
           return acc;
@@ -67,11 +114,16 @@ const getDashboardStats = async (req, res) => {
         upcoming: upcomingSchedules
       },
       todos: {
-        pending: pendingTodos
+        pending: pendingTodos,
+        urgent: urgentTodos
       },
       content: {
         visible: visibleContent
-      }
+      },
+      games: {
+        requested: requestedGames
+      },
+      active_period: currentPeriod
     };
 
     return res.status(200).json({
@@ -95,25 +147,45 @@ const getDashboardStats = async (req, res) => {
 /**
  * Get audit logs
  * GET /api/audit-logs
+ * Query: page, limit, action_type
  */
 const getAuditLogs = async (req, res) => {
   try {
-    const { action_type, limit = 50 } = req.query;
+    const { action_type, page = 1, limit = 50 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
     const where = {};
     if (action_type) {
       where.action_type = action_type;
     }
 
-    const logs = await AuditLog.findAll({
+    const { count, rows: logs } = await AuditLog.findAndCountAll({
       where,
       order: [['created_at', 'DESC']],
-      limit: parseInt(limit)
+      limit: limitNum,
+      offset: offset
+    });
+
+    // Add time_ago to each log
+    const logsWithTimeAgo = logs.map(log => {
+      const logData = log.toJSON ? log.toJSON() : { ...log };
+      logData.time_ago = getTimeAgo(logData.created_at);
+      return logData;
     });
 
     return res.status(200).json({
       success: true,
-      data: logs,
+      data: {
+        logs: logsWithTimeAgo,
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(count / limitNum)
+        }
+      },
       message: 'Audit log berhasil diambil.'
     });
   } catch (error) {

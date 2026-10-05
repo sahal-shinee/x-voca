@@ -16,4 +16,7 @@ router.patch('/broadcasting', authMiddleware, authController.toggleBroadcasting)
 // PATCH /api/auth/profile - Update user profile (protected)
 router.patch('/profile', authMiddleware, authController.updateProfile);
 
+// PATCH /api/auth/password - Change user password (protected)
+router.patch('/password', authMiddleware, authController.changePassword);
+
 module.exports = router;

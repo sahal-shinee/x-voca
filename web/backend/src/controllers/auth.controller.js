@@ -42,7 +42,7 @@ const login = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = generateToken(user);
+    const { token } = generateToken(user);
 
     return res.status(200).json({
       success: true,
@@ -177,9 +177,75 @@ const updateProfile = async (req, res) => {
   }
 };
 
+/**
+ * Change user password
+ * PATCH /api/auth/password
+ */
+const changePassword = async (req, res) => {
+  try {
+    const user = req.user;
+    const { current_password, new_password } = req.body;
+
+    // Validate input
+    if (!current_password || !new_password) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Current password dan new password wajib diisi.'
+      });
+    }
+
+    // Validate new password length
+    if (new_password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Password baru minimal 6 karakter.'
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await user.verifyPassword(current_password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        message: 'Password saat ini salah.'
+      });
+    }
+
+    // Hash new password with bcrypt rounds 12
+    const bcrypt = require('bcrypt');
+    const newPasswordHash = await bcrypt.hash(new_password, 12);
+
+    // Update password in database
+    user.password_hash = newPasswordHash;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      },
+      message: 'Password berhasil diperbarui.'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: 'Terjadi kesalahan saat mengubah password.'
+    });
+  }
+};
+
 module.exports = {
   login,
   getMe,
   toggleBroadcasting,
-  updateProfile
+  updateProfile,
+  changePassword
 };
