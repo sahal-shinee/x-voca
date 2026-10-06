@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import heroCharacter from '../../assets/hero-character.png';
+import TopNav from './TopNav';
 
 // ========== ICONS ==========
 
@@ -35,10 +36,10 @@ const AudioIcon = () => (
   </svg>
 );
 
-const UserIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-    <path d="M6 5C7.66 5 9 3.66 9 2C9 0.34 7.66 -1 6 -1C4.34 -1 3 0.34 3 2C3 3.66 4.34 5 6 5Z" fill="#18132b"/>
-    <path d="M1 12C1 9.79 2.79 8 5 8H7C9.21 8 11 9.79 11 12V13H1V12Z" fill="#18132b"/>
+const UserIcon = ({ size = 15, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
   </svg>
 );
 
@@ -712,16 +713,9 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 // ========== HERO SECTION ==========
 
 function HeroSection() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [moodIndex, setMoodIndex] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const mood = MOODS[moodIndex];
-
-  const countdown = {
-    hours: '02',
-    minutes: '14',
-    seconds: '36',
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -731,12 +725,11 @@ function HeroSection() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMenuOpen]);
+  const countdown = {
+    hours: '02',
+    minutes: '14',
+    seconds: '36',
+  };
 
   // Scroll mulus ke section berikutnya (memakai #features jika ada, jika tidak section tepat di bawah hero)
   const handleScrollDown = (e) => {
@@ -781,77 +774,8 @@ function HeroSection() {
         }
       `}</style>
 
-      {/* NAVIGATION BAR */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 h-[70px] flex items-center backdrop-blur-md bg-[rgba(24,19,43,0.85)] border-b border-[rgba(61,53,96,0.6)] transition-all duration-300 ${scrolled ? 'shadow-lg shadow-black/20' : ''}`}>
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 sm:gap-3" onClick={() => setIsMenuOpen(false)}>
-              <span className="text-[#7ee0d2] text-lg sm:text-xl">✦</span>
-              <span className="font-bold text-[#f1f0f5] text-lg sm:text-[22px] tracking-wide font-display">
-                X-VOCA
-              </span>
-              <div className="hidden sm:flex ml-1 px-2 py-1 rounded bg-[#231f42] border border-[rgba(61,53,96,0.6)]">
-                <span className="font-bold text-[#a89ec0] text-[10px] tracking-wider uppercase font-sans">
-                  REGALIA OPS
-                </span>
-              </div>
-            </Link>
-
-            <div className="hidden lg:flex items-center gap-8 lg:gap-9">
-              <Link to="/" className="pb-1.5 border-b-2 border-[#7ee0d2] text-[#7ee0d2] font-semibold text-sm shadow-[0px_2px_10px_0px_rgba(126,224,210,0.35)]">
-                Home
-              </Link>
-              <Link to="/voting" className="pb-1 text-[#a89ec0] font-medium text-sm hover:text-[#7ee0d2] transition-colors duration-200">
-                Voting
-              </Link>
-              <Link to="/content" className="pb-1 text-[#a89ec0] font-medium text-sm hover:text-[#7ee0d2] transition-colors duration-200">
-                Content Guide
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3.5 py-1.5 rounded-full bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.4)] shadow-[0px_0px_12px_0px_rgba(239,68,68,0.2)] animate-pulse-live">
-                <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-[#ef4444] animate-pulse"></div>
-                <span className="hidden sm:inline font-bold text-[#ef4444] text-[10px] sm:text-[11px] tracking-wider uppercase font-sans">
-                  LIVE NOW
-                </span>
-              </div>
-
-              <div className="hidden lg:flex w-8 h-8 rounded-full border border-[#3d3560] items-center justify-center bg-[#231f42] hover:border-[#7ee0d2] transition-colors duration-200">
-                <AudioIcon />
-              </div>
-
-              <Link to="/admin/login" aria-label="Admin login" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#7ee0d2] flex items-center justify-center shadow-[0px_0px_0px_2px_rgba(126,224,210,0.3)] hover:shadow-[0px_0px_0px_3px_rgba(126,224,210,0.5)] hover:scale-105 transition-all duration-200">
-                <UserIcon />
-              </Link>
-
-              <button
-                className="lg:hidden w-8 h-8 flex items-center justify-center text-[#a89ec0] hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle menu"
-                aria-expanded={isMenuOpen}
-              >
-                {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu Overlay */}
-        <div className={`lg:hidden absolute top-full left-0 right-0 bg-[rgba(24,19,43,0.98)] backdrop-blur-lg border-b border-[rgba(61,53,96,0.6)] transition-all duration-300 ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
-          <div className="px-4 py-6 space-y-4">
-            <Link to="/" className="block py-3 px-4 rounded-lg bg-[rgba(126,224,210,0.1)] border border-[#7ee0d2] text-[#7ee0d2] font-semibold text-center" onClick={() => setIsMenuOpen(false)}>
-              Home
-            </Link>
-            <Link to="/voting" className="block py-3 px-4 rounded-lg text-[#a89ec0] hover:bg-[rgba(126,224,210,0.05)] hover:text-white transition-colors text-center" onClick={() => setIsMenuOpen(false)}>
-              Voting
-            </Link>
-            <Link to="/content" className="block py-3 px-4 rounded-lg text-[#a89ec0] hover:bg-[rgba(126,224,210,0.05)] hover:text-white transition-colors text-center" onClick={() => setIsMenuOpen(false)}>
-              Content Guide
-            </Link>
-          </div>
-        </div>
-      </nav>
+      {/* TOP NAVIGATION BAR */}
+      <TopNav />
 
       {/* HERO MAIN SECTION */}
       <section id="hero" className="relative min-h-screen pt-[70px]">

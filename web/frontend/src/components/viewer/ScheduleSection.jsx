@@ -421,6 +421,7 @@ const ScheduleSection = () => {
 
   return (
     <section
+      id="schedule"
       className="relative w-full pt-20 sm:pt-18 lg:pt-20 pb-24 lg:pb-36 overflow-hidden"
       style={{ background: '#0f0a22' }}
     >

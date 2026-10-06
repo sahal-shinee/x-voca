@@ -1,407 +1,395 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { getContent, getFeatured } from '../../services/contentService';
 import { useToast } from '../../components/common/Toast';
+import TopNav from '../../components/viewer/TopNav';
+import Footer from '../../components/viewer/Footer';
 
 // ========== ICONS ==========
-
-// Logo Icon
-const LogoIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/>
+const PlayIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M8 5v14l11-7z"/>
   </svg>
 );
-
-// Star Icon
-const StarIcon = ({ className = "" }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
-    <path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/>
-  </svg>
-);
-
-// Play Icon
-const PlayIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M8 5v14l11-7z" fill="currentColor"/>
-  </svg>
-);
-
-// YouTube Icon
 const YouTubeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
   </svg>
 );
-
-// Clock Icon
-const ClockIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-// Chat Icon
-const ChatIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+const ChatIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-
-// Music Icon
-const MusicIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+const MusicIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M9 18V5l12-2v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2"/>
     <circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
-
-// Game Icon
-const GameIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M15 5.5A6.5 6.5 0 0 1 21.5 12v.5h-1A6.5 6.5 0 0 1 15 5.5zM3.5 12A6.5 6.5 0 0 1 10 5.5v1A6.5 6.5 0 0 1 3.5 12zm11 0A6.5 6.5 0 0 1 10 5.5h1A6.5 6.5 0 0 1 17.5 12z" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 17v4m-2 0h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+const GameIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <path d="M6 12h4m-2-2v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="17" cy="11" r="1" fill="currentColor"/>
+    <circle cx="15" cy="13" r="1" fill="currentColor"/>
   </svg>
 );
-
-// Eye Icon
-const EyeIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+const EyeIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/>
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
-
-// ChevronRight Icon
 const ChevronRightIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-
-// Search Icon
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
-    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-// External Link Icon
 const ExternalIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+const ClockIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+const TrendingIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <polyline points="17 6 23 6 23 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const FilterIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const DiscordIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.001.022.01.043.027.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+  </svg>
+);
 
-// Custom hook for scroll reveal animation
-const useScrollReveal = (options = {}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          if (options.once !== false) {
-            observer.unobserve(entry.target);
-          }
-        } else if (options.once === false) {
-          setIsVisible(false);
-        }
-      },
-      {
-        threshold: options.threshold || 0.1,
-        rootMargin: options.rootMargin || '0px',
-      }
-    );
-
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [options.threshold, options.rootMargin, options.once]);
-
-  return [ref, isVisible];
-};
-
-// ========== CONTENT DATA (Demo) ==========
+// ========== DEMO DATA ==========
 const DEMO_CONTENT = {
   featured: {
     id: 1,
     title: "Midnight Zatsu & Tea: Reading Fan Letters",
-    subtitle: "Chit-Chat Live",
-    thumbnail: null,
+    subtitle: "Chit-Chat Live — Xion berbagi cerita, menjawab pertanyaan, dan membaca surat dari para viewer.",
     viewCount: "12.5K",
     duration: "2j 15m",
-    category: "ZATSU"
+    category: "ZATSU",
+    date: "2 hari lalu",
   },
+  stats: [
+    { label: "Total Stream", value: "62", color: "#7ee0d2" },
+    { label: "Jam Konten", value: "184+", color: "#c084fc" },
+    { label: "Total Views", value: "580K", color: "#fbbf24" },
+    { label: "Konten Baru", value: "4", color: "#f472b6" },
+  ],
   categories: [
-    { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 24 },
-    { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 12 },
-    { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 18 },
-    { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 8 },
+    { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 24, totalViews: "210K" },
+    { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 12, totalViews: "95K" },
+    { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 18, totalViews: "180K" },
+    { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 8, totalViews: "95K" },
   ],
   contents: [
-    { id: 1, title: "Late Night Gaming Session #47", category: "INDIE GAMES", thumbnail: null, duration: "3j 22m", views: "8.2K", status: "new" },
-    { id: 2, title: "Fan Letter Reading Special", category: "ZATSU", thumbnail: null, duration: "2j 45m", views: "15.1K", status: "popular" },
-    { id: 3, title: "Acoustic Covers Collection", category: "KARAOKE", thumbnail: null, duration: "1j 30m", views: "6.7K", status: "" },
-    { id: 4, title: "New Model Debut Stream", category: "LIVE2D", thumbnail: null, duration: "4j 10m", views: "25.3K", status: "new" },
-    { id: 5, title: "Horror Game Marathon", category: "INDIE GAMES", thumbnail: null, duration: "5j 05m", views: "18.9K", status: "popular" },
-    { id: 6, title: "Birthday Celebration Stream", category: "ZATSU", thumbnail: null, duration: "3j 30m", views: "32.1K", status: "" },
-    { id: 7, title: "Subnautica Endurance Run", category: "INDIE GAMES", thumbnail: null, duration: "4j 45m", views: "12.8K", status: "" },
-    { id: 8, title: "J-Pop Karaoke Night", category: "KARAOKE", thumbnail: null, duration: "2j 20m", views: "9.4K", status: "" },
+    { id: 1, title: "Late Night Gaming Session #47", category: "INDIE GAMES", duration: "3j 22m", views: "8.2K", status: "new", date: "1 hari lalu" },
+    { id: 2, title: "Fan Letter Reading Special", category: "ZATSU", duration: "2j 45m", views: "15.1K", status: "popular", date: "3 hari lalu" },
+    { id: 3, title: "Acoustic Covers Collection", category: "KARAOKE", duration: "1j 30m", views: "6.7K", status: "", date: "5 hari lalu" },
+    { id: 4, title: "New Model Debut Stream", category: "LIVE2D", duration: "4j 10m", views: "25.3K", status: "new", date: "1 minggu lalu" },
+    { id: 5, title: "Horror Game Marathon", category: "INDIE GAMES", duration: "5j 05m", views: "18.9K", status: "popular", date: "1 minggu lalu" },
+    { id: 6, title: "Birthday Celebration Stream", category: "ZATSU", duration: "3j 30m", views: "32.1K", status: "popular", date: "2 minggu lalu" },
+    { id: 7, title: "Subnautica Endurance Run", category: "INDIE GAMES", duration: "4j 45m", views: "12.8K", status: "", date: "2 minggu lalu" },
+    { id: 8, title: "J-Pop Karaoke Night", category: "KARAOKE", duration: "2j 20m", views: "9.4K", status: "", date: "3 minggu lalu" },
   ]
 };
 
-/**
- * ContentGuidePage - Enhanced Content Guide Page
- * Based on Figma Design - Content Guide with modern, interactive UI
- */
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Terbaru' },
+  { value: 'popular', label: 'Terpopuler' },
+  { value: 'longest', label: 'Durasi Terpanjang' },
+];
+
 function ContentGuidePage() {
   const toast = useToast();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
-  // Refs for scroll reveal
-  const headerRef = useRef(null);
-  const featuredRef = useRef(null);
-  const categoriesRef = useRef(null);
-  const gridRef = useRef(null);
-
-  // Scroll reveal states
+  // Scroll reveal
   const [headerVisible, setHeaderVisible] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
   const [featuredVisible, setFeaturedVisible] = useState(false);
   const [categoriesVisible, setCategoriesVisible] = useState(false);
   const [gridVisible, setGridVisible] = useState(false);
 
-  // Intersection Observer setup
+  const headerRef = useRef(null);
+  const statsRef = useRef(null);
+  const featuredRef = useRef(null);
+  const categoriesRef = useRef(null);
+  const gridRef = useRef(null);
+
   useEffect(() => {
-    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-
-    const observers = [
-      { ref: headerRef, setVisible: setHeaderVisible },
-      { ref: featuredRef, setVisible: setFeaturedVisible },
-      { ref: categoriesRef, setVisible: setCategoriesVisible },
-      { ref: gridRef, setVisible: setGridVisible },
+    const pairs = [
+      [headerRef, setHeaderVisible],
+      [statsRef, setStatsVisible],
+      [featuredRef, setFeaturedVisible],
+      [categoriesRef, setCategoriesVisible],
+      [gridRef, setGridVisible],
     ];
-
-    observers.forEach(({ ref, setVisible }) => {
-      const observer = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      }, observerOptions);
-
-      if (ref.current) observer.observe(ref.current);
+    const observers = pairs.map(([ref, setter]) => {
+      const obs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) { setter(true); obs.disconnect(); }
+      }, { threshold: 0.08 });
+      if (ref.current) obs.observe(ref.current);
+      return obs;
     });
-
-    return () => {
-      observers.forEach(({ ref }) => {
-        if (ref.current) {
-          const observer = new IntersectionObserver(() => {});
-          observer.disconnect();
-        }
-      });
-    };
+    return () => observers.forEach(o => o.disconnect());
   }, []);
 
-  // Filter contents by category
-  const filteredContents = searchQuery
-    ? DEMO_CONTENT.contents.filter(c =>
+  // Filter + sort
+  const filteredContents = (() => {
+    let result = DEMO_CONTENT.contents;
+    if (searchQuery) {
+      result = result.filter(c =>
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : activeCategory === 'all'
-      ? DEMO_CONTENT.contents
-      : DEMO_CONTENT.contents.filter(c => c.category === activeCategory);
+      );
+    } else if (activeCategory !== 'all') {
+      result = result.filter(c => c.category === activeCategory);
+    }
+    if (sortBy === 'popular') result = [...result].sort((a, b) => parseFloat(b.views) - parseFloat(a.views));
+    return result;
+  })();
 
-  // Handle watch click
+  const getCategoryColor = (cat) =>
+    DEMO_CONTENT.categories.find(c => c.name === cat)?.color || '#a89ec0';
+
+  const getCategoryIcon = (cat) => {
+    const found = DEMO_CONTENT.categories.find(c => c.name === cat);
+    return found?.icon || null;
+  };
+
   const handleWatch = (content) => {
     toast.info(`Opening: ${content.title}`);
   };
 
-  // Get status badge
-  const getStatusBadge = (status) => {
-    if (status === 'new') {
-      return (
-        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#7ee0d2] text-[#0f0a22] text-[10px] font-bold uppercase">
-          NEW
-        </span>
-      );
-    }
-    if (status === 'popular') {
-      return (
-        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#c084fc] text-white text-[10px] font-bold uppercase">
-          HOT
-        </span>
-      );
-    }
-    return null;
-  };
-
-  // Get category color
-  const getCategoryColor = (category) => {
-    const cat = DEMO_CONTENT.categories.find(c => c.name === category);
-    return cat?.color || '#a89ec0';
-  };
+  const totalContent = DEMO_CONTENT.categories.reduce((s, c) => s + c.count, 0);
 
   return (
     <div className="min-h-screen bg-[#0f0a22]">
+      <TopNav />
+
       {/* ========== HEADER ========== */}
       <header
         ref={headerRef}
-        className={`relative bg-[#0f0a22] pt-6 pb-8 px-4 sm:px-6 lg:px-12 transition-all duration-700 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`relative pt-28 pb-10 px-4 sm:px-6 lg:px-12 transition-all duration-700 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
       >
-        {/* Background decoration */}
+        {/* Subtle BG glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-[#7ee0d2] opacity-5 blur-[100px]" />
-          <div className="absolute top-40 left-20 w-64 h-64 rounded-full bg-[#c084fc] opacity-5 blur-[80px]" />
+          <div className="absolute -top-32 right-0 w-[500px] h-[500px] rounded-full bg-[#7ee0d2] opacity-[0.04] blur-[120px]" />
+          <div className="absolute top-20 left-0 w-80 h-80 rounded-full bg-[#c084fc] opacity-[0.04] blur-[100px]" />
         </div>
 
-        <div className="relative max-w-[1280px] mx-auto">
-          {/* Navigation */}
-          <nav className="flex items-center justify-between mb-8">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-[#7ee0d2] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <span className="text-[#0f0a22] font-bold">✦</span>
-              </div>
-              <span className="font-bold text-white text-lg font-display">X-VOCA</span>
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <Link to="/" className="text-[#a89ec0] hover:text-white text-sm font-medium transition-colors">
-                Home
-              </Link>
-              <Link to="/voting" className="text-[#a89ec0] hover:text-white text-sm font-medium transition-colors">
-                Voting
-              </Link>
-              <Link to="/content" className="text-[#7ee0d2] text-sm font-semibold border-b-2 border-[#7ee0d2] pb-0.5">
-                Content Guide
-              </Link>
-            </div>
-          </nav>
-
-          {/* Page Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[rgba(126,224,210,0.1)] border border-[rgba(126,224,210,0.2)] mb-4">
-              <span className="text-[#7ee0d2]">✦</span>
-              <span className="text-[#7ee0d2] text-xs font-bold tracking-wider uppercase">Content Guide</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 font-display tracking-tight">
-              Cosmic Archive & Media Vault
-            </h1>
-            <p className="text-[#a89ec0] max-w-xl mx-auto">
-              Jelajahi semua perjalanan stream Xion. Dari zatsu santai hingga petualangan indie games.
-            </p>
+        <div className="relative max-w-[1280px] mx-auto text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5" style={{ background: 'rgba(126,224,210,0.08)', border: '1px solid rgba(126,224,210,0.18)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+            <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Content Guide</span>
           </div>
 
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight leading-tight">
+            Cosmic Archive{' '}
+            <span className="bg-gradient-to-r from-[#7ee0d2] to-[#c084fc] bg-clip-text text-transparent">
+              & Media Vault
+            </span>
+          </h1>
+          <p className="text-[#7c7898] text-sm sm:text-base max-w-lg mx-auto leading-relaxed mb-8">
+            Jelajahi semua perjalanan stream Xion — dari zatsu santai hingga petualangan indie games.
+          </p>
+
           {/* Search Bar */}
-          <div className="max-w-md mx-auto">
-            <div className="relative">
-              <SearchIcon />
+          <div className="max-w-2xl mx-auto">
+            <div
+              className="group relative flex items-center rounded-2xl transition-all duration-300"
+              style={{ background: 'rgba(22,19,42,0.95)', border: '1px solid rgba(42,38,69,0.9)', boxShadow: '0 4px 32px rgba(0,0,0,0.35)' }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(126,224,210,0.45)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(126,224,210,0.07), 0 4px 32px rgba(0,0,0,0.35)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(42,38,69,0.9)';
+                e.currentTarget.style.boxShadow = '0 4px 32px rgba(0,0,0,0.35)';
+              }}
+            >
+              <div className="flex-shrink-0 pl-4 pr-3 text-[#5c5480] group-focus-within:text-[#7ee0d2] transition-colors duration-200">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
               <input
                 type="text"
-                placeholder="Cari konten..."
+                placeholder="Cari konten, kategori, atau judul stream..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-[#1a1730] border border-[#2a2645] rounded-xl text-white placeholder-[#5c5480] focus:border-[#7ee0d2] focus:outline-none transition-colors"
+                className="flex-1 py-4 pr-3 bg-transparent text-sm text-white placeholder-[#5c5480] focus:outline-none"
               />
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5c5480]">
-                <SearchIcon />
-              </div>
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="flex-shrink-0 mr-3 flex items-center justify-center w-6 h-6 rounded-full text-[#5c5480] hover:text-white hover:bg-[#2a2645] transition-all duration-200"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              ) : (
+                <span className="hidden sm:flex flex-shrink-0 mr-3 items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono text-[#5c5480]" style={{ background: 'rgba(42,38,69,0.6)', border: '1px solid rgba(42,38,69,0.9)' }}>
+                  /
+                </span>
+              )}
             </div>
+            {searchQuery && (
+              <div className="mt-2 flex items-center gap-2 px-1 justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                <p className="text-xs text-[#5c5480]">
+                  Hasil untuk{' '}
+                  <span className="text-[#7ee0d2] font-medium">"{searchQuery}"</span>
+                  {' — '}<span className="text-white font-medium">{filteredContents.length}</span> ditemukan
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
+      {/* ========== STATS BAR ========== */}
+      <section
+        ref={statsRef}
+        className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-75 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+      >
+        <div className="max-w-[1280px] mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {DEMO_CONTENT.stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="relative rounded-xl p-4 overflow-hidden"
+                style={{ background: 'rgba(22,19,42,0.8)', border: '1px solid rgba(42,38,69,0.7)' }}
+              >
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${stat.color}50, transparent)` }} />
+                <div className="text-2xl font-bold font-mono mb-0.5" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="text-xs text-[#7c7898] uppercase tracking-wide">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ========== FEATURED CONTENT ========== */}
       <section
         ref={featuredRef}
-        className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-100 ${featuredVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-100 ${featuredVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
       >
         <div className="max-w-[1280px] mx-auto">
-          {/* Section Label */}
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-[#7ee0d2]">✦</span>
-            <span className="text-[#7ee0d2] text-xs font-bold tracking-widest uppercase">Featured Stream</span>
+          {/* Section label */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full bg-[#7ee0d2]" />
+            <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Featured Stream</span>
           </div>
 
           {/* Featured Card */}
           <div
-            className="relative bg-[#231f42] border border-[rgba(61,53,96,0.7)] rounded-2xl overflow-hidden group cursor-pointer"
+            className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+            style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
             onClick={() => handleWatch(DEMO_CONTENT.featured)}
           >
-            {/* Background Image Placeholder */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#2d2855] via-[#231f42] to-[#1a1730]">
-              <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#c084fc] blur-[120px]" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[#7ee0d2] blur-[100px]" />
-              </div>
-            </div>
+            {/* Subtle top accent line */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.4), rgba(192,132,252,0.3), transparent)' }} />
 
-            {/* Content */}
-            <div className="relative flex flex-col lg:flex-row gap-6 p-6 lg:p-8">
+            <div className="relative flex flex-col lg:flex-row gap-0">
               {/* Thumbnail */}
-              <div className="lg:w-[400px] flex-shrink-0">
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1a1730] border border-[rgba(61,53,96,0.5)]">
+              <div className="lg:w-[420px] flex-shrink-0">
+                <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[200px]" style={{ background: 'rgba(13,11,26,0.9)' }}>
+                  {/* Dark gradient overlay with subtle category glow */}
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.95) 0%, rgba(26,20,50,0.85) 100%)' }} />
+                  <div className="absolute inset-0 opacity-[0.12]" style={{ background: 'radial-gradient(ellipse at top right, #c084fc, transparent 60%)' }} />
+
+                  {/* Play button center */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 rounded-full bg-[#7ee0d2]/20 flex items-center justify-center">
-                      <div className="w-14 h-14 rounded-full bg-[#7ee0d2] flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <PlayIcon />
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+                        style={{ background: 'rgba(126,224,210,0.12)', border: '1px solid rgba(126,224,210,0.25)' }}>
+                        <div className="w-11 h-11 rounded-full flex items-center justify-center"
+                          style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}>
+                          <span className="text-[#0f0a22] ml-0.5"><PlayIcon size={18} /></span>
+                        </div>
                       </div>
+                      {/* Ping ring */}
+                      <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'rgba(126,224,210,0.3)' }} />
                     </div>
                   </div>
 
-                  {/* Duration Badge */}
-                  <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/70 text-white text-xs font-mono">
+                  {/* Duration badge */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+                    <ClockIcon />
                     {DEMO_CONTENT.featured.duration}
                   </div>
 
-                  {/* Live Badge */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ef4444] shadow-[0px_0px_12px_rgba(239,68,68,0.4)]">
+                  {/* LIVE badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.9)', boxShadow: '0 0 12px rgba(239,68,68,0.4)' }}>
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    <span className="text-white text-[10px] font-bold uppercase tracking-wider">LIVE</span>
+                    <span className="text-white text-[10px] font-bold tracking-wider">LIVE</span>
+                  </div>
+
+                  {/* Category badge */}
+                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide" style={{ background: 'rgba(192,132,252,0.15)', border: '1px solid rgba(192,132,252,0.3)', color: '#c084fc' }}>
+                    {DEMO_CONTENT.featured.category}
                   </div>
                 </div>
               </div>
 
               {/* Info */}
-              <div className="flex-1 flex flex-col justify-center">
+              <div className="flex-1 flex flex-col justify-center p-6 lg:p-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-2 py-0.5 rounded-full bg-[rgba(192,132,252,0.2)] text-[#c084fc] text-[10px] font-bold uppercase tracking-wider">
-                    {DEMO_CONTENT.featured.category}
+                  <span className="text-xs text-[#5c5480]">{DEMO_CONTENT.featured.date}</span>
+                  <span className="w-1 h-1 rounded-full bg-[#3d3560]" />
+                  <span className="flex items-center gap-1 text-xs text-[#7c7898]">
+                    <EyeIcon size={12} />
+                    {DEMO_CONTENT.featured.viewCount} views
                   </span>
-                  <span className="text-[#5c5480] text-xs">•</span>
-                  <span className="text-[#a89ec0] text-xs">{DEMO_CONTENT.featured.viewCount} views</span>
                 </div>
 
-                <h2 className="text-xl lg:text-2xl font-bold text-white mb-2 font-display">
+                <h2 className="text-xl lg:text-2xl font-bold text-white mb-2 leading-snug">
                   {DEMO_CONTENT.featured.title}
                 </h2>
-                <p className="text-[#a89ec0] mb-4">
+                <p className="text-sm text-[#7c7898] mb-6 leading-relaxed max-w-md">
                   {DEMO_CONTENT.featured.subtitle}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3">
                   <a
                     href="#"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7ee0d2] text-[#0f0a22] font-bold text-sm rounded-lg hover:bg-[#7ee0d2]/90 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)', boxShadow: '0 4px 16px rgba(126,224,210,0.25)' }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <YouTubeIcon />
-                    Watch Now
+                    Tonton Sekarang
                   </a>
-                  <button className="inline-flex items-center gap-2 px-5 py-2.5 border border-[#3d3560] text-[#a89ec0] font-medium text-sm rounded-lg hover:border-[#7ee0d2] hover:text-white transition-colors">
-                    <span>Details</span>
+                  <button
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#a89ec0] transition-all duration-200 hover:text-white"
+                    style={{ background: 'rgba(42,38,69,0.5)', border: '1px solid rgba(61,53,96,0.6)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span>Detail</span>
                     <ChevronRightIcon />
                   </button>
                 </div>
@@ -414,38 +402,57 @@ function ContentGuidePage() {
       {/* ========== CATEGORIES ========== */}
       <section
         ref={categoriesRef}
-        className={`px-4 sm:px-6 lg:px-12 pb-6 transition-all duration-700 delay-200 ${categoriesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-150 ${categoriesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
       >
         <div className="max-w-[1280px] mx-auto">
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full bg-[#c084fc]" />
+            <span className="text-[#c084fc] text-[11px] font-bold tracking-widest uppercase">Kategori</span>
+          </div>
+
+          {/* Category Cards Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             <button
               onClick={() => setActiveCategory('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                activeCategory === 'all'
-                  ? 'bg-[#7ee0d2] text-[#0f0a22] font-bold'
-                  : 'bg-[#1a1730] text-[#a89ec0] hover:bg-[#231f42]'
-              }`}
+              className="relative text-left rounded-xl p-4 transition-all duration-200 hover:scale-[1.02]"
+              style={{
+                background: activeCategory === 'all' ? 'rgba(126,224,210,0.1)' : 'rgba(22,19,42,0.8)',
+                border: activeCategory === 'all' ? '1px solid rgba(126,224,210,0.35)' : '1px solid rgba(42,38,69,0.7)',
+              }}
             >
-              All Content
+              <div className="text-xl font-bold font-mono mb-1" style={{ color: activeCategory === 'all' ? '#7ee0d2' : '#fff' }}>
+                {totalContent}
+              </div>
+              <div className="text-xs font-semibold text-white mb-1">Semua</div>
+              <div className="text-[10px] text-[#5c5480] uppercase tracking-wide">Semua Konten</div>
+              {/* bottom progress fill */}
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl" style={{ background: activeCategory === 'all' ? '#7ee0d2' : 'transparent' }} />
             </button>
+
             {DEMO_CONTENT.categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.name)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  activeCategory === cat.name
-                    ? 'text-[#0f0a22] font-bold'
-                    : 'bg-[#1a1730] text-[#a89ec0] hover:bg-[#231f42]'
-                }`}
+                className="relative text-left rounded-xl p-4 transition-all duration-200 hover:scale-[1.02]"
                 style={{
-                  backgroundColor: activeCategory === cat.name ? cat.color : undefined,
-                  color: activeCategory === cat.name ? '#0f0a22' : undefined
+                  background: activeCategory === cat.name ? `${cat.color}12` : 'rgba(22,19,42,0.8)',
+                  border: activeCategory === cat.name ? `1px solid ${cat.color}40` : '1px solid rgba(42,38,69,0.7)',
                 }}
               >
-                <span className="opacity-60">{cat.icon}</span>
-                {cat.name}
-                <span className="text-[10px] font-mono opacity-60">({cat.count})</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span style={{ color: cat.color }}>{cat.icon}</span>
+                  <span className="text-[10px] font-mono text-[#5c5480]">{cat.totalViews}</span>
+                </div>
+                <div className="text-xl font-bold font-mono mb-0.5" style={{ color: activeCategory === cat.name ? cat.color : '#fff' }}>
+                  {cat.count}
+                </div>
+                <div className="text-xs font-semibold text-white mb-1">{cat.name}</div>
+
+                {/* Mini progress bar */}
+                <div className="w-full h-0.5 rounded-full" style={{ background: 'rgba(42,38,69,0.8)' }}>
+                  <div className="h-0.5 rounded-full transition-all duration-500" style={{ width: `${(cat.count / totalContent) * 100}%`, background: cat.color }} />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl" style={{ background: activeCategory === cat.name ? cat.color : 'transparent' }} />
               </button>
             ))}
           </div>
@@ -455,126 +462,213 @@ function ContentGuidePage() {
       {/* ========== CONTENT GRID ========== */}
       <section
         ref={gridRef}
-        className={`px-4 sm:px-6 lg:px-12 pb-12 lg:pb-20 transition-all duration-700 delay-300 ${gridVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`px-4 sm:px-6 lg:px-12 pb-14 transition-all duration-700 delay-200 ${gridVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
       >
         <div className="max-w-[1280px] mx-auto">
-          {/* Results Count */}
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-[#a89ec0] text-sm">
-              Showing <span className="text-white font-semibold">{filteredContents.length}</span> content
-              {searchQuery && <span> for "<span className="text-[#7ee0d2]">{searchQuery}</span>"</span>}
-            </p>
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded-full" style={{ background: activeCategory !== 'all' ? getCategoryColor(activeCategory) : '#fbbf24' }} />
+              <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: activeCategory !== 'all' ? getCategoryColor(activeCategory) : '#fbbf24' }}>
+                {activeCategory === 'all' ? 'Semua Konten' : activeCategory}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono text-[#7c7898]" style={{ background: 'rgba(42,38,69,0.7)' }}>
+                {filteredContents.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="pl-3 pr-7 py-1.5 rounded-lg text-xs text-white focus:outline-none appearance-none cursor-pointer"
+                style={{
+                  background: 'rgba(22,19,42,0.9)',
+                  border: '1px solid rgba(42,38,69,0.8)',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239B97C0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '10px',
+                }}
+              >
+                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+
+              {/* View toggle */}
+              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(42,38,69,0.8)' }}>
+                {(['grid', 'list']).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className="px-2.5 py-1.5 transition-all duration-200"
+                    style={{ background: viewMode === mode ? 'rgba(126,224,210,0.15)' : 'rgba(22,19,42,0.9)', color: viewMode === mode ? '#7ee0d2' : '#5c5480' }}
+                  >
+                    {mode === 'grid' ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Content Grid */}
+          {/* Grid / List */}
           {filteredContents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {filteredContents.map((content, index) => (
-                <div
-                  key={content.id}
-                  className="group bg-[#1a1730] border border-[#2a2645] rounded-xl overflow-hidden hover:border-[rgba(126,224,210,0.3)] transition-all duration-300 hover:shadow-lg hover:shadow-black/20 cursor-pointer"
-                  style={{ transitionDelay: `${index * 50}ms` }}
-                  onClick={() => handleWatch(content)}
-                >
-                  {/* Thumbnail */}
-                  <div className="relative aspect-video bg-[#231f42] overflow-hidden">
-                    {/* Gradient Placeholder */}
-                    <div
-                      className="absolute inset-0 opacity-40"
-                      style={{ background: `linear-gradient(135deg, ${getCategoryColor(content.category)}33 0%, transparent 100%)` }}
-                    />
+            <div className={viewMode === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+              : 'flex flex-col gap-3'
+            }>
+              {filteredContents.map((content, index) => {
+                const catColor = getCategoryColor(content.category);
+                const catIcon = getCategoryIcon(content.category);
 
-                    {/* Center Play Button */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-10 h-10 rounded-full bg-[#7ee0d2] flex items-center justify-center">
-                          <PlayIcon />
+                if (viewMode === 'list') {
+                  return (
+                    <div
+                      key={content.id}
+                      className="group flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all duration-200 hover:border-[rgba(126,224,210,0.2)]"
+                      style={{ background: 'rgba(22,19,42,0.8)', border: '1px solid rgba(42,38,69,0.7)', transitionDelay: `${index * 30}ms` }}
+                      onClick={() => handleWatch(content)}
+                    >
+                      {/* Thumbnail */}
+                      <div className="flex-shrink-0 w-28 h-16 rounded-lg relative overflow-hidden" style={{ background: 'rgba(13,11,26,0.9)' }}>
+                        <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse, ${catColor}, transparent 70%)` }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: catColor }}>
+                            <span className="text-[#0f0a22]"><PlayIcon size={12} /></span>
+                          </div>
                         </div>
+                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.7)' }}>{content.duration}</div>
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: catColor }}>{content.category}</div>
+                        <h3 className="text-sm font-semibold text-white truncate group-hover:text-[#7ee0d2] transition-colors">{content.title}</h3>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-[#5c5480]">
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.views}</span>
+                          <span>{content.date}</span>
+                        </div>
+                      </div>
+                      {/* Badges */}
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                        {content.status === 'new' && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-[#0f0a22] bg-[#7ee0d2]">NEW</span>}
+                        {content.status === 'popular' && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-white" style={{ background: '#c084fc' }}>HOT</span>}
+                        <ExternalIcon />
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={content.id}
+                    className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:-translate-y-0.5"
+                    style={{ background: 'rgba(18,15,35,0.9)', border: '1px solid rgba(42,38,69,0.7)', transitionDelay: `${index * 40}ms` }}
+                    onClick={() => handleWatch(content)}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative aspect-video overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
+                      <div className="absolute inset-0 opacity-[0.15]" style={{ background: `radial-gradient(ellipse at top right, ${catColor}, transparent 60%)` }} />
+
+                      {/* Play overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100"
+                          style={{ background: catColor, boxShadow: `0 4px 20px ${catColor}50` }}>
+                          <span className="text-[#0f0a22]"><PlayIcon size={14} /></span>
+                        </div>
+                      </div>
+
+                      {/* Status badge */}
+                      {content.status === 'new' && (
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-[#0f0a22] bg-[#7ee0d2]">NEW</span>
+                      )}
+                      {content.status === 'popular' && (
+                        <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-white" style={{ background: '#c084fc' }}>
+                          <TrendingIcon />HOT
+                        </span>
+                      )}
+
+                      {/* Duration */}
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.75)' }}>
+                        <ClockIcon />{content.duration}
+                      </div>
+
+                      {/* Category icon */}
+                      <div className="absolute bottom-2 left-2 w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${catColor}18`, border: `1px solid ${catColor}30` }}>
+                        <span style={{ color: catColor }}>{catIcon}</span>
                       </div>
                     </div>
 
-                    {/* Status Badge */}
-                    {getStatusBadge(content.status)}
-
-                    {/* Duration */}
-                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-white text-[10px] font-mono">
-                      {content.duration}
-                    </div>
-
-                    {/* Category Icon */}
-                    <div
-                      className="absolute bottom-2 left-2 w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm"
-                      style={{ backgroundColor: `${getCategoryColor(content.category)}33` }}
-                    >
-                      <span style={{ color: getCategoryColor(content.category) }}>
-                        {content.category === 'ZATSU' && <ChatIcon />}
-                        {content.category === 'LIVE2D' && <EyeIcon />}
-                        {content.category === 'INDIE GAMES' && <GameIcon />}
-                        {content.category === 'KARAOKE' && <MusicIcon />}
-                      </span>
+                    {/* Info */}
+                    <div className="p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: catColor }}>
+                        {content.category}
+                      </div>
+                      <h3 className="text-sm font-semibold text-white line-clamp-2 mb-3 leading-snug group-hover:text-[#7ee0d2] transition-colors duration-200">
+                        {content.title}
+                      </h3>
+                      <div className="flex items-center justify-between text-[11px] text-[#5c5480]">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.views}</span>
+                          <span>{content.date}</span>
+                        </div>
+                        <span className="text-[#3d3560] group-hover:text-[#7ee0d2] transition-colors"><ExternalIcon /></span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Info */}
-                  <div className="p-4">
-                    <div
-                      className="text-[10px] font-bold uppercase tracking-wider mb-2"
-                      style={{ color: getCategoryColor(content.category) }}
-                    >
-                      {content.category}
-                    </div>
-                    <h3 className="text-sm font-semibold text-white line-clamp-2 mb-2 group-hover:text-[#7ee0d2] transition-colors">
-                      {content.title}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs text-[#5c5480]">
-                      <span className="flex items-center gap-1">
-                        <EyeIcon />
-                        {content.views}
-                      </span>
-                      <ExternalIcon />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-[#1a1730] border border-[#2a2645] rounded-xl p-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#231f42] flex items-center justify-center mx-auto mb-4">
-                <SearchIcon />
+            /* Empty State */
+            <div className="text-center py-16 rounded-2xl" style={{ background: 'rgba(18,15,35,0.8)', border: '1px solid rgba(42,38,69,0.7)' }}>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(42,38,69,0.6)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5c5480" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/></svg>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">No content found</h3>
-              <p className="text-[#5c5480] text-sm mb-4">
-                Try adjusting your search or filter criteria
-              </p>
+              <h3 className="text-base font-semibold text-white mb-1">Tidak ada konten ditemukan</h3>
+              <p className="text-sm text-[#5c5480] mb-5">Coba sesuaikan kata kunci atau ubah filter kategori</p>
               <button
                 onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-                className="px-4 py-2 bg-[#7ee0d2] text-[#0f0a22] font-bold text-sm rounded-lg hover:bg-[#7ee0d2]/90 transition-colors"
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all hover:scale-[1.02]"
+                style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}
               >
-                Clear Filters
+                Reset Filter
               </button>
             </div>
           )}
         </div>
       </section>
 
-      {/* ========== FOOTER CTA ========== */}
-      <section className="px-4 sm:px-6 lg:px-12 pb-12">
+      {/* ========== DISCORD CTA ========== */}
+      <section className="px-4 sm:px-6 lg:px-12 pb-14">
         <div className="max-w-[1280px] mx-auto">
-          <div className="bg-[#1a1730] border border-[#2a2645] rounded-2xl p-6 lg:p-8">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div
+            className="relative rounded-2xl p-6 lg:p-8 overflow-hidden"
+            style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.7)' }}
+          >
+            {/* Subtle glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-[0.06] blur-[80px]" style={{ background: '#5865f2' }} />
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(88,101,242,0.4), rgba(192,132,252,0.3), transparent)' }} />
+
+            <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#c084fc]/20 flex items-center justify-center">
-                  <span className="text-[#c084fc] text-xl">✦</span>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.3)' }}>
+                  <span style={{ color: '#7289da' }}><DiscordIcon /></span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">Mencari klip atau momen tertentu?</h3>
-                  <p className="text-[#5c5480] text-sm">Temukan momen-momen terbaik di Discord Vault komunitas</p>
+                  <h3 className="text-base font-bold text-white mb-1">Cari klip atau momen tertentu?</h3>
+                  <p className="text-sm text-[#7c7898]">Temukan highlight dan momen terbaik di Discord Vault komunitas X-VOCA.</p>
                 </div>
               </div>
               <a
                 href="#"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-[#3d3560] text-white font-medium text-sm rounded-lg hover:bg-[#231f42] hover:border-[#7ee0d2] transition-all"
+                className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'rgba(88,101,242,0.2)', border: '1px solid rgba(88,101,242,0.4)' }}
               >
+                <DiscordIcon />
                 Buka Discord Vault
                 <ExternalIcon />
               </a>
@@ -584,18 +678,7 @@ function ContentGuidePage() {
       </section>
 
       {/* ========== FOOTER ========== */}
-      <footer className="bg-[#0a0616] border-t border-[#2a2645] py-8 px-4 sm:px-6 lg:px-12">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-2 text-[#5c5480] hover:text-[#7ee0d2] transition-colors text-sm">
-              ← Back to Home
-            </Link>
-            <p className="text-[#5c5480] text-xs font-mono">
-              © 2025 X-VOCA PROJECT. ALL BROADCAST RIGHTS RESERVED.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

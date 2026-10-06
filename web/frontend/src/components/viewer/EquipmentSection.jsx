@@ -555,7 +555,7 @@ const EquipmentSection = () => {
   });
 
   return (
-    <section className="relative px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-36 pb-12 lg:pb-20">
+    <section id="equipment" className="relative px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-36 pb-12 lg:pb-20">
       <div
         ref={sectionRef}
         className={`max-w-6xl mx-auto transition-all duration-700 ${
@@ -563,47 +563,22 @@ const EquipmentSection = () => {
         }`}
       >
         {/* Main Card */}
-        <div className="bg-[#231f42] border border-[rgba(61,53,96,0.7)] rounded-2xl p-5 sm:p-6 lg:p-8 relative overflow-hidden">
+        <div className="bg-[#130f24] border border-[rgba(61,53,96,0.7)] rounded-2xl p-5 sm:p-6 lg:p-8 relative overflow-hidden shadow-2xl">
           {/* Animated Background */}
           <AnimatedBackground />
 
           {/* Header */}
           <div className="relative z-10 border-b border-[rgba(61,53,96,0.5)] pb-5 mb-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               {/* Left: Icon + Title */}
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2d2855] to-[#3d3566] border border-[rgba(61,53,96,0.8)] flex items-center justify-center shadow-lg shadow-[#2d2855]/50 shrink-0">
-                  <PcIcon size={19} className="text-[#7ee0d2]" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#1d1830] border border-[rgba(126,224,210,0.3)] flex items-center justify-center shadow-inner shrink-0">
+                  <PcIcon size={20} className="text-[#7ee0d2]" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
-                    <h3 className="text-lg sm:text-xl font-bold text-white tracking-[-0.4px] font-display leading-tight">
-                      Spesifikasi Peralatan & Rig
-                    </h3>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1d1830] border border-[rgba(126,224,210,0.3)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
-                      <span className="font-medium text-[#7ee0d2] text-[9px] tracking-widest uppercase font-sans">
-                        Terkalibrasi
-                      </span>
-                    </span>
-                  </div>
-                  <p className="text-[#a89ec0] text-[12px] leading-relaxed">
-                    Konfigurasi stasiun siaran &amp; telemetri avatar Xion Regalia
-                  </p>
-                </div>
-              </div>
-
-              {/* Right: Systems online badge */}
-              <div className="flex items-center gap-2 sm:justify-end">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1d1830] border border-[rgba(61,53,96,0.6)]">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#4ade80] animate-pulse" />
-                    <span className="w-2 h-2 rounded-full bg-[#4ade80] animate-pulse [animation-delay:0.2s]" />
-                    <span className="w-2 h-2 rounded-full bg-[#4ade80] animate-pulse [animation-delay:0.4s]" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-[#4ade80] uppercase tracking-wider">
-                    {filteredCards.length} Sistem Online
-                  </span>
+                  <h3 className="text-xl sm:text-[22px] font-bold text-[#130f24] tracking-wide font-display leading-tight">
+                    Spesifikasi Peralatan
+                  </h3>
                 </div>
               </div>
             </div>
