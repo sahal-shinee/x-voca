@@ -269,8 +269,14 @@ const getVotingStats = async (req, res) => {
       attributes: ['status']
     });
 
+    // Hitung total votes dari semua game di periode ini
+    const totalVotes = await Game.sum('vote_count', {
+      where: { period_key }
+    }) || 0;
+
     const stats = {
       total_games: games.length,
+      total_votes: totalVotes,
       requested: games.filter(g => g.status === 'requested').length,
       accepted: games.filter(g => g.status === 'accepted').length,
       playing: games.filter(g => g.status === 'playing').length,

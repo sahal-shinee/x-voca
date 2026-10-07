@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import heroCharacter from '../../assets/hero-character.png';
 import TopNav from './TopNav';
+import { getNextSchedule } from '../../services/scheduleService';
 
 // ========== ICONS ==========
 
@@ -52,6 +53,19 @@ const MenuIcon = () => (
 const CloseIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const YouTubeIcon = ({ size = 14, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12,6 12,12 16,14"/>
   </svg>
 );
 
@@ -710,13 +724,74 @@ function CharacterStage({ moodIndex, onMoodChange }) {
   );
 }
 
+// ========== HELPER FUNCTIONS ==========
+
+// Format tanggal ke format Indonesia
+const formatTanggalWIB = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const options = {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+    timeZoneName: 'short'
+  };
+  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+  // Convert "00.00 WIB" format
+  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+};
+
+// Hitung countdown dari target date
+const hitungCountdown = (targetDateString) => {
+  if (!targetDateString) return null;
+  const target = new Date(targetDateString);
+  const now = new Date();
+  const diff = target - now;
+
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return { days, hours, minutes, diff };
+};
+
+// Format countdown untuk display
+const formatCountdownDisplay = (countdownData) => {
+  if (!countdownData) return { hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true };
+  if (countdownData.diff <= 0) return { hours: '00', minutes: '00', seconds: '00', isLive: true, isEmpty: false };
+
+  const totalSeconds = Math.floor(countdownData.diff / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return {
+    hours: String(hours).padStart(2, '0'),
+    minutes: String(minutes).padStart(2, '0'),
+    seconds: String(seconds).padStart(2, '0'),
+    isLive: false,
+    isEmpty: false
+  };
+};
+
 // ========== HERO SECTION ==========
 
 function HeroSection() {
   const [moodIndex, setMoodIndex] = useState(0);
   const [scrolled, setScrolled] = useState(false);
-  const mood = MOODS[moodIndex];
+  const [nextSchedule, setNextSchedule] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
 
+  const mood = MOODS[moodIndex];
+  const timerRef = useRef(null);
+
+  // Scroll handler
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -725,11 +800,58 @@ function HeroSection() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const countdown = {
-    hours: '02',
-    minutes: '14',
-    seconds: '36',
-  };
+  // Fetch next schedule dari API
+  useEffect(() => {
+    const fetchNextSchedule = async () => {
+      try {
+        setLoading(true);
+        const data = await getNextSchedule();
+        if (data && data.id) {
+          setNextSchedule(data);
+        } else {
+          setNextSchedule(null);
+        }
+      } catch (err) {
+        console.error('Error fetching next schedule:', err);
+        setNextSchedule(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNextSchedule();
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!nextSchedule?.scheduled_at_wib && !nextSchedule?.scheduled_at) {
+      setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
+      return;
+    }
+
+    const updateCountdown = () => {
+      const targetDate = nextSchedule.scheduled_at_wib || nextSchedule.scheduled_at;
+      const countdownData = hitungCountdown(targetDate);
+      setCountdown(formatCountdownDisplay(countdownData));
+    };
+
+    // Initial update
+    updateCountdown();
+
+    // Update setiap detik
+    timerRef.current = setInterval(updateCountdown, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [nextSchedule]);
+
+  // Format tanggal untuk display
+  const scheduleDateDisplay = nextSchedule
+    ? formatTanggalWIB(nextSchedule.scheduled_at_wib || nextSchedule.scheduled_at)
+    : null;
 
   // Scroll mulus ke section berikutnya (memakai #features jika ada, jika tidak section tepat di bawah hero)
   const handleScrollDown = (e) => {
@@ -778,7 +900,7 @@ function HeroSection() {
       <TopNav />
 
       {/* HERO MAIN SECTION */}
-      <section id="hero" className="relative min-h-screen pt-[70px]">
+      <section id="hero" className="relative min-h-screen pt-[70px] lg:pt-[90px]">
         {/* Background interaktif: nebula, bulan, sorot kursor, bintang, rasi, bintang jatuh, riak klik */}
         <InteractiveBackground mood={mood} />
 
@@ -792,7 +914,7 @@ function HeroSection() {
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pb-28 lg:pb-32">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 pt-8 sm:pt-12 lg:pt-0 lg:items-center min-h-[calc(100vh-70px)] lg:min-h-[calc(100vh-70px-112px)]">
             {/* LEFT SIDE CONTENT */}
-            <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-8 lg:pt-0 pb-12 lg:pb-0">
+            <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-12 lg:pt-8 pb-12 lg:pb-0">
               {/* Pill Badge */}
               <div className="mb-4 sm:mb-5 animate-fade-in">
                 <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[rgba(192,132,252,0.12)] border border-[#c084fc] shadow-[0px_0px_15px_0px_rgba(192,132,252,0.15)]">
@@ -839,6 +961,7 @@ function HeroSection() {
               <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl bg-[#231f42] border border-[#3d3560] shadow-[0px_12px_36px_0px_rgba(15,10,34,0.65)] relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.5s' }}>
                 <div className="absolute -right-4 sm:-right-8 -top-4 sm:-top-8 w-[80px] sm:w-[112px] h-[80px] sm:h-[112px] rounded-full bg-[rgba(126,224,210,0.1)] blur-[10px] sm:blur-[12px]"></div>
 
+                {/* Header Section */}
                 <div className="border-b border-[rgba(61,53,96,0.6)] pb-3 sm:pb-3.5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
@@ -847,41 +970,143 @@ function HeroSection() {
                         STREAM BERIKUTNYA
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(74,222,128,0.3)]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></div>
-                      <span className="font-medium text-[#4ade80] text-[8px] sm:text-[10px] tracking-wider font-sans">
-                        SYNCED 23:00 WIB
-                      </span>
-                    </div>
+
+                    {/* Status Badge - Dynamic based on data */}
+                    {loading ? (
+                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(192,132,252,0.3)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#a89ec0] animate-pulse"></div>
+                        <span className="font-medium text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                          MEMUAT...
+                        </span>
+                      </div>
+                    ) : countdown.isEmpty ? (
+                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(192,132,252,0.3)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#a89ec0]"></div>
+                        <span className="font-medium text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                          TIDAK ADA JADWAL
+                        </span>
+                      </div>
+                    ) : countdown.isLive ? (
+                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(239,68,68,0.2)] border border-[rgba(239,68,68,0.4)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse"></div>
+                        <span className="font-medium text-[#ef4444] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                          LIVE NOW
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(74,222,128,0.3)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></div>
+                        <span className="font-medium text-[#4ade80] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                          {scheduleDateDisplay || 'SYNCED'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-start justify-center gap-2 sm:gap-3 py-3 sm:py-4">
-                  {[
-                    { value: countdown.hours, label: 'JAM', pulse: false },
-                    { value: countdown.minutes, label: 'MIN', pulse: false },
-                    { value: countdown.seconds, label: 'DET', pulse: true },
-                  ].map((unit) => (
-                    <div key={unit.label} className="flex flex-col items-center px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] w-[80px] sm:w-[100px] lg:w-[127px]">
-                      <span className={`font-bold text-[#7ee0d2] text-2xl sm:text-[28px] lg:text-[32px] tracking-[-0.5px] sm:tracking-[-0.8px] font-display text-center ${unit.pulse ? 'animate-pulse' : ''}`}>
-                        {unit.value}
-                      </span>
-                      <span className="pt-1 sm:pt-1.5 font-bold text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider uppercase text-center font-sans">
-                        {unit.label}
-                      </span>
+                {/* Thumbnail & Countdown Section */}
+                <div className="flex items-start gap-3 py-3 sm:py-4">
+                  {/* Thumbnail Preview */}
+                  {nextSchedule?.thumbnail_url && !loading && !countdown.isEmpty && (
+                    <div className="flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-lg overflow-hidden border border-[rgba(61,53,96,0.5)]">
+                      <img
+                        src={nextSchedule.thumbnail_url}
+                        alt="Stream thumbnail"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
                     </div>
-                  ))}
+                  )}
+
+                  {/* Loading State */}
+                  {loading && (
+                    <div className="flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-lg bg-[rgba(61,53,96,0.3)] animate-pulse border border-[rgba(61,53,96,0.5)]"></div>
+                  )}
+
+                  {/* Countdown Display */}
+                  <div className="flex-1 flex items-center justify-center gap-1 sm:gap-2">
+                    {loading ? (
+                      <>
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex flex-col items-center px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] w-[70px] sm:w-[90px] lg:w-[110px]">
+                            <div className="w-8 sm:w-10 h-6 sm:h-8 bg-[rgba(61,53,96,0.4)] rounded animate-pulse mb-1"></div>
+                            <div className="w-6 sm:w-8 h-2 bg-[rgba(61,53,96,0.3)] rounded animate-pulse"></div>
+                          </div>
+                        ))}
+                      </>
+                    ) : countdown.isEmpty ? (
+                      <div className="text-center py-4 w-full">
+                        <p className="text-[#a89ec0] text-sm">Tidak ada jadwal upcoming</p>
+                        <p className="text-[#5c5480] text-xs mt-1">Pastikan admin menambahkan jadwal</p>
+                      </div>
+                    ) : (
+                      <>
+                        {[
+                          { value: countdown.hours, label: 'JAM', pulse: false },
+                          { value: countdown.minutes, label: 'MIN', pulse: false },
+                          { value: countdown.seconds, label: 'DET', pulse: true },
+                        ].map((unit) => (
+                          <div key={unit.label} className="flex flex-col items-center px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] w-[70px] sm:w-[90px] lg:w-[110px]">
+                            <span className={`font-bold text-[#7ee0d2] text-2xl sm:text-[28px] lg:text-[32px] tracking-[-0.5px] sm:tracking-[-0.8px] font-display text-center ${unit.pulse ? 'animate-pulse' : ''}`}>
+                              {unit.value}
+                            </span>
+                            <span className="pt-1 sm:pt-1.5 font-bold text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider uppercase text-center font-sans">
+                              {unit.label}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
                 </div>
 
+                {/* Footer Section - Stream Info */}
                 <div className="border-t border-[rgba(61,53,96,0.4)] pt-3 sm:pt-3.5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <span className="text-[#c084fc] text-xs">✦</span>
-                      <span className="font-normal text-[#a89ec0] text-[10px] sm:text-xs font-body">
-                        Sing-along & Midnight Telemetry
-                      </span>
+                    <div className="flex flex-col gap-1 sm:gap-1.5">
+                      {/* Title dari database */}
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <span className="text-[#c084fc] text-xs">✦</span>
+                        <span className="font-normal text-[#a89ec0] text-[10px] sm:text-xs font-body line-clamp-1">
+                          {loading ? (
+                            <span className="inline-block w-32 h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse"></span>
+                          ) : nextSchedule?.title ? (
+                            nextSchedule.title
+                          ) : (
+                            'Tidak ada jadwal'
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Platform & Duration */}
+                      {!loading && nextSchedule && (
+                        <div className="flex items-center gap-2 ml-5 sm:ml-6">
+                          {/* Platform Badge */}
+                          <div className="flex items-center gap-1">
+                            <YouTubeIcon size={12} className="text-red-500" />
+                            <span className="text-[#a89ec0] text-[10px]">
+                              {nextSchedule.stream_platform || 'YouTube'}
+                            </span>
+                          </div>
+
+                          {/* Duration */}
+                          <div className="flex items-center gap-1">
+                            <ClockIcon />
+                            <span className="text-[#a89ec0] text-[10px]">
+                              ±{nextSchedule.estimated_duration || '2-3 Jam'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Link to="/content" className="font-bold text-[#7ee0d2] text-[9px] sm:text-[11px] tracking-wider uppercase font-sans hover:underline hover:text-white transition-colors">
+
+                    {/* CTA Button */}
+                    <Link
+                      to={nextSchedule?.youtube_url || '/content'}
+                      className={`font-bold text-[#7ee0d2] text-[9px] sm:text-[11px] tracking-wider uppercase font-sans hover:underline hover:text-white transition-colors ${countdown.isEmpty || !nextSchedule?.youtube_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                      target={nextSchedule?.youtube_url ? '_blank' : '_self'}
+                      rel={nextSchedule?.youtube_url ? 'noopener noreferrer' : ''}
+                    >
                       RESERVE
                     </Link>
                   </div>

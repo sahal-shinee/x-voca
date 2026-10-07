@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getSchedules } from '../../services/scheduleService';
 
 // ========== ICONS (PRESERVED) ==========
 
@@ -90,6 +91,28 @@ const SignalIcon = () => (
     <rect x="1" y="8" width="2.5" height="4" rx="1" fill="currentColor"/>
     <rect x="5.25" y="5" width="2.5" height="7" rx="1" fill="currentColor"/>
     <rect x="9.5" y="2" width="2.5" height="10" rx="1" fill="currentColor" opacity="0.4"/>
+  </svg>
+);
+
+// Platform Icons
+const YouTubeIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#ef4444" aria-hidden="true">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+    <path fill="#fff" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+const TwitchIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#9146ff" aria-hidden="true">
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+  </svg>
+);
+
+const GlobeIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
   </svg>
 );
 
@@ -214,6 +237,92 @@ const useDragScroll = () => {
   return { ref, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove };
 };
 
+// ========== HELPER FUNCTIONS ==========
+
+// Format tanggal ke format Indonesia (WIB)
+const formatTanggalWIB = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const options = {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+    timeZoneName: 'short'
+  };
+  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+  // Convert "00.00 WIB" format
+  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+};
+
+// Hitung countdown dan return string
+const hitungCountdownString = (targetDateString) => {
+  if (!targetDateString) return null;
+  const target = new Date(targetDateString);
+  const now = new Date();
+  const diff = target - now;
+
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) {
+    return `in ${days}d ${hours}h`;
+  } else if (hours > 0) {
+    return `in ${hours}h ${minutes}m`;
+  } else {
+    return `in ${minutes}m`;
+  }
+};
+
+// Get platform icon component
+const getPlatformIcon = (platform) => {
+  if (!platform) return <YouTubeIcon size={12} />;
+  const lower = platform.toLowerCase();
+  if (lower.includes('youtube')) return <YouTubeIcon size={12} />;
+  if (lower.includes('twitch')) return <TwitchIcon size={12} />;
+  return <GlobeIcon size={12} />;
+};
+
+// Map game category ke icon type
+const getIconFromCategory = (category) => {
+  if (!category) return 'folder';
+  const lower = category.toLowerCase();
+  if (lower.includes('chat') || lower.includes('zatsu') || lower.includes('chit')) return 'chat';
+  if (lower.includes('music') || lower.includes('karaoke') || lower.includes('acoustic') || lower.includes('song')) return 'music';
+  if (lower.includes('game') || lower.includes('play') || lower.includes('rpg') || lower.includes('horror') || lower.includes('exploration')) return 'game';
+  return 'play';
+};
+
+// Transform API data ke format yang dibutuhkan component
+const transformScheduleData = (data) => {
+  if (!data || !data.id) return null;
+
+  const scheduledAt = data.scheduled_at_wib || data.scheduled_at;
+  const countdownString = hitungCountdownString(scheduledAt);
+
+  return {
+    id: data.id,
+    status: data.status || 'upcoming',
+    title: data.title || 'Untitled Stream',
+    subtitle: data.description ? data.description.substring(0, 50) : '',
+    tag: data.game_category || 'GENERAL',
+    time: scheduledAt ? formatTanggalWIB(scheduledAt) : 'TBD',
+    countdown: countdownString,
+    estimated_duration: data.estimated_duration || '±2-3 Jam',
+    platform: data.stream_platform || 'YouTube',
+    thumbnail_url: data.thumbnail_url,
+    youtube_url: data.youtube_url,
+    icon: getIconFromCategory(data.game_category),
+    cta: data.status === 'live' ? 'Tonton Siaran Sekarang' :
+         data.status === 'done' ? 'Buka Arsip' : 'Lihat Detail',
+  };
+};
+
 // ========== LIVE TIMER ==========
 const LiveTimer = () => {
   const [elapsed, setElapsed] = useState({ h: 0, m: 37, s: 0 });
@@ -237,7 +346,7 @@ const LiveTimer = () => {
   );
 };
 
-// ========== COUNTDOWN DISPLAY ==========
+// ========== COUNTDOWN BADGE ==========
 const CountdownBadge = ({ text }) => (
   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold tracking-wider">
     <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
@@ -245,6 +354,37 @@ const CountdownBadge = ({ text }) => (
     </svg>
     {text}
   </span>
+);
+
+// Loading Skeleton Card
+const SkeletonCard = () => (
+  <div className="relative flex-shrink-0 w-[320px] sm:w-[360px] lg:w-[380px] rounded-3xl overflow-hidden flex flex-col animate-pulse">
+    <div className="h-[3px] bg-gradient-to-r from-violet-500/30 to-transparent"></div>
+    <div className="flex flex-col flex-1 px-6 py-7">
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="w-20 h-6 bg-white/5 rounded-full"></div>
+        <div className="w-28 h-5 bg-white/5 rounded-full"></div>
+      </div>
+      {/* Icon + Title skeleton */}
+      <div className="flex items-start gap-4 mb-6">
+        <div className="w-12 h-12 bg-white/5 rounded-xl"></div>
+        <div className="flex-1">
+          <div className="w-48 h-5 bg-white/5 rounded mb-2"></div>
+          <div className="w-32 h-4 bg-white/5 rounded"></div>
+        </div>
+      </div>
+      {/* Meta info skeleton */}
+      <div className="space-y-3">
+        <div className="w-36 h-4 bg-white/5 rounded"></div>
+        <div className="w-24 h-6 bg-white/5 rounded-lg"></div>
+      </div>
+      {/* CTA skeleton */}
+      <div className="mt-auto pt-6 border-t border-white/5">
+        <div className="w-32 h-4 bg-white/5 rounded"></div>
+      </div>
+    </div>
+  </div>
 );
 
 // ========== MAIN COMPONENT ==========
@@ -257,64 +397,53 @@ const ScheduleSection = () => {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const dragScroll = useDragScroll();
 
-  // ========== DATA (PRESERVED) ==========
-  const schedules = [
-    {
-      id: 1,
-      status: 'live',
-      title: 'Signalis: Solitary Resonance',
-      subtitle: '& Midnight Lore',
-      tag: 'SURVIVAL HORROR',
-      time: 'Hari ini · 23:00 WIB',
-      cta: 'Tonton Siaran Sekarang',
-      icon: 'play',
-    },
-    {
-      id: 2,
-      status: 'upcoming',
-      title: 'Midnight Zatsu & Tea:',
-      subtitle: 'Reading Fan Letters #14',
-      tag: 'CHIT-CHAT / ZATSU',
-      time: 'Jumat, 28 Okt · 23:30 WIB',
-      countdown: 'in 2d 14h',
-      cta: 'Lihat Detail',
-      icon: 'chat',
-    },
-    {
-      id: 3,
-      status: 'upcoming',
-      title: 'Subnautica: Void Depths',
-      subtitle: 'Endurance Run',
-      tag: 'EXPLORATION',
-      time: 'Minggu, 30 Okt · 22:00 WIB',
-      countdown: 'in 4d 12h',
-      cta: 'Lihat Detail',
-      icon: 'game',
-    },
-    {
-      id: 4,
-      status: 'done',
-      title: 'Acoustic Karaoke:',
-      subtitle: 'Melancholic Night Vocals',
-      tag: 'KARAOKE / UTASOU',
-      time: '24 Okt · Archived',
-      duration: 'Durasi: 2j 48m',
-      cta: 'Buka Arsip',
-      icon: 'music',
-    },
-  ];
+  // State untuk data dari API
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // ========== HELPERS (PRESERVED) ==========
-  const getIcon = (iconName) => {
-    switch (iconName) {
-      case 'play': return <PlayIcon />;
-      case 'chat': return <ChatIcon />;
-      case 'game': return <GameIcon />;
-      case 'music': return <MusicIcon />;
-      default: return <FolderIcon />;
-    }
-  };
+  // Fetch schedules dari API
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
+        // Fetch all schedules (live, upcoming, done)
+        const [liveData, upcomingData, doneData] = await Promise.all([
+          getSchedules({ status: 'live', limit: 5 }).catch(() => []),
+          getSchedules({ status: 'upcoming', limit: 10 }).catch(() => []),
+          getSchedules({ status: 'done', limit: 5 }).catch(() => []),
+        ]);
+
+        // Combine dan transform data
+        const allSchedules = [
+          ...(Array.isArray(liveData) ? liveData : liveData.data || []),
+          ...(Array.isArray(upcomingData) ? upcomingData : upcomingData.data || []),
+          ...(Array.isArray(doneData) ? doneData : doneData.data || []),
+        ].map(transformScheduleData).filter(Boolean);
+
+        // Sort by scheduled_at (terdekat dulu)
+        allSchedules.sort((a, b) => {
+          const dateA = new Date(a.time) || new Date();
+          const dateB = new Date(b.time) || new Date();
+          return dateA - dateB;
+        });
+
+        setSchedules(allSchedules);
+      } catch (err) {
+        console.error('Error fetching schedules:', err);
+        setError('Gagal memuat jadwal');
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedules();
+  }, []);
+
+  // Helper functions for card styling
   const getStatusBadge = (status) => {
     if (status === 'live') {
       return (
@@ -345,6 +474,16 @@ const ScheduleSection = () => {
     return 'bg-[rgba(192,132,252,0.15)] text-accent-lilac';
   };
 
+  const getIcon = (iconName) => {
+    switch (iconName) {
+      case 'play': return <PlayIcon />;
+      case 'chat': return <ChatIcon />;
+      case 'game': return <GameIcon />;
+      case 'music': return <MusicIcon />;
+      default: return <FolderIcon />;
+    }
+  };
+
   const getIconColorClass = (status) => {
     if (status === 'done') return 'opacity-60';
     return '';
@@ -366,13 +505,8 @@ const ScheduleSection = () => {
     return 'text-accent-cyan-light hover:text-white';
   };
 
-  const getBorderClass = (status) => {
-    if (status === 'done') return 'border-[rgba(61,53,96,0.5)]';
-    return 'border-[rgba(61,53,96,0.8)]';
-  };
-
-  // ========== SCROLL CONTROLS (PRESERVED + ENHANCED) ==========
-  const CARD_WIDTH = 360; // px
+  // ========== SCROLL CONTROLS ==========
+  const CARD_WIDTH = 360;
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -492,20 +626,29 @@ const ScheduleSection = () => {
 
               {/* Schedule count */}
               <div className="px-5 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center min-w-[100px] h-full flex flex-col justify-center">
-                <p className="text-3xl font-bold text-white mb-1">{schedules.length}</p>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Jadwal</p>
-                <div className="flex justify-center gap-1.5 mt-3">
-                  {schedules.map((s) => (
-                    <span
-                      key={s.id}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        s.status === 'live' ? 'bg-red-400' :
-                        s.status === 'upcoming' ? 'bg-cyan-400/70' :
-                        'bg-white/20'
-                      }`}
-                    />
-                  ))}
-                </div>
+                {loading ? (
+                  <>
+                    <div className="w-12 h-8 bg-white/5 rounded animate-pulse mx-auto mb-1"></div>
+                    <div className="w-16 h-3 bg-white/5 rounded animate-pulse mx-auto"></div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">{schedules.length}</p>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest">Jadwal</p>
+                    <div className="flex justify-center gap-1.5 mt-3">
+                      {schedules.slice(0, 5).map((s) => (
+                        <span
+                          key={s.id}
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            s.status === 'live' ? 'bg-red-400' :
+                            s.status === 'upcoming' ? 'bg-cyan-400/70' :
+                            'bg-white/20'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -600,7 +743,30 @@ const ScheduleSection = () => {
             {/* Leading spacer for peek effect */}
             <div className="flex-shrink-0 w-0" />
 
-            {schedules.map((schedule, index) => (
+            {/* Loading State - Show skeleton cards */}
+            {loading && (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <SkeletonCard key={`skeleton-${i}`} />
+                ))}
+              </>
+            )}
+
+            {/* Empty State */}
+            {!loading && schedules.length === 0 && (
+              <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 text-center">
+                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                  <CalendarIcon />
+                </div>
+                <h3 className="text-white text-lg font-semibold mb-2">Belum Ada Jadwal</h3>
+                <p className="text-[#a89ec0] text-sm max-w-[300px]">
+                  Saat ini belum ada jadwal stream yang tersedia. Silakan kembali lagi nanti.
+                </p>
+              </div>
+            )}
+
+            {/* Schedule Cards */}
+            {!loading && schedules.map((schedule, index) => (
               <div
                 key={schedule.id}
                 className={`
@@ -632,9 +798,22 @@ const ScheduleSection = () => {
                     : '0 12px 32px -8px rgba(0,0,0,0.4)',
                 }}
               >
+                {/* Thumbnail Background */}
+                {schedule.thumbnail_url && (
+                  <div className="absolute inset-0 z-0">
+                    <img
+                      src={schedule.thumbnail_url}
+                      alt=""
+                      className="w-full h-full object-cover opacity-10 group-hover:opacity-15 transition-opacity duration-300"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1a1530] via-[#1a1530]/80 to-transparent"></div>
+                  </div>
+                )}
+
                 {/* Top accent line — all cards */}
                 <div
-                  className="absolute left-0 right-0 top-0 h-[3px] pointer-events-none z-10"
+                  className="absolute left-0 right-0 top-0 h-[3px] pointer-events-none z-20"
                   style={{
                     background: schedule.status === 'live'
                       ? 'linear-gradient(90deg, rgba(239,68,68,0.9), rgba(239,68,68,0.4), transparent 80%)'
@@ -646,11 +825,11 @@ const ScheduleSection = () => {
 
                 {/* Ambient glow for live card */}
                 {schedule.status === 'live' && (
-                  <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-red-500/[0.08] blur-[22px] pointer-events-none" />
+                  <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-red-500/[0.08] blur-[22px] pointer-events-none z-0" />
                 )}
 
                 {/* Uniform inner padding for all cards */}
-                <div className="flex flex-col flex-1 px-6 py-7">
+                <div className="relative z-10 flex flex-col flex-1 px-6 py-7">
 
                   {/* Status + tag row */}
                   <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
@@ -690,15 +869,28 @@ const ScheduleSection = () => {
                       </span>
                     </div>
 
+                    {/* Platform + Duration */}
+                    <div className="flex items-center gap-3">
+                      {/* Platform Badge */}
+                      <div className="flex items-center gap-1.5">
+                        {getPlatformIcon(schedule.platform)}
+                        <span className={`text-[11px] ${getTextColorClass(schedule.status)}`}>
+                          {schedule.platform}
+                        </span>
+                      </div>
+
+                      {/* Duration */}
+                      <div className="flex items-center gap-1.5">
+                        <ClockIcon />
+                        <span className={`text-[11px] ${getTextColorClass(schedule.status)}`}>
+                          {schedule.estimated_duration}
+                        </span>
+                      </div>
+                    </div>
+
                     {schedule.countdown && (
                       <div className="mt-2">
                         <CountdownBadge text={schedule.countdown} />
-                      </div>
-                    )}
-
-                    {schedule.duration && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#5c5480] text-[11px] tracking-wider font-sans">{schedule.duration}</span>
                       </div>
                     )}
 
@@ -715,13 +907,19 @@ const ScheduleSection = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* CTA footer */}
                   <div className="mt-auto pt-6 border-t border-[rgba(61,53,96,0.5)]">
                     <Link
-                      to="#"
-                      className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)}`}
-                      onClick={(e) => e.stopPropagation()}
+                      to={schedule.youtube_url || '#'}
+                      target={schedule.youtube_url ? '_blank' : '_self'}
+                      rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
+                      className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'pointer-events-none opacity-50' : ''}`}
+                      onClick={(e) => {
+                        if (!schedule.youtube_url) {
+                          e.preventDefault();
+                        }
+                      }}
                     >
                       <span className={`text-[13px] ${schedule.status === 'live' ? 'font-bold' : 'font-semibold'} font-body group-hover/link:underline underline-offset-2 transition-all tracking-wide`}>
                         {schedule.cta}
@@ -741,10 +939,10 @@ const ScheduleSection = () => {
         </div>
 
         {/* ── Bottom bar: dots + hint ── */}
-        <div className={`flex items-center justify-between mt-3 px-1 transition-all duration-500 delay-200 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`flex items-center justify-between mt-3 px-1 transition-all duration-500 delay-200 ${cardsVisible && !loading ? 'opacity-100' : 'opacity-0'}`}>
           {/* Dot indicators */}
           <div className="flex items-center gap-2">
-            {schedules.map((_, i) => (
+            {!loading && schedules.map((_, i) => (
               <button
                 key={i}
                 onClick={() => scrollToIndex(i)}
@@ -759,9 +957,11 @@ const ScheduleSection = () => {
           </div>
 
           {/* Progress counter */}
-          <span className="text-[10px] text-white/20 tabular-nums">
-            {activeIndex + 1} / {schedules.length}
-          </span>
+          {!loading && schedules.length > 0 && (
+            <span className="text-[10px] text-white/20 tabular-nums">
+              {activeIndex + 1} / {schedules.length}
+            </span>
+          )}
         </div>
 
       </div>

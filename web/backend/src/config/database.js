@@ -12,8 +12,9 @@ const sequelize = new Sequelize(
     pool: {
       max: 5,
       min: 0,
-      acquire: 30000,
-      idle: 10000
+      acquire: 60000, // Increase timeout to 60s
+      idle: 10000,
+      connectTimeout: 60000, // Connection timeout
     },
     define: {
       timestamps: true,

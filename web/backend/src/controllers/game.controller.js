@@ -19,7 +19,10 @@ const getGames = async (req, res) => {
       where.status = status;
     }
     if (search) {
-      where.title = { [Op.like]: `%${search}%` };
+      where[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { genre: { [Op.like]: `%${search}%` } }
+      ];
     }
 
     // Determine sort order
@@ -32,19 +35,14 @@ const getGames = async (req, res) => {
       order = [['vote_count', 'DESC']]; // default: by votes
     }
 
-    // Get all games with total vote count in current period
+    // Get all games
     const games = await Game.findAll({
       where,
-      order,
-      attributes: {
-        include: [
-          [fn('SUM', col('vote_count')), 'total_votes']
-        ]
-      }
+      order
     });
 
     // Calculate total votes for percentage
-    const totalVotes = games.reduce((sum, game) => sum + game.vote_count, 0);
+    const totalVotes = games.reduce((sum, game) => sum + (game.vote_count || 0), 0);
 
     // Add percentage to each game
     const gamesWithPercentage = games.map(game => ({

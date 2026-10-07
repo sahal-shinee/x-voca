@@ -9,25 +9,6 @@ import { useToast } from '../../components/common/Toast';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
 
-// ========== MOCK DATA FOR DEVELOPMENT ==========
-const MOCK_GAMES = [
-  { id: 1, title: 'Elden Ring: Shadow of the Erdtree', genre: 'Action RPG', publisher: 'FromSoftware', cover_image: null, vote_count: 247, status: 'accepted', added_by: 'viewer', requester_info: 'Viewer #4021', period_key: '2025-10' },
-  { id: 2, title: 'Hollow Knight: Silksong', genre: 'Metroidvania', publisher: 'Team Cherry', cover_image: null, vote_count: 198, status: 'playing', added_by: 'viewer', requester_info: 'Viewer #1088', period_key: '2025-10' },
-  { id: 3, title: 'Silent Hill 2 Remake', genre: 'Survival Horror', publisher: 'Bloober Team', cover_image: null, vote_count: 156, status: 'accepted', added_by: 'creator', requester_info: 'Creator (Xion)', period_key: '2025-10' },
-  { id: 4, title: 'Until Dawn Remake', genre: 'Interactive Horror', publisher: 'Ballistic Moon', cover_image: null, vote_count: 142, status: 'requested', added_by: 'viewer', requester_info: '@KuroNeko', period_key: '2025-10' },
-  { id: 5, title: 'Resident Evil 4 Remake', genre: 'Survival Horror', publisher: 'Capcom', cover_image: null, vote_count: 128, status: 'requested', added_by: 'viewer', requester_info: '@ShadowHunter', period_key: '2025-10' },
-  { id: 6, title: 'Outer Wilds', genre: 'Space Exploration', publisher: 'Mobius Digital', cover_image: null, vote_count: 115, status: 'done', added_by: 'creator', requester_info: 'Creator (Xion)', period_key: '2025-10' },
-  { id: 7, title: 'Subnautica', genre: 'Survival Adventure', publisher: 'Unknown Worlds', cover_image: null, vote_count: 98, status: 'done', added_by: 'viewer', requester_info: 'Viewer #2156', period_key: '2025-10' },
-  { id: 8, title: 'Lies of P', genre: 'Souls-like', publisher: 'Round8 Studio', cover_image: null, vote_count: 87, status: 'requested', added_by: 'viewer', requester_info: '@SoulsMaster', period_key: '2025-10' },
-  { id: 9, title: 'Control Ultimate Edition', genre: 'Action Adventure', publisher: 'Remedy', cover_image: null, vote_count: 76, status: 'requested', added_by: 'viewer', requester_info: 'Viewer #0892', period_key: '2025-10' },
-  { id: 10, title: 'Signalis', genre: 'Survival Horror', publisher: 'Rose-Engine', cover_image: null, vote_count: 65, status: 'playing', added_by: 'creator', requester_info: 'Creator (Xion)', period_key: '2025-10' },
-  { id: 11, title: 'Cyberpunk 2077', genre: 'Open World RPG', publisher: 'CD Projekt Red', cover_image: null, vote_count: 52, status: 'accepted', added_by: 'viewer', requester_info: '@NightCityFan', period_key: '2025-10' },
-  { id: 12, title: 'Stardew Valley', genre: 'Cozy Simulation', publisher: 'ConcernedApe', cover_image: null, vote_count: 45, status: 'requested', added_by: 'viewer', requester_info: 'Viewer #3331', period_key: '2025-10' }
-];
-
-const MOCK_PERIOD_KEY = '2025-10';
-const MOCK_TOTAL_VOTES = MOCK_GAMES.reduce((sum, g) => sum + g.vote_count, 0);
-
 // ========== ICONS ==========
 const SearchIcon = ({ className = '' }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -198,7 +179,6 @@ function VotingPage() {
   const [error, setError] = useState(null);
   const [periodKey, setPeriodKey] = useState(getCurrentPeriodKey());
   const [totalVotesGlobal, setTotalVotesGlobal] = useState(0);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationGame, setCelebrationGame] = useState(null);
 
@@ -228,36 +208,26 @@ function VotingPage() {
       setError(null);
       const response = await getGames();
 
-      let gamesData = [];
-      let metaData = {};
-      
       if (response.success) {
-        gamesData = response.data?.data || response.data || [];
-        metaData = response.data?.meta || {};
-        setIsUsingMockData(false);
-      } else {
-        gamesData = MOCK_GAMES;
-        metaData = { period_key: MOCK_PERIOD_KEY, total_votes: MOCK_TOTAL_VOTES };
-        setIsUsingMockData(true);
-      }
+        const gamesData = response.data?.data || response.data || [];
+        const metaData = response.data?.meta || {};
 
-      setGames(gamesData);
-      
-      if (metaData.period_key) {
-        setPeriodKey(metaData.period_key);
-      }
-      if (metaData.total_votes) {
-        setTotalVotesGlobal(metaData.total_votes);
+        setGames(gamesData);
+
+        if (metaData.period_key) {
+          setPeriodKey(metaData.period_key);
+        }
+
+        // Hitung total votes dari games
+        const total = gamesData.reduce((sum, g) => sum + (g.vote_count || 0), 0);
+        setTotalVotesGlobal(total);
       } else {
-        setTotalVotesGlobal(gamesData.reduce((sum, g) => sum + (g.vote_count || 0), 0));
+        throw new Error(response.message || 'Gagal mengambil data');
       }
     } catch (err) {
       console.error('Error fetching games:', err);
-      setGames(MOCK_GAMES);
-      setPeriodKey(MOCK_PERIOD_KEY);
-      setTotalVotesGlobal(MOCK_TOTAL_VOTES);
-      setIsUsingMockData(true);
-      setError(null);
+      setGames([]);
+      setError('Data tidak tersedia');
     } finally {
       setLoading(false);
     }
@@ -533,14 +503,6 @@ function VotingPage() {
               <p className="text-[#A09BB8] text-sm max-w-xl leading-relaxed">
                 Pilih game yang ingin kamu tonton. Suara kamu menentukan live dan playthrough berikutnya.
               </p>
-              
-              {/* Mock Data Indicator */}
-              {isUsingMockData && (
-                <div className="mt-3 inline-flex items-center gap-2 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-amber-400 text-[10px] font-medium">Demo Mode</span>
-                </div>
-              )}
             </div>
 
             {/* Period Info Card - Compact */}
@@ -790,11 +752,8 @@ function VotingPage() {
 
           {/* Error State */}
           {!loading && error && (
-            <div className="bg-[#1A1730] border border-red-500/40 rounded-xl p-6 text-center">
-              <p className="text-white font-semibold mb-3">{error}</p>
-              <button onClick={fetchGames} className="px-4 py-2 bg-[#2DFFC2] text-[#0D0B1A] font-bold rounded-lg text-sm hover:bg-[#2DFFC2]/90 transition-colors">
-                Coba Lagi
-              </button>
+            <div className="bg-[#1A1730] border border-[#2A2645] rounded-xl p-8 text-center">
+              <p className="text-[#A09BB8]">Data tidak tersedia</p>
             </div>
           )}
 
