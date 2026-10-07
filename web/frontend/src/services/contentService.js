@@ -34,9 +34,13 @@ export const getContentByTag = async (tag, params = {}) => {
 export const getFeatured = async () => {
   try {
     const response = await api.get('/api/content?featured=true&limit=1');
+
+    // Handle response from backend (transformed format)
+    const content = response.data?.data?.contents?.[0] || response.data?.data?.content?.[0] || null;
+
     return {
       success: true,
-      data: response.data?.content?.[0] || null
+      data: content
     };
   } catch (error) {
     console.error('Error fetching featured content:', error);

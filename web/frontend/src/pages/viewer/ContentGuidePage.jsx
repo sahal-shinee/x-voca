@@ -3,6 +3,7 @@ import { getContent, getFeatured } from '../../services/contentService';
 import { useToast } from '../../components/common/Toast';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
+import api from '../../services/api';
 
 // ========== ICONS ==========
 const PlayIcon = ({ size = 20 }) => (
@@ -63,51 +64,33 @@ const TrendingIcon = () => (
     <polyline points="17 6 23 6 23 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-const FilterIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center py-8">
+    <div className="w-8 h-8 border-2 border-[#7ee0d2] border-t-transparent rounded-full animate-spin" />
+  </div>
 );
+
 const DiscordIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.001.022.01.043.027.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
   </svg>
 );
 
-// ========== DEMO DATA ==========
-const DEMO_CONTENT = {
-  featured: {
-    id: 1,
-    title: "Midnight Zatsu & Tea: Reading Fan Letters",
-    subtitle: "Chit-Chat Live — Xion berbagi cerita, menjawab pertanyaan, dan membaca surat dari para viewer.",
-    viewCount: "12.5K",
-    duration: "2j 15m",
-    category: "ZATSU",
-    date: "2 hari lalu",
-  },
-  stats: [
-    { label: "Total Stream", value: "62", color: "#7ee0d2" },
-    { label: "Jam Konten", value: "184+", color: "#c084fc" },
-    { label: "Total Views", value: "580K", color: "#fbbf24" },
-    { label: "Konten Baru", value: "4", color: "#f472b6" },
-  ],
-  categories: [
-    { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 24, totalViews: "210K" },
-    { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 12, totalViews: "95K" },
-    { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 18, totalViews: "180K" },
-    { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 8, totalViews: "95K" },
-  ],
-  contents: [
-    { id: 1, title: "Late Night Gaming Session #47", category: "INDIE GAMES", duration: "3j 22m", views: "8.2K", status: "new", date: "1 hari lalu" },
-    { id: 2, title: "Fan Letter Reading Special", category: "ZATSU", duration: "2j 45m", views: "15.1K", status: "popular", date: "3 hari lalu" },
-    { id: 3, title: "Acoustic Covers Collection", category: "KARAOKE", duration: "1j 30m", views: "6.7K", status: "", date: "5 hari lalu" },
-    { id: 4, title: "New Model Debut Stream", category: "LIVE2D", duration: "4j 10m", views: "25.3K", status: "new", date: "1 minggu lalu" },
-    { id: 5, title: "Horror Game Marathon", category: "INDIE GAMES", duration: "5j 05m", views: "18.9K", status: "popular", date: "1 minggu lalu" },
-    { id: 6, title: "Birthday Celebration Stream", category: "ZATSU", duration: "3j 30m", views: "32.1K", status: "popular", date: "2 minggu lalu" },
-    { id: 7, title: "Subnautica Endurance Run", category: "INDIE GAMES", duration: "4j 45m", views: "12.8K", status: "", date: "2 minggu lalu" },
-    { id: 8, title: "J-Pop Karaoke Night", category: "KARAOKE", duration: "2j 20m", views: "9.4K", status: "", date: "3 minggu lalu" },
-  ]
-};
+// ========== DEMO DATA (Fallback if API fails) ==========
+const FALLBACK_STATS = [
+  { label: "Total Stream", value: "0", color: "#7ee0d2" },
+  { label: "Jam Konten", value: "0j", color: "#c084fc" },
+  { label: "Total Views", value: "0", color: "#fbbf24" },
+  { label: "Konten Baru", value: "0", color: "#f472b6" },
+];
+
+const FALLBACK_CATEGORIES = [
+  { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 0, totalViews: "0" },
+  { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 0, totalViews: "0" },
+  { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 0, totalViews: "0" },
+  { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 0, totalViews: "0" },
+];
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Terbaru' },
@@ -117,6 +100,16 @@ const SORT_OPTIONS = [
 
 function ContentGuidePage() {
   const toast = useToast();
+
+  // ========== REAL DATA STATE ==========
+  const [featured, setFeatured] = useState(null);
+  const [contents, setContents] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // ========== UI STATE ==========
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -134,6 +127,85 @@ function ContentGuidePage() {
   const featuredRef = useRef(null);
   const categoriesRef = useRef(null);
   const gridRef = useRef(null);
+
+  // ========== FETCH REAL DATA ==========
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all data in parallel
+        const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.all([
+          getFeatured().catch(() => ({ success: true, data: null })),
+          getContent({ limit: 50 }).catch(() => ({ success: true, data: { contents: [] } })),
+          api.get('/api/content/stats').catch(() => ({ data: { success: true, data: null } })),
+          api.get('/api/content/categories').catch(() => ({ data: { success: true, data: [] } }))
+        ]);
+
+        // Process featured content
+        if (featuredRes?.success && featuredRes.data) {
+          const fc = featuredRes.data;
+          setFeatured({
+            id: fc.id,
+            title: fc.title,
+            subtitle: fc.subtitle || `Stream oleh ${fc.user?.name || 'X-VOCA'}`,
+            viewCount: fc.viewCount,
+            duration: fc.duration || fc.total_duration,
+            category: fc.category || fc.game_tag?.toUpperCase(),
+            categoryColor: fc.categoryColor,
+            date: fc.date,
+            youtubeUrl: fc.youtubeUrl || fc.youtube_url,
+            thumbnailUrl: fc.thumbnailUrl || fc.thumbnail_url
+          });
+        }
+
+        // Process contents
+        if (contentsRes?.data?.contents) {
+          setContents(contentsRes.data.contents);
+        }
+
+        // Process stats
+        if (statsRes?.data?.data) {
+          const s = statsRes.data.data;
+          setStats([
+            { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
+            { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
+            { label: "Total Views", value: s.totalViews || "0", color: "#fbbf24" },
+            { label: "Konten Baru", value: s.newContent || "0", color: "#f472b6" },
+          ]);
+        } else {
+          setStats(FALLBACK_STATS);
+        }
+
+        // Process categories with icons
+        if (categoriesRes?.data?.data && Array.isArray(categoriesRes.data.data)) {
+          const catsWithIcons = categoriesRes.data.data.map(cat => ({
+            ...cat,
+            icon: cat.icon === 'ChatIcon' ? <ChatIcon /> :
+                  cat.icon === 'EyeIcon' ? <EyeIcon /> :
+                  cat.icon === 'GameIcon' ? <GameIcon /> :
+                  cat.icon === 'MusicIcon' ? <MusicIcon /> : <ChatIcon />
+          }));
+          setCategories(catsWithIcons);
+        } else {
+          setCategories(FALLBACK_CATEGORIES);
+        }
+
+      } catch (err) {
+        console.error('Error fetching content data:', err);
+        setError(err);
+        toast.error('Gagal memuat konten');
+        // Use fallback data
+        setStats(FALLBACK_STATS);
+        setCategories(FALLBACK_CATEGORIES);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
 
   useEffect(() => {
     const pairs = [
@@ -155,32 +227,52 @@ function ContentGuidePage() {
 
   // Filter + sort
   const filteredContents = (() => {
-    let result = DEMO_CONTENT.contents;
+    let result = contents;
     if (searchQuery) {
       result = result.filter(c =>
-        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.category.toLowerCase().includes(searchQuery.toLowerCase())
+        c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.gameTag?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     } else if (activeCategory !== 'all') {
-      result = result.filter(c => c.category === activeCategory);
+      // Filter by category name or categoryId
+      result = result.filter(c =>
+        c.category === activeCategory ||
+        c.categoryId === activeCategory
+      );
     }
-    if (sortBy === 'popular') result = [...result].sort((a, b) => parseFloat(b.views) - parseFloat(a.views));
+    if (sortBy === 'popular') {
+      result = [...result].sort((a, b) => {
+        const aViews = parseFloat(a.viewCount?.replace(/[KMB]/g, '')) || 0;
+        const bViews = parseFloat(b.viewCount?.replace(/[KMB]/g, '')) || 0;
+        return bViews - aViews;
+      });
+    }
     return result;
   })();
 
-  const getCategoryColor = (cat) =>
-    DEMO_CONTENT.categories.find(c => c.name === cat)?.color || '#a89ec0';
+  // Get category color from real data
+  const getCategoryColor = (cat) => {
+    const found = categories.find(c => c.name === cat || c.id === cat);
+    return found?.color || '#a89ec0';
+  };
 
+  // Get category icon from real data
   const getCategoryIcon = (cat) => {
-    const found = DEMO_CONTENT.categories.find(c => c.name === cat);
+    const found = categories.find(c => c.name === cat || c.id === cat);
     return found?.icon || null;
   };
 
   const handleWatch = (content) => {
-    toast.info(`Opening: ${content.title}`);
+    if (content.youtubeUrl) {
+      window.open(content.youtubeUrl, '_blank');
+    } else {
+      toast.info(`Opening: ${content.title}`);
+    }
   };
 
-  const totalContent = DEMO_CONTENT.categories.reduce((s, c) => s + c.count, 0);
+  // Calculate total content from categories
+  const totalContent = categories.reduce((s, c) => s + (c.count || 0), 0);
 
   return (
     <div className="min-h-screen bg-[#0f0a22]">
@@ -278,9 +370,9 @@ function ContentGuidePage() {
       >
         <div className="max-w-[1280px] mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {DEMO_CONTENT.stats.map((stat) => (
+            {(stats.length > 0 ? stats : FALLBACK_STATS).map((stat, idx) => (
               <div
-                key={stat.label}
+                key={stat.label + idx}
                 className="relative rounded-xl p-4 overflow-hidden"
                 style={{ background: 'rgba(22,19,42,0.8)', border: '1px solid rgba(42,38,69,0.7)' }}
               >
@@ -306,96 +398,108 @@ function ContentGuidePage() {
           </div>
 
           {/* Featured Card */}
-          <div
-            className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
-            style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
-            onClick={() => handleWatch(DEMO_CONTENT.featured)}
-          >
-            {/* Subtle top accent line */}
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.4), rgba(192,132,252,0.3), transparent)' }} />
+          {featured ? (
+            <div
+              className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+              style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
+              onClick={() => handleWatch(featured)}
+            >
+              {/* Subtle top accent line */}
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.4), rgba(192,132,252,0.3), transparent)' }} />
 
-            <div className="relative flex flex-col lg:flex-row gap-0">
-              {/* Thumbnail */}
-              <div className="lg:w-[420px] flex-shrink-0">
-                <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[200px]" style={{ background: 'rgba(13,11,26,0.9)' }}>
-                  {/* Dark gradient overlay with subtle category glow */}
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.95) 0%, rgba(26,20,50,0.85) 100%)' }} />
-                  <div className="absolute inset-0 opacity-[0.12]" style={{ background: 'radial-gradient(ellipse at top right, #c084fc, transparent 60%)' }} />
+              <div className="relative flex flex-col lg:flex-row gap-0">
+                {/* Thumbnail */}
+                <div className="lg:w-[420px] flex-shrink-0">
+                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[200px]" style={{ background: 'rgba(13,11,26,0.9)' }}>
+                    {/* Dark gradient overlay with subtle category glow */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.95) 0%, rgba(26,20,50,0.85) 100%)' }} />
+                    <div className="absolute inset-0 opacity-[0.12]" style={{ background: `radial-gradient(ellipse at top right, ${featured.categoryColor || '#c084fc'}, transparent 60%)` }} />
 
-                  {/* Play button center */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-                        style={{ background: 'rgba(126,224,210,0.12)', border: '1px solid rgba(126,224,210,0.25)' }}>
-                        <div className="w-11 h-11 rounded-full flex items-center justify-center"
-                          style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}>
-                          <span className="text-[#0f0a22] ml-0.5"><PlayIcon size={18} /></span>
+                    {/* Play button center */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+                          style={{ background: 'rgba(126,224,210,0.12)', border: '1px solid rgba(126,224,210,0.25)' }}>
+                          <div className="w-11 h-11 rounded-full flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}>
+                            <span className="text-[#0f0a22] ml-0.5"><PlayIcon size={18} /></span>
+                          </div>
                         </div>
+                        {/* Ping ring */}
+                        <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'rgba(126,224,210,0.3)' }} />
                       </div>
-                      {/* Ping ring */}
-                      <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'rgba(126,224,210,0.3)' }} />
+                    </div>
+
+                    {/* Duration badge */}
+                    <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+                      <ClockIcon />
+                      {featured.duration}
+                    </div>
+
+                    {/* LIVE badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.9)', boxShadow: '0 0 12px rgba(239,68,68,0.4)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      <span className="text-white text-[10px] font-bold tracking-wider">FEATURED</span>
+                    </div>
+
+                    {/* Category badge */}
+                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide" style={{ background: 'rgba(192,132,252,0.15)', border: '1px solid rgba(192,132,252,0.3)', color: '#c084fc' }}>
+                      {featured.category}
                     </div>
                   </div>
-
-                  {/* Duration badge */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-                    <ClockIcon />
-                    {DEMO_CONTENT.featured.duration}
-                  </div>
-
-                  {/* LIVE badge */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.9)', boxShadow: '0 0 12px rgba(239,68,68,0.4)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    <span className="text-white text-[10px] font-bold tracking-wider">LIVE</span>
-                  </div>
-
-                  {/* Category badge */}
-                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide" style={{ background: 'rgba(192,132,252,0.15)', border: '1px solid rgba(192,132,252,0.3)', color: '#c084fc' }}>
-                    {DEMO_CONTENT.featured.category}
-                  </div>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 flex flex-col justify-center p-6 lg:p-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs text-[#5c5480]">{DEMO_CONTENT.featured.date}</span>
-                  <span className="w-1 h-1 rounded-full bg-[#3d3560]" />
-                  <span className="flex items-center gap-1 text-xs text-[#7c7898]">
-                    <EyeIcon size={12} />
-                    {DEMO_CONTENT.featured.viewCount} views
-                  </span>
                 </div>
 
-                <h2 className="text-xl lg:text-2xl font-bold text-white mb-2 leading-snug">
-                  {DEMO_CONTENT.featured.title}
-                </h2>
-                <p className="text-sm text-[#7c7898] mb-6 leading-relaxed max-w-md">
-                  {DEMO_CONTENT.featured.subtitle}
-                </p>
+                {/* Info */}
+                <div className="flex-1 flex flex-col justify-center p-6 lg:p-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs text-[#5c5480]">{featured.date}</span>
+                    <span className="w-1 h-1 rounded-full bg-[#3d3560]" />
+                    <span className="flex items-center gap-1 text-xs text-[#7c7898]">
+                      <EyeIcon size={12} />
+                      {featured.viewCount} views
+                    </span>
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <a
-                    href="#"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)', boxShadow: '0 4px 16px rgba(126,224,210,0.25)' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <YouTubeIcon />
-                    Tonton Sekarang
-                  </a>
-                  <button
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#a89ec0] transition-all duration-200 hover:text-white"
-                    style={{ background: 'rgba(42,38,69,0.5)', border: '1px solid rgba(61,53,96,0.6)' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span>Detail</span>
-                    <ChevronRightIcon />
-                  </button>
+                  <h2 className="text-xl lg:text-2xl font-bold text-white mb-2 leading-snug">
+                    {featured.title}
+                  </h2>
+                  <p className="text-sm text-[#7c7898] mb-6 leading-relaxed max-w-md">
+                    {featured.subtitle}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <a
+                      href={featured.youtubeUrl || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)', boxShadow: '0 4px 16px rgba(126,224,210,0.25)' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <YouTubeIcon />
+                      Tonton Sekarang
+                    </a>
+                    <button
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#a89ec0] transition-all duration-200 hover:text-white"
+                      style={{ background: 'rgba(42,38,69,0.5)', border: '1px solid rgba(61,53,96,0.6)' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span>Detail</span>
+                      <ChevronRightIcon />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            // Empty state for featured
+            <div
+              className="rounded-2xl p-8 text-center"
+              style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
+            >
+              <p className="text-[#5c5480]">Tidak ada konten featured saat ini</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -429,7 +533,7 @@ function ContentGuidePage() {
               <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl" style={{ background: activeCategory === 'all' ? '#7ee0d2' : 'transparent' }} />
             </button>
 
-            {DEMO_CONTENT.categories.map((cat) => (
+            {(categories.length > 0 ? categories : FALLBACK_CATEGORIES).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.name)}
@@ -441,16 +545,16 @@ function ContentGuidePage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span style={{ color: cat.color }}>{cat.icon}</span>
-                  <span className="text-[10px] font-mono text-[#5c5480]">{cat.totalViews}</span>
+                  <span className="text-[10px] font-mono text-[#5c5480]">{cat.totalViews || '0'}</span>
                 </div>
                 <div className="text-xl font-bold font-mono mb-0.5" style={{ color: activeCategory === cat.name ? cat.color : '#fff' }}>
-                  {cat.count}
+                  {cat.count || 0}
                 </div>
                 <div className="text-xs font-semibold text-white mb-1">{cat.name}</div>
 
                 {/* Mini progress bar */}
                 <div className="w-full h-0.5 rounded-full" style={{ background: 'rgba(42,38,69,0.8)' }}>
-                  <div className="h-0.5 rounded-full transition-all duration-500" style={{ width: `${(cat.count / totalContent) * 100}%`, background: cat.color }} />
+                  <div className="h-0.5 rounded-full transition-all duration-500" style={{ width: `${totalContent > 0 ? ((cat.count || 0) / totalContent) * 100 : 0}%`, background: cat.color }} />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl" style={{ background: activeCategory === cat.name ? cat.color : 'transparent' }} />
               </button>
@@ -515,14 +619,40 @@ function ContentGuidePage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <LoadingSpinner />
+              <p className="text-[#5c5480] text-sm mt-3">Memuat konten...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {!loading && error && (
+            <div className="text-center py-16 rounded-2xl" style={{ background: 'rgba(18,15,35,0.8)', border: '1px solid rgba(42,38,69,0.7)' }}>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3 className="text-base font-semibold text-white mb-1">Gagal memuat konten</h3>
+              <p className="text-sm text-[#5c5480] mb-5">Terjadi kesalahan saat mengambil data dari server</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all hover:scale-[1.02]"
+                style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}
+              >
+                Coba Lagi
+              </button>
+            </div>
+          )}
+
           {/* Grid / List */}
-          {filteredContents.length > 0 ? (
+          {!loading && !error && (filteredContents.length > 0 ? (
             <div className={viewMode === 'grid'
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
               : 'flex flex-col gap-3'
             }>
               {filteredContents.map((content, index) => {
-                const catColor = getCategoryColor(content.category);
+                const catColor = content.categoryColor || getCategoryColor(content.category);
                 const catIcon = getCategoryIcon(content.category);
 
                 if (viewMode === 'list') {
@@ -548,7 +678,7 @@ function ContentGuidePage() {
                         <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: catColor }}>{content.category}</div>
                         <h3 className="text-sm font-semibold text-white truncate group-hover:text-[#7ee0d2] transition-colors">{content.title}</h3>
                         <div className="flex items-center gap-3 mt-1 text-[11px] text-[#5c5480]">
-                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.views}</span>
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.viewCount}</span>
                           <span>{content.date}</span>
                         </div>
                       </div>
@@ -612,7 +742,7 @@ function ContentGuidePage() {
                       </h3>
                       <div className="flex items-center justify-between text-[11px] text-[#5c5480]">
                         <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.views}</span>
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.viewCount}</span>
                           <span>{content.date}</span>
                         </div>
                         <span className="text-[#3d3560] group-hover:text-[#7ee0d2] transition-colors"><ExternalIcon /></span>
@@ -638,7 +768,7 @@ function ContentGuidePage() {
                 Reset Filter
               </button>
             </div>
-          )}
+          ))}
         </div>
       </section>
 
