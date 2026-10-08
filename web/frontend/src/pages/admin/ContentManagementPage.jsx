@@ -3,6 +3,22 @@ import { getContent, createContent, updateContent, deleteContent, toggleContentV
 import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
 import Modal from '../../components/common/Modal';
+import {
+  BookOpen,
+  Search,
+  Plus,
+  Eye,
+  EyeOff,
+  Star,
+  Grid3X3,
+  Video,
+  Archive,
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Command,
+  Loader2
+} from 'lucide-react';
 
 // Filter dropdown options
 const FILTER_OPTIONS = [
@@ -260,21 +276,22 @@ function ContentManagementPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ========== HEADER ========== */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-mono text-accent-purple">● CONTENT VAULT & MEDIA CURATION</span>
+            <BookOpen className="w-4 h-4 text-accent-purple" />
+            <span className="text-xs font-mono text-accent-purple tracking-wider">CONTENT VAULT</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Manajemen Content Guide</h1>
+          <h1 className="text-2xl font-bold text-text-primary font-display">Manajemen Content Guide</h1>
           <p className="text-sm text-text-muted mt-1">Kelola katalog konten, arsip video, dan playlist YouTube</p>
         </div>
 
         {/* Add Button */}
         <button
           onClick={handleAddContent}
-          className="px-5 py-2.5 bg-gradient-cta text-text-on-cta font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-lg"
         >
-          <span className="text-lg">+</span>
+          <Plus className="w-4 h-4" />
           Tambah Konten
         </button>
       </div>
@@ -284,13 +301,13 @@ function ContentManagementPage() {
         {/* Card 1: Total Konten */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center">
-              <span className="text-lg">📺</span>
+            <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
+              <Video className="w-5 h-5 text-accent-purple" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Total Konten</p>
               {statsLoading ? (
-                <div className="h-6 w-12 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-6 w-12 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
                 <p className="text-xl font-bold font-mono text-text-primary">
                   {stats.total} Entries
@@ -303,16 +320,16 @@ function ContentManagementPage() {
         {/* Card 2: Publik Visible */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-done/20 flex items-center justify-center">
-              <span className="text-lg">👁</span>
+            <div className="w-10 h-10 rounded-lg bg-status-done/10 flex items-center justify-center">
+              <Eye className="w-5 h-5 text-status-done" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Publik Visible</p>
               {statsLoading ? (
-                <div className="h-6 w-16 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-6 w-16 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
                 <p className="text-xl font-bold font-mono text-status-done">
-                  {stats.visible} Aktif Tayang
+                  {stats.visible} Aktif
                 </p>
               )}
             </div>
@@ -322,13 +339,13 @@ function ContentManagementPage() {
         {/* Card 3: Hidden / Draft */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-live/20 flex items-center justify-center">
-              <span className="text-lg">👁‍🗨</span>
+            <div className="w-10 h-10 rounded-lg bg-status-live/10 flex items-center justify-center">
+              <Archive className="w-5 h-5 text-status-live" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Hidden / Draft</p>
               {statsLoading ? (
-                <div className="h-6 w-8 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-6 w-8 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
                 <p className="text-xl font-bold font-mono text-status-live">
                   {stats.hidden} Diarsipkan
@@ -341,13 +358,13 @@ function ContentManagementPage() {
         {/* Card 4: Featured Series */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-gold/20 flex items-center justify-center">
-              <span className="text-lg">★</span>
+            <div className="w-10 h-10 rounded-lg bg-accent-gold/10 flex items-center justify-center">
+              <Star className="w-5 h-5 text-accent-gold" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-text-muted">Featured Series</p>
               {statsLoading ? (
-                <div className="h-6 w-20 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-6 w-20 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
                 <p className="text-sm font-semibold text-accent-gold truncate">
                   {stats.featured > 0 ? stats.featuredTitle : 'Tidak ada'}
@@ -363,9 +380,10 @@ function ContentManagementPage() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* Left - Info */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-text-muted">GRID KURASI VIDEO</span>
+            <Grid3X3 className="w-4 h-4 text-text-muted" />
+            <span className="text-xs font-mono text-text-muted">GRID KURASI</span>
             <span className="text-xs text-accent-cyan bg-accent-cyan/10 px-2 py-0.5 rounded">
-              Menampilkan {contents.length} dari {stats.total} arsip
+              {contents.length} dari {stats.total} arsip
             </span>
           </div>
 
@@ -377,10 +395,13 @@ function ContentManagementPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari judul, tag game, atau ID... ⌘K"
-                className="pl-9 pr-4 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none w-56"
+                placeholder="Cari judul atau tag game..."
+                className="pl-9 pr-10 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none w-56"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">🔍</span>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] bg-bg-card border border-border-subtle rounded text-text-muted">
+                <Command className="w-3 h-3 inline" />
+              </kbd>
             </div>
 
             {/* Status Filter */}
@@ -424,12 +445,15 @@ function ContentManagementPage() {
         </div>
       ) : contents.length === 0 ? (
         <div className="bg-bg-card border border-border-subtle rounded-xl p-12 text-center">
-          <span className="text-4xl opacity-30 mb-4 block">📺</span>
+          <div className="w-16 h-16 rounded-full bg-accent-purple/10 flex items-center justify-center mx-auto mb-4">
+            <Video className="w-8 h-8 text-accent-purple opacity-50" />
+          </div>
           <p className="text-text-muted mb-4">Tidak ada konten untuk ditampilkan</p>
           <button
             onClick={handleAddContent}
-            className="px-4 py-2 bg-gradient-cta text-text-on-cta font-medium rounded-lg hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-4 py-2 mx-auto bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-medium rounded-lg hover:opacity-90 transition-opacity"
           >
+            <Plus className="w-4 h-4" />
             Tambah Konten Pertama
           </button>
         </div>
@@ -454,8 +478,9 @@ function ContentManagementPage() {
           <button
             onClick={handlePrevPage}
             disabled={currentPage <= 1}
-            className="px-4 py-2 text-sm font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-input transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-input transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
+            <ChevronLeft className="w-4 h-4" />
             Sebelumnya
           </button>
 
@@ -466,9 +491,10 @@ function ContentManagementPage() {
           <button
             onClick={handleNextPage}
             disabled={currentPage >= totalPages}
-            className="px-4 py-2 text-sm font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-input transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-input transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Selanjutnya
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       )}

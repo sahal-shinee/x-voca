@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './components/common/Toast';
 
 // Admin Components
@@ -80,11 +81,13 @@ function AppRouter() {
 function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <AppRouter />
-        </BrowserRouter>
-      </ToastProvider>
+      <NotificationProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRouter />
+          </BrowserRouter>
+        </ToastProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

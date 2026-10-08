@@ -313,15 +313,6 @@ const Footer = () => {
                     <span>Panduan Konten (Content Guide)</span>
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to="/admin/login"
-                    className="group inline-flex items-center gap-2 text-[13px] text-[#a89ec0] hover:text-[#c084fc] transition-colors duration-200"
-                  >
-                    <ArrowRightIcon size={10} className="text-[#5c5480] group-hover:text-[#c084fc] group-hover:translate-x-1 transition-all duration-200" />
-                    <span>Portal Admin (Staff)</span>
-                  </Link>
-                </li>
               </ul>
             </div>
 

@@ -24,7 +24,6 @@ export default {
         'bg-nav-active': '#1E1B38',
         'accent-cyan': '#2DFFC2',
         'accent-cyan-light': '#7EE0D2',
-        'accent-cyan-light': '#7EE0D2',
         'accent-purple': '#9B6DFF',
         'accent-lilac': '#C084FC',
         'accent-gold': '#F5A623',
@@ -66,11 +65,15 @@ export default {
       animation: {
         'fade-in': 'fadeIn 300ms ease',
         'fade-in-up': 'fadeInUp 500ms ease',
+        'fade-in-down': 'fadeInDown 400ms ease',
         'shimmer': 'shimmer 1.5s infinite',
         'bounce-gentle': 'bounce-gentle 1.5s ease-in-out infinite',
         'pulse-live': 'pulse-live 1s ease-in-out infinite',
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'slide-in-left': 'slideInLeft 300ms ease',
+        'slide-in-right': 'slideInRight 300ms ease',
+        'scale-in': 'scaleIn 200ms ease',
       },
       keyframes: {
         fadeIn: {
@@ -79,6 +82,10 @@ export default {
         },
         fadeInUp: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeInDown: {
+          '0%': { opacity: '0', transform: 'translateY(-10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         shimmer: {
@@ -100,6 +107,18 @@ export default {
         glow: {
           '0%': { boxShadow: '0 0 20px rgba(126, 224, 210, 0.3)' },
           '100%': { boxShadow: '0 0 40px rgba(126, 224, 210, 0.5)' },
+        },
+        slideInLeft: {
+          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInRight: {
+          '0%': { opacity: '0', transform: 'translateX(20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
       boxShadow: {
