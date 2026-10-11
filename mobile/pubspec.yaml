@@ -1,0 +1,41 @@
+name: x_voca
+description: "X-VOCA Mobile Dashboard for Xion Regalia"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+
+  # HTTP Client & Storage
+  dio: ^5.3.0
+  flutter_secure_storage: ^9.0.0
+
+  # Firebase
+  firebase_core: ^2.24.2
+  firebase_database: ^10.3.8
+
+  # UI & Styling
+  google_fonts: ^6.1.0
+  flutter_lucide: ^1.2.0
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  intl: ^0.18.1
+  flutter_local_notifications: 17.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+  riverpod_generator: ^2.3.9
+
+flutter:
+  uses-material-design: true
