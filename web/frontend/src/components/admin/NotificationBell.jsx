@@ -1,124 +1,181 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Check, CheckCheck, Trash2, X, Clock, TrendingUp, Gamepad2, AlertCircle, Calendar, Radio, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
-import { useNotifications, NOTIFICATION_TYPES } from '../../context/NotificationContext';
-
-const iconMap = {
+import { useNavigate } from 'react-router-dom';
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  Trash2,
+  X,
   TrendingUp,
+  BarChart2,
   Gamepad2,
-  AlertCircle,
+  Users,
   Calendar,
+  AlertCircle,
   Radio,
   RefreshCw,
-  Bell,
+  Loader2,
+} from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
+
+const iconMap = {
+  // Aliases & direct keys
+  vote_received: BarChart2,
+  VOTE_SPIKE: TrendingUp,
+  game_requested: Gamepad2,
+  NEW_GAME_REQUEST: Gamepad2,
+  collab_requested: Users,
+  NEW_COLLAB_REQUEST: Users,
+  schedule_upcoming: Calendar,
+  SCHEDULE_REMINDER: Calendar,
+  TODO_DEADLINE: AlertCircle,
+  BROADCASTING_START: Radio,
+  VOTING_RESET: RefreshCw,
+  SYSTEM_UPDATE: Bell,
 };
 
-function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, deleteNotification, loading } = useNotifications();
+const typeConfigs = {
+  vote_received: { bg: 'bg-accent-cyan/10', text: 'text-accent-cyan', label: 'Vote Masuk' },
+  VOTE_SPIKE: { bg: 'bg-accent-cyan/10', text: 'text-accent-cyan', label: 'Vote Spike' },
+  game_requested: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', label: 'Game Request' },
+  NEW_GAME_REQUEST: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', label: 'Game Request' },
+  collab_requested: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', label: 'Collab Request' },
+  NEW_COLLAB_REQUEST: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', label: 'Collab Request' },
+  schedule_upcoming: { bg: 'bg-accent-gold/10', text: 'text-accent-gold', label: 'Jadwal' },
+  SCHEDULE_REMINDER: { bg: 'bg-accent-gold/10', text: 'text-accent-gold', label: 'Reminder' },
+  TODO_DEADLINE: { bg: 'bg-status-live/10', text: 'text-status-live', label: 'Deadline' },
+  BROADCASTING_START: { bg: 'bg-accent-cyan/10', text: 'text-accent-cyan', label: 'Broadcast' },
+  VOTING_RESET: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', label: 'Reset' },
+  SYSTEM_UPDATE: { bg: 'bg-bg-surface', text: 'text-text-secondary', label: 'System' },
+};
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const now = Date.now();
+  const diff = now - ts;
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 1) return 'Baru saja';
+  if (m < 60) return `${m}m lalu`;
+  if (h < 24) return `${h}j lalu`;
+  return `${d}h lalu`;
+}
+
+export function NotificationBell() {
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    deleteNotification,
+    loading,
+  } = useNotifications();
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Close dropdown when clicking outside
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (isOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
-  // Format time ago
-  const formatTimeAgo = (timestamp) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Baru saja';
-    if (minutes < 60) return `${minutes}m lalu`;
-    if (hours < 24) return `${hours}j lalu`;
-    return `${days}h lalu`;
-  };
-
-  const handleNotificationClick = (notification) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
-    }
-    if (notification.link) {
-      window.location.href = notification.link;
+  const handleNotificationClick = (notif) => {
+    if (!notif.read) {
+      markAsRead(notif.id);
     }
     setIsOpen(false);
+    if (notif.link) {
+      navigate(notif.link);
+    }
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Lihat notifikasi"
         className={`
-          relative p-2 rounded-xl transition-all duration-200
-          ${isOpen
-            ? 'bg-accent-cyan/10 text-accent-cyan'
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-input'
+          relative p-2 rounded-xl transition-all duration-150
+          ${
+            isOpen
+              ? 'bg-bg-surface text-accent-cyan shadow-sm border border-border-subtle'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface border border-transparent'
           }
         `}
       >
         <Bell className="w-5 h-5" />
-
-        {/* Unread Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-status-live rounded-full animate-pulse shadow-lg shadow-status-live/50">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-status-live rounded-full shadow-[0_0_8px_rgba(248,113,113,0.5)]">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-50" />
+            <span className="relative z-10">{unreadCount > 9 ? '9+' : unreadCount}</span>
           </span>
         )}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-bg-card border border-border-subtle rounded-2xl shadow-2xl overflow-hidden animate-scale-in z-50">
+        <div className="
+          absolute right-0 top-full mt-2
+          w-80 sm:w-96
+          bg-bg-card border border-border-subtle
+          rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]
+          overflow-hidden animate-scale-in z-50
+        ">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-border-subtle flex items-center justify-between bg-gradient-to-r from-bg-card to-bg-input">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
+          <div className="px-4 py-3.5 border-b border-border-subtle flex items-center justify-between bg-bg-surface/60 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center flex-shrink-0">
                 <Bell className="w-4 h-4 text-accent-cyan" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
-                {unreadCount > 0 && (
-                  <span className="text-xs text-accent-cyan">{unreadCount} unread</span>
-                )}
+                <h3 className="text-sm font-semibold text-text-primary leading-tight">Notifikasi</h3>
+                <p className="text-[11px] font-mono text-text-muted mt-0.5">
+                  {unreadCount > 0 ? (
+                    <span className="text-accent-cyan font-medium">{unreadCount} belum dibaca</span>
+                  ) : (
+                    'Semua sudah dibaca'
+                  )}
+                </p>
               </div>
             </div>
+
             <div className="flex items-center gap-1">
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   onClick={markAllAsRead}
-                  className="p-2 text-text-muted hover:text-accent-cyan hover:bg-bg-input rounded-lg transition-colors"
-                  title="Mark all as read"
+                  className="p-1.5 text-text-muted hover:text-accent-cyan hover:bg-bg-surface rounded-lg transition-colors"
+                  title="Tandai semua dibaca"
                 >
                   <CheckCheck className="w-4 h-4" />
                 </button>
               )}
               {notifications.length > 0 && (
                 <button
+                  type="button"
                   onClick={clearAll}
-                  className="p-2 text-text-muted hover:text-status-live hover:bg-bg-input rounded-lg transition-colors"
-                  title="Clear all"
+                  className="p-1.5 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
+                  title="Hapus semua"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
+                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-lg transition-colors"
+                title="Tutup"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -126,125 +183,113 @@ function NotificationBell() {
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto scrollbar-hide">
+          <div className="max-h-96 overflow-y-auto scrollbar-hide divide-y divide-border-subtle/50">
             {loading ? (
-              <div className="p-8 flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin mb-2" />
-                <p className="text-sm text-text-muted">Loading notifications...</p>
+              <div className="p-8 text-center">
+                <Loader2 className="w-6 h-6 text-accent-cyan animate-spin mx-auto mb-2" />
+                <p className="text-xs text-text-muted">Memuat notifikasi...</p>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-bg-input flex items-center justify-center mx-auto mb-4">
-                  <Bell className="w-8 h-8 text-text-muted opacity-50" />
+              <div className="p-10 text-center">
+                <div className="w-12 h-12 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-center mx-auto mb-3">
+                  <Bell className="w-5 h-5 text-text-muted opacity-50" />
                 </div>
-                <p className="text-sm text-text-muted">No notifications yet</p>
-                <p className="text-xs text-text-muted mt-1">Updates will appear here</p>
+                <p className="text-sm font-medium text-text-primary">Belum ada notifikasi</p>
+                <p className="text-xs text-text-muted mt-1">Aktivitas baru akan muncul di sini</p>
               </div>
             ) : (
-              <div className="divide-y divide-border-subtle/50">
-                {notifications.map((notification, index) => {
-                  const typeConfig = NOTIFICATION_TYPES[notification.type] || NOTIFICATION_TYPES.SYSTEM_UPDATE;
-                  const IconComponent = iconMap[typeConfig.icon] || Bell;
+              notifications.map((notif) => {
+                const config = typeConfigs[notif.type] || typeConfigs.SYSTEM_UPDATE;
+                const IconComponent = iconMap[notif.type] || Bell;
 
-                  return (
-                    <div
-                      key={notification.id}
-                      className={`
-                        relative p-4 hover:bg-bg-input/50 transition-all duration-200 cursor-pointer group
-                        ${!notification.read ? 'bg-gradient-to-r from-accent-cyan/5 to-transparent' : ''}
-                      `}
-                      style={{ animationDelay: `${index * 50}ms` }}
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      {/* Unread indicator */}
-                      {!notification.read && (
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-accent-cyan" />
-                      )}
+                return (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`
+                      group relative p-3.5 hover:bg-bg-surface/70 cursor-pointer transition-colors
+                      ${!notif.read ? 'bg-accent-cyan/[0.03]' : ''}
+                    `}
+                  >
+                    {/* Unread indicator bar */}
+                    {!notif.read && (
+                      <span className="absolute left-1 top-3.5 bottom-3.5 w-1 rounded-full bg-accent-cyan" />
+                    )}
 
-                      <div className={`flex items-start gap-3 ${!notification.read ? 'pl-3' : ''}`}>
-                        {/* Icon */}
-                        <div className={`
-                          w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-                          ${typeConfig.bgColor}
-                        `}>
-                          <IconComponent className={`w-5 h-5 ${typeConfig.iconColor}`} />
-                        </div>
+                    <div className="flex items-start gap-3 pl-1">
+                      {/* Icon */}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}>
+                        <IconComponent className={`w-4 h-4 ${config.text}`} />
+                      </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-sm font-medium ${notification.read ? 'text-text-secondary' : 'text-text-primary'}`}>
-                              {notification.title}
-                            </p>
-                            <span className="text-[10px] text-text-muted whitespace-nowrap">
-                              {formatTimeAgo(notification.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted mt-1 line-clamp-2">
-                            {notification.message}
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-xs font-semibold leading-snug line-clamp-1 ${notif.read ? 'text-text-secondary' : 'text-text-primary'}`}>
+                            {notif.title}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className={`
-                              text-[10px] px-2 py-0.5 rounded-full
-                              ${typeConfig.bgColor} ${typeConfig.iconColor}
-                            `}>
-                              {typeConfig.label}
-                            </span>
-                          </div>
+                          <span className="text-[10px] font-mono text-text-muted whitespace-nowrap flex-shrink-0">
+                            {formatTime(notif.createdAt)}
+                          </span>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!notification.read && (
+                        <p className="text-xs text-text-muted mt-0.5 line-clamp-2 leading-relaxed">
+                          {notif.message}
+                        </p>
+
+                        <div className="flex items-center justify-between gap-2 mt-2">
+                          <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md ${config.bg} ${config.text}`}>
+                            {config.label}
+                          </span>
+
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {!notif.read && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markAsRead(notif.id);
+                                }}
+                                className="p-1 text-text-muted hover:text-accent-cyan rounded transition-colors"
+                                title="Tandai dibaca"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsRead(notification.id);
+                                deleteNotification(notif.id);
                               }}
-                              className="p-1.5 text-text-muted hover:text-accent-cyan hover:bg-bg-card rounded-lg transition-colors"
-                              title="Mark as read"
+                              className="p-1 text-text-muted hover:text-status-live rounded transition-colors"
+                              title="Hapus notifikasi"
                             >
-                              <Check className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            className="p-1.5 text-text-muted hover:text-status-live hover:bg-bg-card rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          {notification.link && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.location.href = notification.link;
-                              }}
-                              className="p-1.5 text-text-muted hover:text-accent-cyan hover:bg-bg-card rounded-lg transition-colors"
-                              title="Go to"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
             )}
           </div>
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-3 border-t border-border-subtle bg-bg-input/30">
-              <p className="text-xs text-text-muted text-center">
-                {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-                {unreadCount > 0 && ` • ${unreadCount} unread`}
-              </p>
+            <div className="px-4 py-2.5 border-t border-border-subtle bg-bg-surface/30 flex items-center justify-between text-xs text-text-muted">
+              <span className="font-mono text-[11px]">{notifications.length} notifikasi tersimpan</span>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-accent-cyan hover:underline font-medium text-[11px]"
+                >
+                  Tandai semua dibaca
+                </button>
+              )}
             </div>
           )}
         </div>

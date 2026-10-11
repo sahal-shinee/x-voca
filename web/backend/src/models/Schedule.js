@@ -37,6 +37,16 @@ const Schedule = sequelize.define('Schedule', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  collab_guest: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    field: 'collab_guest'
+  },
+  collab_social: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    field: 'collab_social'
+  },
   youtube_url: {
     type: DataTypes.STRING(500),
     allowNull: true,

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSchedules } from '../../services/scheduleService';
+import { CollabRequestModal } from './CollabRequestModal';
 
 // ========== ICONS (PRESERVED) ==========
 
@@ -64,12 +65,6 @@ const ExternalArrowIcon = () => (
 const ScrollLeftIcon = () => (
   <svg width="10.5" height="6" viewBox="0 0 10.5 6" fill="none" aria-hidden="true">
     <path d="M1 5L5 1L9 5" stroke="#a89ec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const ScrollRightIcon = () => (
-  <svg width="10.5" height="6" viewBox="0 0 10.5 6" fill="none" aria-hidden="true">
-    <path d="M9 1L5.5 5L1 1" stroke="#a89ec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -157,8 +152,7 @@ const useScrollReveal = (options = {}) => {
 };
 
 // Drag-to-scroll hook
-const useDragScroll = () => {
-  const ref = useRef(null);
+const useDragScroll = (containerRef) => {
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
@@ -167,61 +161,61 @@ const useDragScroll = () => {
   const animFrame = useRef(null);
 
   const onMouseDown = useCallback((e) => {
-    if (!ref.current) return;
+    if (!containerRef.current) return;
     isDragging.current = true;
-    startX.current = e.pageX - ref.current.offsetLeft;
-    scrollLeft.current = ref.current.scrollLeft;
+    startX.current = e.pageX - containerRef.current.offsetLeft;
+    scrollLeft.current = containerRef.current.scrollLeft;
     lastX.current = e.pageX;
     velocity.current = 0;
     if (animFrame.current) cancelAnimationFrame(animFrame.current);
-    ref.current.style.cursor = 'grabbing';
-    ref.current.style.userSelect = 'none';
-  }, []);
+    containerRef.current.style.cursor = 'grabbing';
+    containerRef.current.style.userSelect = 'none';
+  }, [containerRef]);
 
   const onMouseMove = useCallback((e) => {
-    if (!isDragging.current || !ref.current) return;
+    if (!isDragging.current || !containerRef.current) return;
     e.preventDefault();
-    const x = e.pageX - ref.current.offsetLeft;
+    const x = e.pageX - containerRef.current.offsetLeft;
     const walk = (x - startX.current) * 1.2;
     velocity.current = e.pageX - lastX.current;
     lastX.current = e.pageX;
-    ref.current.scrollLeft = scrollLeft.current - walk;
-  }, []);
+    containerRef.current.scrollLeft = scrollLeft.current - walk;
+  }, [containerRef]);
 
   const onMouseUp = useCallback(() => {
-    if (!ref.current) return;
+    if (!containerRef.current) return;
     isDragging.current = false;
-    ref.current.style.cursor = 'grab';
-    ref.current.style.userSelect = '';
+    containerRef.current.style.cursor = 'grab';
+    containerRef.current.style.userSelect = '';
     // Momentum scroll
     const momentum = () => {
-      if (Math.abs(velocity.current) < 0.5 || !ref.current) return;
-      ref.current.scrollLeft -= velocity.current * 0.9;
+      if (Math.abs(velocity.current) < 0.5 || !containerRef.current) return;
+      containerRef.current.scrollLeft -= velocity.current * 0.9;
       velocity.current *= 0.88;
       animFrame.current = requestAnimationFrame(momentum);
     };
     momentum();
-  }, []);
+  }, [containerRef]);
 
   const onTouchStart = useCallback((e) => {
-    if (!ref.current) return;
-    startX.current = e.touches[0].pageX - ref.current.offsetLeft;
-    scrollLeft.current = ref.current.scrollLeft;
+    if (!containerRef.current) return;
+    startX.current = e.touches[0].pageX - containerRef.current.offsetLeft;
+    scrollLeft.current = containerRef.current.scrollLeft;
     lastX.current = e.touches[0].pageX;
     velocity.current = 0;
-  }, []);
+  }, [containerRef]);
 
   const onTouchMove = useCallback((e) => {
-    if (!ref.current) return;
-    const x = e.touches[0].pageX - ref.current.offsetLeft;
+    if (!containerRef.current) return;
+    const x = e.touches[0].pageX - containerRef.current.offsetLeft;
     const walk = (x - startX.current) * 1.1;
     velocity.current = e.touches[0].pageX - lastX.current;
     lastX.current = e.touches[0].pageX;
-    ref.current.scrollLeft = scrollLeft.current - walk;
-  }, []);
+    containerRef.current.scrollLeft = scrollLeft.current - walk;
+  }, [containerRef]);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = containerRef.current;
     if (!el) return;
     el.style.cursor = 'grab';
     const handleMouseLeave = () => {
@@ -232,9 +226,9 @@ const useDragScroll = () => {
       el.removeEventListener('mouseleave', handleMouseLeave);
       if (animFrame.current) cancelAnimationFrame(animFrame.current);
     };
-  }, [onMouseUp]);
+  }, [containerRef, onMouseUp]);
 
-  return { ref, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove };
+  return { onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove };
 };
 
 // ========== HELPER FUNCTIONS ==========
@@ -318,6 +312,8 @@ const transformScheduleData = (data) => {
     thumbnail_url: data.thumbnail_url,
     youtube_url: data.youtube_url,
     icon: getIconFromCategory(data.game_category),
+    collab_guest: data.collab_guest,
+    collab_social: data.collab_social,
     cta: data.status === 'live' ? 'Tonton Siaran Sekarang' :
          data.status === 'done' ? 'Buka Arsip' : 'Lihat Detail',
   };
@@ -395,12 +391,13 @@ const ScheduleSection = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const dragScroll = useDragScroll();
+  const dragScroll = useDragScroll(scrollContainerRef);
 
   // State untuk data dari API
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
+  const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
 
   // Fetch schedules dari API
   useEffect(() => {
@@ -425,8 +422,8 @@ const ScheduleSection = () => {
 
         // Sort by scheduled_at (terdekat dulu)
         allSchedules.sort((a, b) => {
-          const dateA = new Date(a.time) || new Date();
-          const dateB = new Date(b.time) || new Date();
+          const dateA = a.time ? new Date(a.time).getTime() : 0;
+          const dateB = b.time ? new Date(b.time).getTime() : 0;
           return dateA - dateB;
         });
 
@@ -543,15 +540,6 @@ const ScheduleSection = () => {
     handleScroll();
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
-
-
-
-  // Assign scrollContainerRef to both dragScroll.ref and scrollContainerRef
-  const setScrollRef = useCallback((el) => {
-    scrollContainerRef.current = el;
-    dragScroll.ref.current = el;
-    if (cardsRef) cardsRef.current = el;
-  }, [dragScroll.ref, cardsRef]);
 
   return (
     <section
@@ -681,8 +669,20 @@ const ScheduleSection = () => {
             ))}
           </div>
 
-          {/* Arrow controls — always pushed to end */}
-          <div className="flex items-center gap-2 ml-auto">
+          {/* Controls: Request Collab + Arrow controls — always pushed to end */}
+          <div className="flex items-center gap-2.5 ml-auto">
+            <button
+              type="button"
+              onClick={() => setIsCollabModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-purple/10 border border-accent-purple/25 hover:border-accent-purple/50 text-accent-lilac hover:bg-accent-purple/20 text-xs font-semibold transition-all duration-150 shadow-sm"
+              title="Request Collab Streamer"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Request Collab</span>
+            </button>
             <button
               onClick={scrollLeft}
               disabled={!canScrollLeft}
@@ -718,7 +718,7 @@ const ScheduleSection = () => {
         </div>
 
         {/* ── Cards Scroll Area ── */}
-        <div className="relative">
+        <div ref={cardsRef} className="relative">
           {/* Left fade mask */}
           <div
             className={`absolute left-0 top-0 bottom-4 w-20 z-10 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
@@ -731,7 +731,7 @@ const ScheduleSection = () => {
           />
 
           <div
-            ref={setScrollRef}
+            ref={scrollContainerRef}
             className="flex gap-5 lg:gap-6 overflow-x-auto pb-6 pt-2 scrollbar-hide snap-x snap-mandatory select-none"
             onMouseDown={dragScroll.onMouseDown}
             onMouseMove={dragScroll.onMouseMove}
@@ -840,7 +840,7 @@ const ScheduleSection = () => {
                   </div>
 
                   {/* Icon + title */}
-                  <div className="flex items-start gap-4 mb-6">
+                  <div className="flex items-start gap-4 mb-4">
                     <div
                       className={`w-12 h-12 rounded-xl bg-[#2d2855] border border-[rgba(61,53,96,0.8)] flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-inner ${getIconColorClass(schedule.status)}`}
                     >
@@ -857,6 +857,16 @@ const ScheduleSection = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Collab Guest Indicator */}
+                  {schedule.collab_guest && (
+                    <div className="flex items-center gap-2 mb-5 px-3 py-1.5 rounded-xl bg-[rgba(192,132,252,0.12)] border border-[rgba(192,132,252,0.25)] text-xs text-accent-lilac">
+                      <span className="text-accent-cyan text-xs">✦</span>
+                      <span className="font-medium truncate">
+                        Collab with: {schedule.collab_guest.startsWith('@') ? schedule.collab_guest : `@${schedule.collab_guest}`}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Meta info */}
                   <div className="space-y-3">
@@ -964,7 +974,49 @@ const ScheduleSection = () => {
           )}
         </div>
 
+        {/* ── Collab Request Banner ── */}
+        <div className={`mt-10 transition-all duration-500 delay-300 ${cardsVisible && !loading ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-5 p-5 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
+            <div className="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row">
+              <div className="w-12 h-12 rounded-2xl bg-[rgba(192,132,252,0.12)] border border-[rgba(192,132,252,0.25)] flex items-center justify-center text-accent-lilac flex-shrink-0 shadow-inner">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white font-display">
+                  Ingin Streamer Favoritmu Collab Bareng Xion?
+                </h4>
+                <p className="text-xs sm:text-sm text-[#a89ec0] mt-0.5 max-w-xl">
+                  Beri tahu kami creator atau Vtuber mana yang ingin kamu tonton bersama Xion Regalia di siaran mendatang.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsCollabModalOpen(true)}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-xs tracking-wider uppercase font-sans bg-gradient-to-r from-accent-cyan to-accent-lilac text-[#13111C] hover:opacity-95 active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(126,224,210,0.25)] flex items-center justify-center gap-2 flex-shrink-0"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Request Collab</span>
+            </button>
+          </div>
+        </div>
+
       </div>
+
+      {/* Collab Request Modal */}
+      <CollabRequestModal
+        isOpen={isCollabModalOpen}
+        onClose={() => setIsCollabModalOpen(false)}
+      />
     </section>
   );
 };

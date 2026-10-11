@@ -1,19 +1,11 @@
-import { ArrowRight, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 /**
- * ActionCard - Reusable action card component
- * Modern, interactive action card with gradient icon container
- *
- * @param {Object} props
- * @param {React.ReactNode} props.icon - Icon component
- * @param {string} props.title - Card title
- * @param {string} props.description - Card description
- * @param {string} props.accentColor - Accent color: 'cyan' | 'purple' | 'gold'
- * @param {Function} props.onClick - Click handler
- * @param {boolean} props.loading - Loading state
- * @param {boolean} props.disabled - Disabled state
+ * ActionCard - Enhanced action card component
+ * Design: Soft Dark, Professional, User-Friendly
+ * Supports: cyan, purple, gold, red accent colors
  */
-function ActionCard({
+export function ActionCard({
   icon: Icon,
   title,
   description,
@@ -21,32 +13,37 @@ function ActionCard({
   onClick,
   loading = false,
   disabled = false,
+  badge,
   className = ''
 }) {
   const colorMap = {
     cyan: {
       bg: 'bg-accent-cyan/10',
-      border: 'hover:border-accent-cyan/30',
+      border: 'hover:border-accent-cyan/40',
       text: 'text-accent-cyan',
-      gradient: 'from-accent-cyan/20 to-accent-cyan/5',
-      gradientHover: 'from-accent-cyan/30 to-accent-cyan/10',
-      shadow: 'hover:shadow-accent-cyan/10',
+      gradient: 'from-accent-cyan/15 to-transparent',
+      badgeBg: 'bg-accent-cyan/15 text-accent-cyan',
     },
     purple: {
       bg: 'bg-accent-purple/10',
-      border: 'hover:border-accent-purple/30',
+      border: 'hover:border-accent-purple/40',
       text: 'text-accent-purple',
-      gradient: 'from-accent-purple/20 to-accent-purple/5',
-      gradientHover: 'from-accent-purple/30 to-accent-purple/10',
-      shadow: 'hover:shadow-accent-purple/10',
+      gradient: 'from-accent-purple/15 to-transparent',
+      badgeBg: 'bg-accent-purple/15 text-accent-purple',
     },
     gold: {
       bg: 'bg-accent-gold/10',
-      border: 'hover:border-accent-gold/30',
+      border: 'hover:border-accent-gold/40',
       text: 'text-accent-gold',
-      gradient: 'from-accent-gold/20 to-accent-gold/5',
-      gradientHover: 'from-accent-gold/30 to-accent-gold/10',
-      shadow: 'hover:shadow-accent-gold/10',
+      gradient: 'from-accent-gold/15 to-transparent',
+      badgeBg: 'bg-accent-gold/15 text-accent-gold',
+    },
+    red: {
+      bg: 'bg-status-live/10',
+      border: 'hover:border-status-live/40',
+      text: 'text-status-live',
+      gradient: 'from-status-live/15 to-transparent',
+      badgeBg: 'bg-status-live/15 text-status-live',
     },
   };
 
@@ -57,44 +54,46 @@ function ActionCard({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        w-full bg-bg-input border border-border-subtle rounded-2xl p-5
-        text-left transition-all duration-300 ease-out
-        hover:bg-bg-card-hover
+        w-full bg-bg-surface border border-border-subtle rounded-xl p-4
+        text-left transition-all duration-150
+        hover:bg-bg-card hover:shadow-lg hover:-translate-y-px
         ${colors.border}
-        ${colors.shadow}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        group relative overflow-hidden
+        group relative
         ${className}
       `}
     >
-      {/* Gradient overlay on hover */}
-      <div className={`
-        absolute inset-0 opacity-0 group-hover:opacity-100
-        transition-opacity duration-300
-        bg-gradient-to-br ${colors.gradientHover}
-        pointer-events-none
-      `} />
+      {/* Badge */}
+      {badge != null && !loading && (
+        <span className={`
+          absolute top-3 right-3 min-w-[20px] h-5 px-1.5
+          flex items-center justify-center
+          text-xs font-mono font-semibold rounded-full
+          ${colors.badgeBg}
+        `}>
+          {badge}
+        </span>
+      )}
 
-      <div className="relative flex items-center gap-4">
-        {/* Icon Container with Gradient Background */}
+      <div className="flex items-center gap-4">
+        {/* Icon */}
         <div className={`
-          w-14 h-14 rounded-xl
+          w-12 h-12 rounded-lg
           bg-gradient-to-br ${colors.gradient}
           flex items-center justify-center
           border border-border-subtle
-          transition-all duration-300
-          group-hover:scale-110 group-hover:shadow-lg
+          transition-transform duration-150 group-hover:scale-105
         `}>
           {loading ? (
-            <Loader2 className={`w-6 h-6 ${colors.text} animate-spin`} />
-          ) : Icon && (
-            <Icon className={`w-6 h-6 ${colors.text}`} />
-          )}
+            <Loader2 className={`w-5 h-5 ${colors.text} animate-spin`} />
+          ) : Icon ? (
+            <Icon className={`w-5 h-5 ${colors.text}`} />
+          ) : null}
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary group-hover:text-white transition-colors">
+        <div className="flex-1 min-w-0 pr-6">
+          <p className="text-sm font-medium text-text-primary group-hover:text-white transition-colors">
             {title}
           </p>
           <p className="text-xs text-text-muted mt-0.5 group-hover:text-text-secondary transition-colors">
@@ -103,24 +102,10 @@ function ActionCard({
         </div>
 
         {/* Arrow */}
-        <div className={`
-          w-8 h-8 rounded-full
-          bg-gradient-to-br ${colors.gradient}
-          flex items-center justify-center
-          transition-all duration-300
-          group-hover:translate-x-1 group-hover:scale-110
-        `}>
-          <ChevronRight className={`w-4 h-4 ${colors.text}`} />
-        </div>
+        <ArrowRight
+          className={`w-4 h-4 ${colors.text} opacity-40 group-hover:opacity-100 transition-all duration-150 group-hover:translate-x-1 flex-shrink-0`}
+        />
       </div>
-
-      {/* Bottom border accent */}
-      <div className={`
-        absolute bottom-0 left-0 right-0 h-0.5
-        bg-gradient-to-r from-transparent via-current to-transparent
-        opacity-0 group-hover:opacity-100 transition-opacity duration-300
-        ${colors.text}
-      `} />
     </button>
   );
 }
