@@ -7,6 +7,9 @@ import '../providers/auth_provider.dart';
 import '../widgets/countdown_widget.dart';
 import '../widgets/stat_card.dart';
 import 'schedule_screen.dart';
+import 'votes_screen.dart';
+import 'todo_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -77,15 +80,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildDashboardBody(),
-          const ScheduleScreen(),
-          Center(child: Text('Votes Screen (Fase 4.2)', style: GoogleFonts.spaceGrotesk(color: AppColors.textSecondary))),
-          Center(child: Text('To-Do Screen (Fase 4.3)', style: GoogleFonts.spaceGrotesk(color: AppColors.textSecondary))),
-          Center(child: Text('Settings Screen (Fase 4.4)', style: GoogleFonts.spaceGrotesk(color: AppColors.textSecondary))),
-        ],
-      ),
+      index: _currentIndex,
+      children: [
+        _buildDashboardBody(),
+        const ScheduleScreen(),
+        const VotesScreen(),
+        const TodoScreen(),
+        const SettingsScreen(), // <-- Ganti baris ini
+      ],
+    ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
