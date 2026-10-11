@@ -3,6 +3,23 @@ import { getStats } from '../../services/dashboardService';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from '../../services/scheduleService';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import Modal from '../../components/common/Modal';
+import {
+  Radio,
+  Calendar,
+  RefreshCw,
+  TrendingUp,
+  Plus,
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  XCircle,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
 
 // Tab filter options
 const FILTER_TABS = [
@@ -15,9 +32,9 @@ const FILTER_TABS = [
 // Status badge configuration
 const getStatusBadge = (status) => {
   const statusMap = {
-    live: { label: '● LIVE NOW', class: 'bg-status-live/20 text-status-live border-status-live/30' },
-    upcoming: { label: '● UPCOMING', class: 'bg-status-upcoming/20 text-status-upcoming border-status-upcoming/30' },
-    archived: { label: '✓ DONE', class: 'bg-status-done/20 text-status-done border-status-done/30' },
+    live: { label: 'LIVE NOW', class: 'bg-status-live/10 text-status-live border-status-live/20', icon: Radio },
+    upcoming: { label: 'UPCOMING', class: 'bg-status-upcoming/10 text-status-upcoming border-status-upcoming/20', icon: Clock },
+    archived: { label: 'DONE', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
   };
   return statusMap[status] || statusMap.upcoming;
 };
@@ -66,7 +83,6 @@ function SchedulePage() {
       }
     } catch (error) {
       console.error('Error fetching summary stats:', error);
-      // Use mock data on error
       setSummaryStats({
         activeBroadcast: null,
         scheduledSlots: 4,
@@ -92,7 +108,6 @@ function SchedulePage() {
       }
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      // Use mock data on error
       setSchedules([
         { id: 1, title: 'Elden Ring Rush', category: 'ACTION RPG', datetime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), status: 'upcoming', description: 'Exploring the Lands Between' },
         { id: 2, title: 'Signalis: Solitary Resonance', category: 'SURVIVAL HORROR', datetime: new Date(Date.now() - 60 * 60 * 1000).toISOString(), status: 'live', description: 'Survival horror streaming session' },
@@ -132,13 +147,10 @@ function SchedulePage() {
     setFormLoading(true);
     try {
       if (editingSchedule) {
-        // Update existing
         await updateSchedule(editingSchedule.id, data);
       } else {
-        // Create new
         await createSchedule(data);
       }
-      // Close panel and refresh
       setFormPanelOpen(false);
       setEditingSchedule(null);
       fetchSchedules(activeFilter);
@@ -211,21 +223,22 @@ function SchedulePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ========== HEADER ========== */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-mono text-accent-cyan">| SIARAN & PENJADWALAN</span>
+            <Calendar className="w-3.5 h-3.5 text-accent-cyan" />
+            <span className="text-xs font-mono text-accent-cyan tracking-wider">SIARAN & PENJADWALAN</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Manajemen Jadwal</h1>
-          <p className="text-sm text-text-muted mt-1">Kelola jadwal stream Xion, sinkronisasi countdown publik...</p>
+          <h1 className="text-2xl font-bold text-text-primary font-display">Manajemen Jadwal</h1>
+          <p className="text-sm text-text-muted mt-1">Kelola jadwal stream Xion, sinkronisasi countdown publik</p>
         </div>
 
         {/* Add Button */}
         <button
           onClick={handleAddSchedule}
-          className="px-5 py-2.5 bg-gradient-cta text-text-on-cta font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-lg"
         >
-          <span className="text-lg">+</span>
+          <Plus className="w-4 h-4" />
           Tambah Jadwal
         </button>
       </div>
@@ -235,13 +248,13 @@ function SchedulePage() {
         {/* Card 1: Siaran Aktif */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-live/20 flex items-center justify-center">
-              <span className="text-lg">📡</span>
+            <div className="w-10 h-10 rounded-lg bg-status-live/10 flex items-center justify-center">
+              <Radio className="w-5 h-5 text-status-live" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-text-muted">Siaran Aktif</p>
               {statsLoading ? (
-                <div className="h-5 w-24 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-5 w-24 bg-bg-input rounded animate-shimmer mt-1" />
               ) : summaryStats.activeBroadcast ? (
                 <p className="text-sm font-semibold text-text-primary truncate">
                   {summaryStats.activeBroadcast.title || 'Tidak ada'}
@@ -251,7 +264,7 @@ function SchedulePage() {
               )}
             </div>
             {summaryStats.activeBroadcast && (
-              <span className="w-2 h-2 rounded-full bg-status-live animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-status-live animate-pulse" />
             )}
           </div>
         </div>
@@ -259,16 +272,16 @@ function SchedulePage() {
         {/* Card 2: Slot Terjadwal */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center">
-              <span className="text-lg">📅</span>
+            <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-accent-purple" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Slot Terjadwal 7 Hari</p>
               {statsLoading ? (
-                <div className="h-5 w-16 bg-bg-input rounded animate-shimmer mt-1"></div>
+                <div className="h-5 w-16 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
                 <p className="text-sm font-semibold text-text-primary">
-                  {summaryStats.scheduledSlots} Sesi Terdaftar
+                  {summaryStats.scheduledSlots} Sesi
                 </p>
               )}
             </div>
@@ -278,8 +291,8 @@ function SchedulePage() {
         {/* Card 3: Sinkronisasi */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-cyan/20 flex items-center justify-center">
-              <span className="text-lg">🔄</span>
+            <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
+              <RefreshCw className="w-5 h-5 text-accent-cyan" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Sinkronisasi Fansite</p>
@@ -293,8 +306,8 @@ function SchedulePage() {
         {/* Card 4: Voting Terpilih */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-gold/20 flex items-center justify-center">
-              <span className="text-lg">🗳️</span>
+            <div className="w-10 h-10 rounded-lg bg-accent-gold/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-accent-gold" />
             </div>
             <div>
               <p className="text-xs text-text-muted">Voting Terpilih</p>
@@ -313,11 +326,12 @@ function SchedulePage() {
       {/* ========== TABLE SECTION ========== */}
       <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden">
         {/* Table Header */}
-        <div className="p-4 border-b border-border-subtle flex items-center justify-between flex-wrap gap-4">
+        <div className="p-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-text-muted" />
             <span className="text-xs font-mono text-text-muted">MASTER QUEUE</span>
             <span className="text-xs font-mono text-accent-cyan bg-accent-cyan/10 px-2 py-0.5 rounded">
-              Server Region: Asia/Jakarta (WIB)
+              Asia/Jakarta (WIB)
             </span>
           </div>
 
@@ -331,7 +345,7 @@ function SchedulePage() {
                 placeholder="Cari judul atau game..."
                 className="pl-9 pr-4 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none w-48"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">🔍</span>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             </div>
 
             {/* Reload */}
@@ -340,26 +354,26 @@ function SchedulePage() {
               className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
               title="Reload"
             >
-              <span>🔄</span>
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div className="px-4 pt-4 flex items-center gap-2 border-b border-border-subtle">
+        <div className="px-4 pt-4 flex items-center gap-2 border-b border-border-subtle overflow-x-auto scrollbar-hide">
           {FILTER_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => handleFilterChange(tab.key)}
               className={`
-                px-4 py-2 text-xs font-medium rounded-t-lg transition-colors
+                px-4 py-2 text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap
                 ${activeFilter === tab.key
                   ? 'bg-bg-input text-text-primary border-t border-x border-border-subtle'
                   : 'text-text-muted hover:text-text-secondary'
                 }
               `}
             >
-              {tab.label}({tab.key === 'all' ? schedules.length : schedules.filter(s => getScheduleStatus(s) === tab.key).length})
+              {tab.label} ({tab.key === 'all' ? schedules.length : schedules.filter(s => getScheduleStatus(s) === tab.key).length})
             </button>
           ))}
         </div>
@@ -381,12 +395,12 @@ function SchedulePage() {
               {schedulesLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-b border-border-subtle">
-                    <td className="px-4 py-4"><div className="h-4 w-6 bg-bg-input rounded animate-shimmer"></div></td>
-                    <td className="px-4 py-4"><div className="h-4 w-40 bg-bg-input rounded animate-shimmer"></div></td>
-                    <td className="px-4 py-4"><div className="h-6 w-24 bg-bg-input rounded animate-shimmer"></div></td>
-                    <td className="px-4 py-4"><div className="h-4 w-32 bg-bg-input rounded animate-shimmer"></div></td>
-                    <td className="px-4 py-4"><div className="h-6 w-20 bg-bg-input rounded animate-shimmer"></div></td>
-                    <td className="px-4 py-4"><div className="h-8 w-20 bg-bg-input rounded animate-shimmer"></div></td>
+                    <td className="px-4 py-4"><div className="h-4 w-6 bg-bg-input rounded animate-shimmer" /></td>
+                    <td className="px-4 py-4"><div className="h-4 w-40 bg-bg-input rounded animate-shimmer" /></td>
+                    <td className="px-4 py-4"><div className="h-6 w-24 bg-bg-input rounded animate-shimmer" /></td>
+                    <td className="px-4 py-4"><div className="h-4 w-32 bg-bg-input rounded animate-shimmer" /></td>
+                    <td className="px-4 py-4"><div className="h-6 w-20 bg-bg-input rounded animate-shimmer" /></td>
+                    <td className="px-4 py-4"><div className="h-8 w-20 bg-bg-input rounded animate-shimmer" /></td>
                   </tr>
                 ))
               ) : filteredSchedules.length === 0 ? (
@@ -400,13 +414,14 @@ function SchedulePage() {
                   const status = getScheduleStatus(schedule);
                   const statusBadge = getStatusBadge(status);
                   const isLive = status === 'live';
+                  const StatusIcon = statusBadge.icon;
 
                   return (
                     <tr
                       key={schedule.id}
                       className={`
                         border-b border-border-subtle transition-colors
-                        ${isLive ? 'bg-bg-input/50 border-l-2 border-l-status-live' : 'hover:bg-bg-input/30'}
+                        ${isLive ? 'bg-status-live/5 border-l-2 border-l-status-live' : 'hover:bg-bg-input/30'}
                       `}
                     >
                       <td className="px-4 py-4">
@@ -421,7 +436,10 @@ function SchedulePage() {
                             <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{schedule.description}</p>
                           )}
                           {isLive && (
-                            <p className="text-xs text-status-live mt-1">● Sedang Berlangsung</p>
+                            <p className="flex items-center gap-1.5 text-xs text-status-live mt-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-pulse" />
+                              Sedang Berlangsung
+                            </p>
                           )}
                         </div>
                       </td>
@@ -435,14 +453,15 @@ function SchedulePage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-text-muted">📅</span>
+                          <Calendar className="w-4 h-4 text-text-muted" />
                           <span className="text-sm text-text-secondary">
                             {formatDateTime(schedule.datetime)}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${statusBadge.class}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${statusBadge.class}`}>
+                          <StatusIcon className="w-3 h-3" />
                           {statusBadge.label}
                         </span>
                       </td>
@@ -453,7 +472,7 @@ function SchedulePage() {
                             className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
                             title="Preview"
                           >
-                            <span className="text-sm">👁</span>
+                            <Eye className="w-4 h-4" />
                           </button>
                           {/* Edit */}
                           <button
@@ -461,7 +480,7 @@ function SchedulePage() {
                             className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
                             title="Edit"
                           >
-                            <span className="text-sm">✏</span>
+                            <Edit className="w-4 h-4" />
                           </button>
                           {/* Delete */}
                           <button
@@ -469,7 +488,7 @@ function SchedulePage() {
                             className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
                             title="Hapus"
                           >
-                            <span className="text-sm">🗑</span>
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

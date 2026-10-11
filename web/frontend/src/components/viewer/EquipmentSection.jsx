@@ -40,6 +40,41 @@ const useScrollReveal = (options = {}) => {
   return [ref, isVisible];
 };
 
+// Salin teks ke clipboard. Mengembalikan true/false agar UI bisa menampilkan hasilnya.
+// Ada fallback untuk konteks tanpa Clipboard API (mis. http non-localhost).
+const copyText = async (text) => {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (err) {
+    // lanjut ke fallback
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (err) {
+    return false;
+  }
+};
+
+// Format satu kartu menjadi teks biasa untuk disalin
+const cardToText = (card) =>
+  [
+    `${card.label} (${card.system})`,
+    ...card.items.map((item) => `- ${item.label}: ${item.title} - ${item.subtitle}`),
+    ...(card.specs || []).map((spec) => `- ${spec.label}: ${spec.value}`),
+  ].join('\n');
+
 // Icon Components
 const PcIcon = ({ size = 16.5, className = '' }) => (
   <svg
@@ -126,13 +161,13 @@ const ChevronDownIcon = ({ size = 16, className = '' }) => (
 // Sparkle particle component
 const SparkleParticle = ({ style }) => (
   <div
-    className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse"
+    className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse motion-reduce:animate-none"
     style={style}
   />
 );
 
-// Progress Bar Component
-const ProgressBar = ({ value, max, color, label, showLabel = false }) => {
+// Progress Bar Component (bar terisi saat kartu dibuka, bukan sudah penuh sejak awal)
+const ProgressBar = ({ value, max, color, label, showLabel = false, active = true, delay = 0 }) => {
   const percentage = (value / max) * 100;
 
   return (
@@ -143,11 +178,19 @@ const ProgressBar = ({ value, max, color, label, showLabel = false }) => {
           <span className="text-[10px] text-[#7ee0d2] font-medium">{value}/{max}</span>
         </div>
       )}
-      <div className="h-1.5 bg-[#1d1830] rounded-full overflow-hidden">
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        className="h-1.5 bg-[#1d1830] rounded-full overflow-hidden"
+      >
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{
-            width: `${percentage}%`,
+            width: `${active ? percentage : 0}%`,
+            transitionDelay: `${delay}ms`,
             background: color || 'linear-gradient(90deg, #7ee0d2, #4ade80)'
           }}
         />
@@ -168,13 +211,13 @@ const StatusBadge = ({ status, label }) => {
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${config.bg} border ${config.border} text-[10px] uppercase tracking-wider ${config.text} font-medium`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.color} ${status === 'online' ? 'animate-pulse' : ''}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${config.color} ${status === 'online' ? 'animate-pulse motion-reduce:animate-none' : ''}`} />
       {label}
     </span>
   );
 };
 
-// Tooltip Component
+// Tooltip Component (juga muncul saat fokus keyboard)
 const Tooltip = ({ children, content, position = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -190,10 +233,15 @@ const Tooltip = ({ children, content, position = 'top' }) => {
       className="relative inline-block"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
+      onFocus={() => setIsVisible(true)}
+      onBlur={() => setIsVisible(false)}
     >
       {children}
       {isVisible && (
-        <div className={`absolute ${positionClasses[position]} z-50 px-2 py-1 text-[10px] text-white bg-[#2d2855] border border-[rgba(61,53,96,0.8)] rounded shadow-lg whitespace-nowrap`}>
+        <div
+          role="tooltip"
+          className={`absolute ${positionClasses[position]} z-50 px-2 py-1 text-[10px] text-white bg-[#2d2855] border border-[rgba(61,53,96,0.8)] rounded shadow-lg whitespace-nowrap`}
+        >
           {content}
         </div>
       )}
@@ -233,19 +281,43 @@ const AnimatedBackground = () => {
 };
 
 // Equipment Card Component
-const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }) => {
-  const [copied, setCopied] = useState(null);
-  const isExpanded = expandedCard === card.id;
+const EquipmentCard = ({ card, index, isVisible, isExpanded, onToggle }) => {
+  const [copied, setCopied] = useState(null); // 'item-0' | 'all' | 'err-item-0' | 'err-all'
+  const [settled, setSettled] = useState(false);
+  const cardRef = useRef(null);
+  const timerRef = useRef(0);
 
-  const handleCopy = useCallback((text, itemIndex) => {
-    navigator.clipboard.writeText(text);
-    setCopied(itemIndex);
-    setTimeout(() => setCopied(null), 2000);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  // Setelah animasi muncul selesai, hapus delay bertahap supaya efek hover terasa langsung
+  useEffect(() => {
+    if (!isVisible) return undefined;
+    const t = setTimeout(() => setSettled(true), index * 120 + 700);
+    return () => clearTimeout(t);
+  }, [isVisible, index]);
+
+  const flash = useCallback((key) => {
+    setCopied(key);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(null), 2000);
   }, []);
 
-  const handleToggle = useCallback(() => {
-    setExpandedCard(isExpanded ? null : card.id);
-  }, [isExpanded, card.id, setExpandedCard]);
+  const handleCopy = useCallback(
+    async (text, key) => {
+      const ok = await copyText(text);
+      flash(ok ? key : `err-${key}`);
+    },
+    [flash]
+  );
+
+  // Sorot cahaya mengikuti kursor di dalam kartu (CSS variable, tanpa re-render)
+  const handleMove = (e) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--px', `${e.clientX - r.left}px`);
+    el.style.setProperty('--py', `${e.clientY - r.top}px`);
+  };
 
   const accentColors = {
     'accent-lilac': {
@@ -276,29 +348,35 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
 
   const colors = accentColors[card.accentColor] || accentColors['accent-lilac'];
 
+  const tip = (key) => {
+    if (copied === key) return 'Tersalin!';
+    if (copied === `err-${key}`) return 'Gagal menyalin';
+    return 'Salin spesifikasi';
+  };
+
   return (
     <div
+      ref={cardRef}
+      onMouseMove={handleMove}
       className={`relative flex flex-col bg-[#1d1830] border rounded-2xl overflow-hidden transition-all duration-500 cursor-pointer group ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       } ${
         isExpanded
           ? 'shadow-2xl'
-          : 'hover:shadow-xl hover:shadow-black/30'
+          : 'hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5'
       }`}
       style={{
-        transitionDelay: `${index * 120}ms`,
+        transitionDelay: settled ? '0ms' : `${index * 120}ms`,
         borderColor: isExpanded ? colors.border : 'rgba(61,53,96,0.6)',
       }}
-      onClick={handleToggle}
+      onClick={onToggle}
     >
-      {/* Top accent bar */}
+      {/* Top accent bar (samar saat tertutup, penuh saat terbuka) */}
       <div
         className="h-[3px] w-full transition-all duration-500"
         style={{
-          background: isExpanded
-            ? `linear-gradient(90deg, ${colors.primary}, transparent)`
-            : `linear-gradient(90deg, transparent, transparent)`,
-          opacity: isExpanded ? 1 : 0,
+          background: `linear-gradient(90deg, ${colors.primary}, transparent 70%)`,
+          opacity: isExpanded ? 1 : 0.3,
         }}
       />
 
@@ -309,6 +387,15 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
         }`}
         style={{
           background: `radial-gradient(ellipse at 50% 0%, ${colors.glow}, transparent 65%)`,
+        }}
+      />
+
+      {/* Sorot cahaya mengikuti kursor */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{
+          background: `radial-gradient(260px circle at var(--px, 50%) var(--py, 0%), ${colors.glow}, transparent 70%)`,
         }}
       />
 
@@ -338,64 +425,80 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
           <StatusBadge status="online" label="Aktif" />
         </div>
 
-        {/* Expand indicator */}
-        <div className="flex items-center justify-between">
+        {/* Expand indicator (tombol sungguhan agar bisa dipakai dengan keyboard) */}
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          aria-controls={`eq-panel-${card.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="flex w-full items-center justify-between text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
+        >
           <span className="text-[10px] text-[#5c5480]">
             {isExpanded ? 'Klik untuk tutup' : 'Klik untuk detail'}
           </span>
-          <div
+          <span
             className={`w-6 h-6 rounded-full bg-[#2d2855] border border-[rgba(61,53,96,0.6)] flex items-center justify-center transition-all duration-300 ${
               isExpanded ? 'rotate-180 border-[rgba(126,224,210,0.3)]' : 'group-hover:border-[rgba(126,224,210,0.3)]'
             }`}
           >
             <ChevronDownIcon size={13} className="text-[#7ee0d2]" />
-          </div>
-        </div>
+          </span>
+        </button>
       </div>
 
       {/* Main Items */}
       <div className="relative z-10 px-5 py-4 space-y-4 flex-1">
-        {card.items.map((item, itemIndex) => (
-          <div key={itemIndex}>
-            {itemIndex > 0 && (
-              <div className="border-t border-[rgba(61,53,96,0.35)] mb-4" />
-            )}
-            <div className="group/item">
-              <p className="font-medium text-[#5c5480] text-[10px] uppercase tracking-widest mb-1.5 font-sans">
-                {item.label}
-              </p>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-[13px] leading-snug font-display group-hover/item:text-[#7ee0d2] transition-colors duration-200">
-                    {item.title}
-                  </p>
-                  <p className="text-[#a89ec0] text-[11px] mt-0.5 leading-relaxed">{item.subtitle}</p>
+        {card.items.map((item, itemIndex) => {
+          const key = `item-${itemIndex}`;
+          return (
+            <div key={itemIndex}>
+              {itemIndex > 0 && (
+                <div className="border-t border-[rgba(61,53,96,0.35)] mb-4" />
+              )}
+              <div className="group/item">
+                <p className="font-medium text-[#5c5480] text-[10px] uppercase tracking-widest mb-1.5 font-sans">
+                  {item.label}
+                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white text-[13px] leading-snug font-display group-hover/item:text-[#7ee0d2] transition-colors duration-200">
+                      {item.title}
+                    </p>
+                    <p className="text-[#a89ec0] text-[11px] mt-0.5 leading-relaxed">{item.subtitle}</p>
+                  </div>
+                  <Tooltip content={tip(key)} position="left">
+                    <button
+                      type="button"
+                      aria-label={`Salin spesifikasi ${item.title}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(`${item.title} - ${item.subtitle}`, key);
+                      }}
+                      className="p-1.5 rounded-lg bg-[#2d2855] border border-[rgba(61,53,96,0.6)] opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-200 hover:border-[rgba(126,224,210,0.4)] hover:bg-[#3d3566] text-[#a89ec0] hover:text-[#7ee0d2] shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
+                    >
+                      {copied === key ? (
+                        <CheckIcon size={12} className="text-[#4ade80]" />
+                      ) : (
+                        <CopyIcon size={12} />
+                      )}
+                    </button>
+                  </Tooltip>
                 </div>
-                <Tooltip content={copied === itemIndex ? 'Tersalin!' : 'Salin spesifikasi'} position="left">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy(`${item.title} - ${item.subtitle}`, itemIndex);
-                    }}
-                    className="p-1.5 rounded-lg bg-[#2d2855] border border-[rgba(61,53,96,0.6)] opacity-0 group-hover/item:opacity-100 transition-all duration-200 hover:border-[rgba(126,224,210,0.4)] hover:bg-[#3d3566] text-[#a89ec0] hover:text-[#7ee0d2] shrink-0"
-                  >
-                    {copied === itemIndex ? (
-                      <CheckIcon size={12} className="text-[#4ade80]" />
-                    ) : (
-                      <CopyIcon size={12} />
-                    )}
-                  </button>
-                </Tooltip>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Expanded content */}
       <div
+        id={`eq-panel-${card.id}`}
+        aria-hidden={!isExpanded}
         className={`relative z-10 overflow-hidden transition-all duration-500 ease-in-out ${
-          isExpanded ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div
@@ -408,7 +511,7 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
               {card.specs.map((spec, specIndex) => (
                 <div
                   key={specIndex}
-                  className="px-3 py-2.5 bg-[#2d2855]/60 rounded-xl border border-[rgba(61,53,96,0.4)]"
+                  className="px-3 py-2.5 bg-[#2d2855]/60 rounded-xl border border-[rgba(61,53,96,0.4)] transition-colors duration-200 hover:bg-[#2d2855] hover:border-[rgba(126,224,210,0.25)]"
                 >
                   <p className="text-[9px] text-[#5c5480] uppercase tracking-wider mb-1">{spec.label}</p>
                   <p className="text-[12px] font-semibold text-white leading-tight">{spec.value}</p>
@@ -429,10 +532,28 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
                   max={perf.max}
                   color={colors.primary}
                   showLabel
+                  active={isExpanded}
+                  delay={perfIndex * 120}
                 />
               ))}
             </div>
           )}
+
+          {/* Salin semua spesifikasi kartu ini */}
+          <button
+            type="button"
+            tabIndex={isExpanded ? 0 : -1}
+            onClick={() => handleCopy(cardToText(card), 'all')}
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-semibold tracking-wide transition-all duration-200 hover:brightness-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
+            style={{ color: colors.primary, borderColor: colors.border, backgroundColor: colors.bg }}
+          >
+            {copied === 'all' ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+            {copied === 'all'
+              ? 'Spesifikasi tersalin'
+              : copied === 'err-all'
+              ? 'Gagal menyalin'
+              : 'Salin semua spesifikasi'}
+          </button>
         </div>
       </div>
     </div>
@@ -443,8 +564,14 @@ const EquipmentCard = ({ card, index, isVisible, expandedCard, setExpandedCard }
 const EquipmentSection = () => {
   const [sectionRef, sectionVisible] = useScrollReveal({ threshold: 0.05 });
   const [cardsRef, cardsVisible] = useScrollReveal({ threshold: 0.05 });
-  const [expandedCard, setExpandedCard] = useState(null);
+  const [expandedCards, setExpandedCards] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [copiedAll, setCopiedAll] = useState(null); // 'ok' | 'err' | null
+  const [updatedAt] = useState(() => new Date());
+  const tabRefs = useRef([]);
+  const copyAllTimer = useRef(0);
+
+  useEffect(() => () => clearTimeout(copyAllTimer.current), []);
 
   const equipmentCards = [
     {
@@ -554,8 +681,50 @@ const EquipmentSection = () => {
     return true;
   });
 
+  // Ringkasan dihitung langsung dari data di atas
+  const totalComponents = equipmentCards.reduce((n, c) => n + c.items.length, 0);
+  const totalSpecs = equipmentCards.reduce((n, c) => n + (c.specs ? c.specs.length : 0), 0);
+
+  // Kartu bisa dibuka lebih dari satu agar spesifikasi bisa dibandingkan
+  const toggleCard = (id) =>
+    setExpandedCards((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const allOpen = filteredCards.length > 0 && filteredCards.every((c) => expandedCards.includes(c.id));
+
+  const toggleAll = () =>
+    setExpandedCards((prev) =>
+      allOpen
+        ? prev.filter((id) => !filteredCards.some((c) => c.id === id))
+        : Array.from(new Set([...prev, ...filteredCards.map((c) => c.id)]))
+    );
+
+  const handleCopyAll = async () => {
+    const ok = await copyText(equipmentCards.map(cardToText).join('\n\n'));
+    setCopiedAll(ok ? 'ok' : 'err');
+    clearTimeout(copyAllTimer.current);
+    copyAllTimer.current = setTimeout(() => setCopiedAll(null), 2000);
+  };
+
+  // Navigasi tab dengan panah kiri/kanan
+  const handleFilterKey = (e, i) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = (i + (e.key === 'ArrowRight' ? 1 : filters.length - 1)) % filters.length;
+    setActiveFilter(filters[next].id);
+    if (tabRefs.current[next]) tabRefs.current[next].focus();
+  };
+
+  const headerButton =
+    'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide bg-[#1d1830] text-[#a89ec0] border border-[rgba(61,53,96,0.6)] transition-all duration-300 hover:border-[rgba(126,224,210,0.35)] hover:text-white hover:bg-[#2d2855]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]';
+
   return (
     <section id="equipment" className="relative px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-36 pb-12 lg:pb-20">
+      <style>{`
+        @keyframes eq-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .eq-fade { animation: eq-fade .4s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .eq-fade { animation: none !important; } }
+      `}</style>
+
       <div
         ref={sectionRef}
         className={`max-w-6xl mx-auto transition-all duration-700 ${
@@ -567,6 +736,19 @@ const EquipmentSection = () => {
           {/* Animated Background */}
           <AnimatedBackground />
 
+          {/* Grid halus ala lembar spesifikasi */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(168,158,192,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(168,158,192,0.05) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+              maskImage: 'radial-gradient(ellipse at top, black 20%, transparent 75%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at top, black 20%, transparent 75%)',
+            }}
+          />
+
           {/* Header */}
           <div className="relative z-10 border-b border-[rgba(61,53,96,0.5)] pb-5 mb-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -576,52 +758,94 @@ const EquipmentSection = () => {
                   <PcIcon size={20} className="text-[#7ee0d2]" />
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-[22px] font-bold text-[#130f24] tracking-wide font-display leading-tight">
+                  <h3 className="text-xl sm:text-[22px] font-bold text-white tracking-wide font-display leading-tight">
                     Spesifikasi Peralatan
                   </h3>
+                  <p className="mt-1 text-[10px] font-mono tracking-wider uppercase text-[#5c5480]">
+                    {equipmentCards.length} sistem · {totalComponents} komponen · {totalSpecs} spesifikasi
+                  </p>
                 </div>
               </div>
+
+              {/* Right: aksi untuk seluruh daftar */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={handleCopyAll} className={headerButton}>
+                  {copiedAll === 'ok' ? <CheckIcon size={12} className="text-[#4ade80]" /> : <CopyIcon size={12} />}
+                  {copiedAll === 'ok' ? 'Tersalin' : copiedAll === 'err' ? 'Gagal menyalin' : 'Salin semua'}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  disabled={filteredCards.length === 0}
+                  className={headerButton}
+                >
+                  <ChevronDownIcon
+                    size={12}
+                    className={`transition-transform duration-300 ${allOpen ? 'rotate-180' : ''}`}
+                  />
+                  {allOpen ? 'Tutup semua' : 'Buka semua'}
+                </button>
+              </div>
             </div>
+            <span className="sr-only" role="status">
+              {copiedAll === 'ok' ? 'Semua spesifikasi tersalin' : copiedAll === 'err' ? 'Gagal menyalin spesifikasi' : ''}
+            </span>
           </div>
 
           {/* Filter Tabs */}
           <div className="relative z-10 flex flex-wrap items-center gap-2 mb-5">
-            {filters.map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
-                className={`px-3.5 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-300 ${
-                  activeFilter === filter.id
-                    ? 'bg-[#7ee0d2] text-[#1d1830] shadow-lg shadow-[#7ee0d2]/25'
-                    : 'bg-[#1d1830] text-[#a89ec0] border border-[rgba(61,53,96,0.6)] hover:border-[rgba(126,224,210,0.35)] hover:text-white hover:bg-[#2d2855]/60'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+            <div role="tablist" aria-label="Filter sistem peralatan" className="flex flex-wrap items-center gap-2">
+              {filters.map((filter, i) => (
+                <button
+                  key={filter.id}
+                  ref={(el) => {
+                    tabRefs.current[i] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === filter.id}
+                  tabIndex={activeFilter === filter.id ? 0 : -1}
+                  onClick={() => setActiveFilter(filter.id)}
+                  onKeyDown={(e) => handleFilterKey(e, i)}
+                  className={`px-3.5 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] ${
+                    activeFilter === filter.id
+                      ? 'bg-[#7ee0d2] text-[#1d1830] shadow-lg shadow-[#7ee0d2]/25'
+                      : 'bg-[#1d1830] text-[#a89ec0] border border-[rgba(61,53,96,0.6)] hover:border-[rgba(126,224,210,0.35)] hover:text-white hover:bg-[#2d2855]/60'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            <span className="ml-auto text-[10px] font-mono tracking-wider uppercase text-[#5c5480]" aria-live="polite">
+              Menampilkan {filteredCards.length} / {equipmentCards.length} sistem
+            </span>
           </div>
 
           {/* Equipment Cards */}
-          <div
-            ref={cardsRef}
-            className={`grid gap-4 ${
-              filteredCards.length === 1
-                ? 'grid-cols-1 sm:max-w-md sm:mx-auto'
-                : filteredCards.length === 2
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-            }`}
-          >
-            {filteredCards.map((card, index) => (
-              <EquipmentCard
-                key={card.id}
-                card={card}
-                index={index}
-                isVisible={cardsVisible}
-                expandedCard={expandedCard}
-                setExpandedCard={setExpandedCard}
-              />
-            ))}
+          <div ref={cardsRef}>
+            <div
+              key={activeFilter}
+              role="tabpanel"
+              className={`eq-fade grid gap-4 ${
+                filteredCards.length === 1
+                  ? 'grid-cols-1 sm:max-w-md sm:mx-auto'
+                  : filteredCards.length === 2
+                  ? 'grid-cols-1 sm:grid-cols-2'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+              }`}
+            >
+              {filteredCards.map((card, index) => (
+                <EquipmentCard
+                  key={card.id}
+                  card={card}
+                  index={index}
+                  isVisible={cardsVisible}
+                  isExpanded={expandedCards.includes(card.id)}
+                  onToggle={() => toggleCard(card.id)}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Footer Info */}
@@ -629,7 +853,7 @@ const EquipmentSection = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px] text-[#5c5480]">
               <span>
                 Diperbarui:{' '}
-                {new Date().toLocaleDateString('id-ID', {
+                {updatedAt.toLocaleDateString('id-ID', {
                   weekday: 'short',
                   year: 'numeric',
                   month: 'short',
@@ -640,7 +864,7 @@ const EquipmentSection = () => {
               </span>
               <span className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse motion-reduce:animate-none" />
                   Semua sistem beroperasi
                 </span>
                 <span className="text-[#7ee0d2]">|</span>
@@ -655,4 +879,3 @@ const EquipmentSection = () => {
 };
 
 export default EquipmentSection;
-  
