@@ -14,9 +14,41 @@ export const NOTIFICATION_TYPES = {
     borderColor: 'border-accent-cyan/30',
     iconColor: 'text-accent-cyan'
   },
+  vote_received: {
+    label: 'Vote Masuk',
+    icon: 'TrendingUp',
+    color: 'cyan',
+    bgColor: 'bg-accent-cyan/10',
+    borderColor: 'border-accent-cyan/30',
+    iconColor: 'text-accent-cyan'
+  },
   NEW_GAME_REQUEST: {
     label: 'Game Request Baru',
     icon: 'Gamepad2',
+    color: 'purple',
+    bgColor: 'bg-accent-purple/10',
+    borderColor: 'border-accent-purple/30',
+    iconColor: 'text-accent-purple'
+  },
+  game_requested: {
+    label: 'Game Request Baru',
+    icon: 'Gamepad2',
+    color: 'purple',
+    bgColor: 'bg-accent-purple/10',
+    borderColor: 'border-accent-purple/30',
+    iconColor: 'text-accent-purple'
+  },
+  NEW_COLLAB_REQUEST: {
+    label: 'Collab Request Baru',
+    icon: 'Users',
+    color: 'purple',
+    bgColor: 'bg-accent-purple/10',
+    borderColor: 'border-accent-purple/30',
+    iconColor: 'text-accent-purple'
+  },
+  collab_requested: {
+    label: 'Collab Request Baru',
+    icon: 'Users',
     color: 'purple',
     bgColor: 'bg-accent-purple/10',
     borderColor: 'border-accent-purple/30',
@@ -32,6 +64,14 @@ export const NOTIFICATION_TYPES = {
   },
   SCHEDULE_REMINDER: {
     label: 'Reminder Jadwal',
+    icon: 'Calendar',
+    color: 'gold',
+    bgColor: 'bg-accent-gold/10',
+    borderColor: 'border-accent-gold/30',
+    iconColor: 'text-accent-gold'
+  },
+  schedule_upcoming: {
+    label: 'Jadwal Siaran',
     icon: 'Calendar',
     color: 'gold',
     bgColor: 'bg-accent-gold/10',
@@ -65,16 +105,15 @@ export const NOTIFICATION_TYPES = {
 };
 
 export function NotificationProvider({ children, userId = 'default' }) {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState(() =>
+    !isFirebaseConfigured() ? getMockNotifications() : []
+  );
+  const [loading, setLoading] = useState(() => isFirebaseConfigured());
   const [error, setError] = useState(null);
 
   // Fetch notifications from Firebase
   useEffect(() => {
     if (!isFirebaseConfigured()) {
-      setLoading(false);
-      // Use mock notifications for development
-      setNotifications(getMockNotifications());
       return;
     }
 
@@ -109,6 +148,7 @@ export function NotificationProvider({ children, userId = 'default' }) {
 
       return () => {
         off(notificationsRef);
+        unsubscribe();
       };
     } catch (err) {
       console.error('Notification setup error:', err);
@@ -284,6 +324,15 @@ function getMockNotifications() {
       read: true,
       createdAt: Date.now() - 24 * 60 * 60 * 1000, // 1 day ago
       link: '/admin/schedules',
+    },
+    {
+      id: 'notif_5',
+      type: 'collab_requested',
+      title: 'Request Collab Baru',
+      message: 'Viewer mengajukan collab dengan @KoboKanaeru',
+      read: false,
+      createdAt: Date.now() - 15 * 60 * 1000, // 15 minutes ago
+      link: '/admin/collab-requests',
     },
   ];
 }

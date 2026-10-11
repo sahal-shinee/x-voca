@@ -12,6 +12,7 @@ const voteRoutes = require('./src/routes/vote.routes');
 const contentRoutes = require('./src/routes/content.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const auditLogRoutes = require('./src/routes/auditLog.routes');
+const collabRequestRoutes = require('./src/routes/collabRequest.routes');
 
 // Import middleware
 const { globalLimiter } = require('./src/middleware/rateLimit.middleware');
@@ -100,6 +101,7 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/collab-requests', collabRequestRoutes);
 
 // Legacy protected routes (for backward compatibility)
 app.use('/api/dashboard', dashboardRoutes);

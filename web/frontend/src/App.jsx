@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/common/Toast';
 
 // Admin Components
@@ -17,6 +18,7 @@ import LoginPage from './pages/admin/LoginPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import SchedulePage from './pages/admin/SchedulePage';
 import VotingModerationPage from './pages/admin/VotingModerationPage';
+import CollabRequestsPage from './pages/admin/CollabRequestsPage';
 import ContentManagementPage from './pages/admin/ContentManagementPage';
 
 /**
@@ -69,6 +71,7 @@ function AppRouter() {
         <Route path="/admin/dashboard" element={<DashboardPage />} />
         <Route path="/admin/schedules" element={<SchedulePage />} />
         <Route path="/admin/voting" element={<VotingModerationPage />} />
+        <Route path="/admin/collab-requests" element={<CollabRequestsPage />} />
         <Route path="/admin/content" element={<ContentManagementPage />} />
       </Route>
 
@@ -80,15 +83,17 @@ function AppRouter() {
 
 function App() {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <AppRouter />
-          </BrowserRouter>
-        </ToastProvider>
-      </NotificationProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <AppRouter />
+            </BrowserRouter>
+          </ToastProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

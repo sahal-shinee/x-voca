@@ -123,6 +123,21 @@ const ScheduleCard = ({ schedule, variant = 'upcoming' }) => {
         {schedule?.title || 'Judul Stream'}
       </h3>
 
+      {/* Collab Indicator */}
+      {schedule?.collab_guest && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-accent-purple/10 border border-accent-purple/20 text-xs text-accent-purple">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span className="font-medium truncate">
+            Collab with: {schedule.collab_guest.startsWith('@') ? schedule.collab_guest : `@${schedule.collab_guest}`}
+          </span>
+        </div>
+      )}
+
       {/* Date/Time */}
       <p className="text-sm text-text-secondary mb-3">
         {formatDate(schedule?.scheduled_at)}

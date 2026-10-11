@@ -38,6 +38,7 @@ const startServer = async () => {
       console.log('║  GET  /api/games                                          ║');
       console.log('║  POST /api/votes/:gameId                                  ║');
       console.log('║  GET  /api/content                                        ║');
+      console.log('║  POST /api/collab-requests                                ║');
       console.log('║  GET  /api/dashboard/stats                                ║');
       console.log('╚═══════════════════════════════════════════════════════════╝');
       console.log('');

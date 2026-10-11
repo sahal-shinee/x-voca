@@ -1,19 +1,11 @@
-import { TrendingUp, TrendingDown, Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 
 /**
- * StatCard - Reusable stat card component
- * Modern, interactive stat card with gradient accents
- *
- * @param {Object} props
- * @param {React.ReactNode} props.icon - Icon component
- * @param {string} props.label - Card label
- * @param {string|number} props.value - Main stat value
- * @param {string} props.subtitle - Subtitle text
- * @param {Object} props.trend - { value: number, label: string } - Trend info
- * @param {boolean} props.loading - Loading state
- * @param {string} props.variant - 'default' | 'highlight' - Color variant
+ * StatCard - Enhanced stat card component
+ * Design: Soft Dark, High Contrast, Professional
+ * Supports: default, highlight (cyan), purple, gold variants
  */
-function StatCard({
+export function StatCard({
   icon: Icon,
   label,
   value,
@@ -23,22 +15,41 @@ function StatCard({
   variant = 'default',
   className = ''
 }) {
-  const isPositiveTrend = trend?.value >= 0;
-  const TrendIcon = isPositiveTrend ? TrendingUp : TrendingDown;
-  const ArrowIcon = isPositiveTrend ? ArrowUpRight : ArrowDownRight;
+  const isPositive = trend?.value >= 0;
+  const TrendIcon = isPositive ? TrendingUp : TrendingDown;
 
   const variantStyles = {
     default: {
       card: 'border-border-subtle hover:border-border-active',
-      iconBg: 'bg-bg-input',
+      iconBg: 'bg-bg-surface',
       iconColor: 'text-text-secondary',
       valueColor: 'text-text-primary',
+      trendPos: 'bg-accent-cyan/10 text-accent-cyan',
+      trendNeg: 'bg-status-live/10 text-status-live',
     },
     highlight: {
       card: 'border-accent-cyan/30 hover:border-accent-cyan/50 bg-gradient-to-br from-accent-cyan/5 to-transparent',
       iconBg: 'bg-accent-cyan/15',
       iconColor: 'text-accent-cyan',
       valueColor: 'text-accent-cyan',
+      trendPos: 'bg-accent-cyan/10 text-accent-cyan',
+      trendNeg: 'bg-status-live/10 text-status-live',
+    },
+    purple: {
+      card: 'border-accent-purple/30 hover:border-accent-purple/50 bg-gradient-to-br from-accent-purple/5 to-transparent',
+      iconBg: 'bg-accent-purple/15',
+      iconColor: 'text-accent-purple',
+      valueColor: 'text-accent-purple',
+      trendPos: 'bg-accent-purple/10 text-accent-purple',
+      trendNeg: 'bg-status-live/10 text-status-live',
+    },
+    gold: {
+      card: 'border-accent-gold/30 hover:border-accent-gold/50 bg-gradient-to-br from-accent-gold/5 to-transparent',
+      iconBg: 'bg-accent-gold/15',
+      iconColor: 'text-accent-gold',
+      valueColor: 'text-accent-gold',
+      trendPos: 'bg-accent-gold/10 text-accent-gold',
+      trendNeg: 'bg-status-live/10 text-status-live',
     },
   };
 
@@ -47,80 +58,56 @@ function StatCard({
   return (
     <div
       className={`
-        relative overflow-hidden
-        bg-bg-card rounded-2xl p-5
-        border transition-all duration-300 ease-out
-        hover:shadow-xl hover:shadow-black/20
+        bg-bg-card rounded-xl p-5
+        border transition-all duration-200
+        hover:bg-bg-card-hover hover:shadow-md hover:-translate-y-px
         ${styles.card}
         ${className}
       `}
     >
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-accent-cyan/5 to-transparent rounded-bl-full opacity-50" />
-
-      <div className="relative flex flex-col h-full">
-        {/* Header: Icon + Trend Badge */}
-        <div className="flex items-start justify-between mb-3">
-          {/* Icon Container */}
-          <div className={`
-            w-11 h-11 rounded-xl
-            flex items-center justify-center
-            transition-transform duration-300
-            group-hover:scale-105
-            ${styles.iconBg}
-          `}>
-            {loading ? (
-              <Loader2 className="w-5 h-5 text-text-muted animate-spin" />
-            ) : Icon && (
-              <Icon className={`w-5 h-5 ${styles.iconColor}`} />
-            )}
-          </div>
-
-          {/* Trend Badge */}
-          {trend && !loading && (
-            <div className={`
-              flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-medium
-              ${isPositiveTrend
-                ? 'bg-accent-cyan/10 text-accent-cyan'
-                : 'bg-status-live/10 text-status-live'
-              }
-            `}>
-              <TrendIcon className="w-3.5 h-3.5" />
-              <span>{Math.abs(trend.value)}%</span>
-            </div>
-          )}
-        </div>
-
-        {/* Value & Label */}
-        <div className="flex-1">
+      <div className="flex items-start justify-between mb-3">
+        {/* Icon */}
+        <div className={`
+          w-10 h-10 rounded-lg flex items-center justify-center
+          ${styles.iconBg}
+        `}>
           {loading ? (
-            <div className="space-y-2">
-              <div className="h-9 w-24 bg-bg-input rounded-lg animate-pulse" />
-              <div className="h-4 w-32 bg-bg-input rounded animate-pulse" />
-            </div>
-          ) : (
-            <>
-              <p className={`
-                font-bold font-mono
-                text-3xl tracking-tight
-                ${styles.valueColor}
-              `}>
-                {typeof value === 'number' ? value.toLocaleString() : value}
-              </p>
-              <p className="text-sm text-text-secondary mt-1 font-medium">{label}</p>
-              {subtitle && (
-                <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
-              )}
-              {trend?.label && !subtitle && (
-                <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-                  vs {trend.label}
-                  <ArrowIcon className="w-3 h-3" />
-                </p>
-              )}
-            </>
-          )}
+            <Loader2 className="w-5 h-5 text-text-muted animate-spin" />
+          ) : Icon ? (
+            <Icon className={`w-5 h-5 ${styles.iconColor}`} />
+          ) : null}
         </div>
+
+        {/* Trend Badge */}
+        {trend && !loading && (
+          <div className={`
+            flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono
+            ${isPositive ? styles.trendPos : styles.trendNeg}
+          `}>
+            <TrendIcon className="w-3.5 h-3.5" />
+            {Math.abs(trend.value)}%
+          </div>
+        )}
       </div>
+
+      {/* Value */}
+      {loading ? (
+        <div className="space-y-2">
+          <div className="h-8 w-20 bg-bg-surface rounded animate-pulse" />
+          <div className="h-4 w-28 bg-bg-surface rounded animate-pulse" />
+          <div className="h-3 w-20 bg-bg-surface rounded animate-pulse opacity-60" />
+        </div>
+      ) : (
+        <>
+          <p className={`text-2xl font-bold font-mono ${styles.valueColor}`}>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          <p className="text-sm text-text-secondary mt-1">{label}</p>
+          {subtitle && (
+            <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+          )}
+        </>
+      )}
     </div>
   );
 }

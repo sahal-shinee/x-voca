@@ -7,6 +7,7 @@ const Vote = require('./Vote');
 const ContentGuide = require('./ContentGuide');
 const Todo = require('./Todo');
 const AuditLog = require('./AuditLog');
+const CollabRequest = require('./CollabRequest');
 
 // Define Associations
 
@@ -50,6 +51,16 @@ Vote.belongsTo(Game, {
   as: 'game'
 });
 
+// User - CollabRequest (One-to-Many as reviewer)
+User.hasMany(CollabRequest, {
+  foreignKey: 'reviewed_by',
+  as: 'reviewedCollabs'
+});
+CollabRequest.belongsTo(User, {
+  foreignKey: 'reviewed_by',
+  as: 'reviewer'
+});
+
 // Sync database function
 const syncDatabase = async (options = {}) => {
   try {
@@ -82,6 +93,7 @@ module.exports = {
   ContentGuide,
   Todo,
   AuditLog,
+  CollabRequest,
   syncDatabase,
   testConnection
 };
