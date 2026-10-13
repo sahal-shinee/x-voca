@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_screen.dart';
+import 'presentation/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,25 +22,36 @@ void main() async {
   );
 }
 
-class XVocaApp extends ConsumerWidget {
+class XVocaApp extends StatelessWidget {
   const XVocaApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'X-VOCA Mobile',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class AuthWrapper extends ConsumerWidget {
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
-    return MaterialApp(
-      title: 'X-VOCA Mobile',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: authState.when(
-        data: (user) => user != null ? const DashboardScreen() : const LoginScreen(),
-        loading: () => const Scaffold(
-          backgroundColor: AppColors.bgBase,
-          body: Center(child: CircularProgressIndicator(color: AppColors.accentCyan)),
+    return authState.when(
+      data: (user) => user != null ? const DashboardScreen() : const LoginScreen(),
+      loading: () => const Scaffold(
+        backgroundColor: AppColors.bgBase,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.accentCyan),
         ),
-        error: (_, __) => const LoginScreen(),
       ),
+      error: (_, __) => const LoginScreen(),
     );
   }
 }
