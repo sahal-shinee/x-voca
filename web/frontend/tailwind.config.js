@@ -64,15 +64,15 @@ export default {
         // === LIGHT MODE PALETTE (Task 1.4 spec) ===
         light: {
           bg: {
-            base: '#F8F9FC',
-            surface: '#FFFFFF',
-            card: '#F1F3F8',
+            base: '#FFFFFF',
+            surface: '#F8FAFB',
+            card: '#F1F5F9',
             nav: '#FFFFFF',
           },
           text: {
-            primary: '#1A1B2E',
-            secondary: '#4A4B6A',
-            muted: '#696B84',
+            primary: '#0F172A',
+            secondary: '#475569',
+            muted: '#94A3B8',
           },
           accent: {
             cyan: '#0D9488',
@@ -87,16 +87,16 @@ export default {
         },
 
         // === FLAT LIGHT MODE PALETTE (For explicit light- utility classes) ===
-        'light-bg-base': '#F8F9FC',
-        'light-bg-surface': '#FFFFFF',
-        'light-bg-card': '#F1F3F8',
+        'light-bg-base': '#FFFFFF',
+        'light-bg-surface': '#F8FAFB',
+        'light-bg-card': '#F1F5F9',
         'light-bg-card-hover': '#E8EBF3',
         'light-bg-input': '#FFFFFF',
         'light-bg-nav': '#FFFFFF',
         'light-bg-nav-active': '#E8EBF3',
-        'light-text-primary': '#1A1B2E',
-        'light-text-secondary': '#4A4B6A',
-        'light-text-muted': '#696B84',
+        'light-text-primary': '#0F172A',
+        'light-text-secondary': '#475569',
+        'light-text-muted': '#94A3B8',
         'light-text-accent': '#0D9488',
         'light-text-on-cta': '#FFFFFF',
         'light-accent-cyan': '#0D9488',
@@ -108,7 +108,7 @@ export default {
         'light-status-live': '#DC2626',
         'light-status-upcoming': '#7C3AED',
         'light-status-done': '#0D9488',
-        'light-status-playing': '#B45309',
+        'light-status-playing': '#D97706',
         'light-status-requested': '#8B5CF6',
         'light-border-subtle': '#E2E4EB',
         'light-border-active': 'rgba(13, 148, 136, 0.3)',

@@ -20,6 +20,8 @@ import SchedulePage from './pages/admin/SchedulePage';
 import VotingModerationPage from './pages/admin/VotingModerationPage';
 import CollabRequestsPage from './pages/admin/CollabRequestsPage';
 import ContentManagementPage from './pages/admin/ContentManagementPage';
+import TodoPage from './pages/admin/TodoPage';
+import SettingsPage from './pages/admin/SettingsPage';
 
 /**
  * PublicAdminRoute - Redirects authenticated users away from login page
@@ -73,6 +75,8 @@ function AppRouter() {
         <Route path="/admin/voting" element={<VotingModerationPage />} />
         <Route path="/admin/collab-requests" element={<CollabRequestsPage />} />
         <Route path="/admin/content" element={<ContentManagementPage />} />
+        <Route path="/admin/todos" element={<TodoPage />} />
+        <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
 
       {/* ========== CATCH ALL ========== */}

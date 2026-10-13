@@ -6,6 +6,7 @@ import { getSchedules } from '../../services/scheduleService';
 import { useBroadcastingStatus } from '../../hooks/useFirebase';
 import StatCard from '../../components/common/StatCard';
 import ActionCard from '../../components/common/ActionCard';
+import Toggle from '../../components/common/Toggle';
 import {
   BarChart3,
   Calendar,
@@ -340,23 +341,13 @@ function DashboardPage() {
                 {isBroadcasting ? 'READY' : 'OFFLINE'}
               </p>
             </div>
-            <button
-              onClick={() => handleToggleBroadcasting(!isBroadcasting)}
+            <Toggle
+              checked={isBroadcasting}
+              onChange={handleToggleBroadcasting}
               disabled={loadingBroadcasting}
               aria-label="Toggle Broadcasting"
-              className={`
-                relative w-11 h-6 rounded-full transition-colors duration-200 ml-2
-                ${isBroadcasting ? 'bg-accent-cyan' : 'bg-bg-card border border-border-subtle'}
-                ${loadingBroadcasting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-              `}
-            >
-              <span
-                className={`
-                  absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200
-                  ${isBroadcasting ? 'translate-x-5' : 'translate-x-0.5'}
-                `}
-              />
-            </button>
+              className="ml-2"
+            />
           </div>
         </div>
       </div>
