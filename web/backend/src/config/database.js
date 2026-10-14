@@ -1,12 +1,13 @@
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASS,
+  process.env.DB_NAME || process.env.MYSQLDATABASE || 'railway',
+  process.env.DB_USER || process.env.MYSQLUSER || 'root',
+  // Membaca DB_PASS, DB_PASSWORD, atau MYSQLPASSWORD agar tidak lagi terjadi mismatch
+  process.env.DB_PASS || process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
   {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
+    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
@@ -20,7 +21,7 @@ const sequelize = new Sequelize(
       timestamps: true,
       underscored: true,
       createdAt: 'created_at',
-      updatedAt: 'updated_at'
+      updated_at: 'updated_at'
     }
   }
 );

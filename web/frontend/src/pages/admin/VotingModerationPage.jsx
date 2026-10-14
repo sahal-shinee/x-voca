@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStats } from '../../services/dashboardService';
-import { getGames, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
+import { getGames, createGame, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
 import Modal from '../../components/common/Modal';
 import GameCard from '../../components/common/GameCard';
+import GameFormPanel from '../../components/admin/GameFormPanel';
 import {
   Gamepad2,
   Search,
@@ -108,6 +109,11 @@ function VotingModerationPage() {
   const [deleteModal, setDeleteModal] = useState({ open: false, game: null });
   const [actionModal, setActionModal] = useState({ open: false, game: null, action: null });
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // ── Game Form Panel ────────────────────────────────────────────────────────
+  const [gameFormOpen, setGameFormOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState(null);
+  const [gameFormLoading, setGameFormLoading] = useState(false);
 
   // ── Fetch summary stats ────────────────────────────────────────────────────
   const fetchSummaryStats = useCallback(async () => {
@@ -220,6 +226,27 @@ function VotingModerationPage() {
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  // ── Game Form handlers ─────────────────────────────────────────────────────
+  const handleAddGame = () => {
+    setEditingGame(null);
+    setGameFormOpen(true);
+  };
+
+  const handleSaveGame = async (data) => {
+    setGameFormLoading(true);
+    try {
+      await createGame(data);
+      setGameFormOpen(false);
+      fetchGames(activeFilter);
+      fetchSummaryStats();
+    } catch (error) {
+      console.error('Error saving game:', error);
+      throw error;
+    } finally {
+      setGameFormLoading(false);
+    }
+  };
 
   // ── Action handlers ────────────────────────────────────────────────────────
   const handleStatusAction = async (game, newStatus) => {
@@ -350,7 +377,10 @@ function VotingModerationPage() {
             <RefreshCw className="w-4 h-4" />
             Reset Periode
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-lg">
+          <button
+            onClick={handleAddGame}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+          >
             <Plus className="w-4 h-4" />
             Tambah Game
           </button>
@@ -721,6 +751,15 @@ function VotingModerationPage() {
           </p>
         </div>
       </Modal>
+
+      {/* ── Game Form Panel ─────────────────────────────────────────────── */}
+      <GameFormPanel
+        isOpen={gameFormOpen}
+        onClose={() => setGameFormOpen(false)}
+        onSave={handleSaveGame}
+        game={editingGame}
+        loading={gameFormLoading}
+      />
 
     </div>
   );

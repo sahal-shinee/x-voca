@@ -170,7 +170,9 @@ const createSchedule = async (req, res) => {
       thumbnail_url,
       stream_platform,
       countdown_enabled,
-      status
+      status,
+      collab_guest,
+      collab_social
     } = req.body;
 
     // Validate required fields
@@ -192,7 +194,9 @@ const createSchedule = async (req, res) => {
       thumbnail_url,
       stream_platform,
       countdown_enabled,
-      status
+      status,
+      collab_guest: collab_guest || null,
+      collab_social: collab_social || null
     });
 
     // Create audit log
@@ -246,7 +250,8 @@ const updateSchedule = async (req, res) => {
     const allowedFields = [
       'title', 'game_category', 'scheduled_at', 'description',
       'youtube_url', 'thumbnail_url', 'stream_platform',
-      'countdown_enabled', 'status'
+      'countdown_enabled', 'status',
+      'collab_guest', 'collab_social'
     ];
 
     allowedFields.forEach(field => {

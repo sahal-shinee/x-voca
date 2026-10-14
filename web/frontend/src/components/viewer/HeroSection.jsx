@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import heroCharacter from '../../assets/hero-character.png';
 import TopNav from './TopNav';
 import { getNextSchedule } from '../../services/scheduleService';
+import { Users } from 'lucide-react';
 
 // ========== ICONS ==========
 
@@ -781,7 +782,7 @@ const formatCountdownDisplay = (countdownData) => {
 
 // ========== HERO SECTION ==========
 
-function HeroSection() {
+function HeroSection({ onRequestCollab }) {
   const [moodIndex, setMoodIndex] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [nextSchedule, setNextSchedule] = useState(null);
@@ -955,6 +956,20 @@ function HeroSection() {
                   <span className="text-[#c084fc]"><DocumentIcon /></span>
                   <span className="font-semibold text-[#c084fc] text-sm font-body">Content Guide</span>
                 </Link>
+
+                {/* Request Collab Button */}
+                {onRequestCollab && (
+                  <button
+                    onClick={onRequestCollab}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px]
+                      bg-accent-purple/10 border border-accent-purple/30
+                      text-accent-lilac hover:bg-accent-purple/20 hover:border-accent-purple/50
+                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="font-semibold text-sm font-body">Request Collab</span>
+                  </button>
+                )}
               </div>
 
               {/* Countdown Widget */}

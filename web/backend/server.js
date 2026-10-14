@@ -22,18 +22,18 @@ const startServer = async () => {
 
     await syncDatabase(syncOptions);
 
-    // Start the server
-    app.listen(PORT, () => {
+    // Start the server with host '0.0.0.0' for Railway compatibility
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('');
       console.log('╔═══════════════════════════════════════════════════════════╗');
-      console.log('║           X-VOCA Backend Server                          ║');
+      console.log('║           X-VOCA Backend Server                           ║');
       console.log('╠═══════════════════════════════════════════════════════════╣');
-      console.log(`║  🚀 Server running on port ${PORT}                          ║`);
+      console.log(`║  🚀 Server running on port ${PORT}                            ║`);
       console.log(`║  🌐 Environment: ${(process.env.NODE_ENV || 'development').padEnd(32)}║`);
-      console.log(`║  📊 Database: ${process.env.DB_NAME || 'xvoca_db'.padEnd(37)}║`);
+      console.log(`║  📊 Database: ${(process.env.DB_NAME || 'xvoca_db').padEnd(37)}║`);
       console.log('╠═══════════════════════════════════════════════════════════╣');
-      console.log('║  Endpoints:                                              ║');
-      console.log('║  POST /api/auth/login                                    ║');
+      console.log('║  Endpoints:                                               ║');
+      console.log('║  POST /api/auth/login                                     ║');
       console.log('║  GET  /api/schedules                                      ║');
       console.log('║  GET  /api/games                                          ║');
       console.log('║  POST /api/votes/:gameId                                  ║');

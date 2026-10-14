@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  CheckSquare,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -29,6 +30,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
     { path: '/admin/voting', label: 'Game Voting', icon: Gamepad2 },
     { path: '/admin/collab-requests', label: 'Collab Requests', icon: Users },
     { path: '/admin/content', label: 'Content Guide', icon: BookOpen },
+    { path: '/admin/todos', label: 'Todo', icon: CheckSquare },
   ];
 
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'X';
