@@ -3,40 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../core/theme/app_theme.dart';
-
-class VoteOption {
-  final String id;
-  final String text;
-  int votesCount;
-
-  VoteOption({
-    required this.id,
-    required this.text,
-    required this.votesCount,
-  });
-}
-
-class VotePoll {
-  final String id;
-  final String title;
-  final String category;
-  final DateTime expiresAt;
-  final List<VoteOption> options;
-  String? selectedOptionId;
-  final bool isClosed;
-
-  VotePoll({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.expiresAt,
-    required this.options,
-    this.selectedOptionId,
-    this.isClosed = false,
-  });
-
-  int get totalVotes => options.fold(0, (sum, item) => sum + item.votesCount);
-}
+import '../../data/models/game_model.dart';
+import '../providers/game_provider.dart';
 
 class VotesScreen extends ConsumerStatefulWidget {
   const VotesScreen({super.key});
@@ -46,46 +14,20 @@ class VotesScreen extends ConsumerStatefulWidget {
 }
 
 class _VotesScreenState extends ConsumerState<VotesScreen> {
-  final List<VotePoll> _polls = [
-    VotePoll(
-      id: 'p1',
-      title: 'Game Apa yang Harus Dimainin Pas Live Stream Weekend Nanti?',
-      category: 'GAME SELECTION',
-      expiresAt: DateTime.now().add(const Duration(hours: 18, minutes: 45)),
-      selectedOptionId: 'opt1',
-      options: [
-        VoteOption(id: 'opt1', text: 'Elden Ring: Shadow of the Erdtree', votesCount: 142),
-        VoteOption(id: 'opt2', text: 'Resident Evil 4 Remake (Hardcore)', votesCount: 98),
-        VoteOption(id: 'opt3', text: 'Minecraft Build Challenge w/ Members', votesCount: 65),
-      ],
-    ),
-    VotePoll(
-      id: 'p2',
-      title: 'Jam Berapa Enaknya Mulai Stream Hari Jumat?',
-      category: 'SCHEDULE POLL',
-      expiresAt: DateTime.now().add(const Duration(days: 2)),
-      options: [
-        VoteOption(id: 'opt21', text: '19.30 WIB (Sepulang Shalat/Kerja)', votesCount: 210),
-        VoteOption(id: 'opt22', text: '20.00 WIB (Late Night Stream)', votesCount: 88),
-      ],
-    ),
-    VotePoll(
-      id: 'p3',
-      title: 'Special Stream 200k Subscribers Idea',
-      category: 'COMMUNITY EVENT',
-      expiresAt: DateTime.now().subtract(const Duration(hours: 5)),
-      isClosed: true,
-      selectedOptionId: 'opt31',
-      options: [
-        VoteOption(id: 'opt31', text: '12-Hour Marathon Gameplay', votesCount: 512),
-        VoteOption(id: 'opt32', text: 'Viewer Setup Review & Discord Hangout', votesCount: 340),
-        VoteOption(id: 'opt33', text: 'Q&A + Facecam Cooking Stream', votesCount: 120),
-      ],
-    ),
-  ];
+  // Menyiapkan fingerprint sederhana untuk dikirim saat vote
+  final String _deviceFingerprint = 'device_${DateTime.now().millisecondsSinceEpoch}';
 
   @override
   Widget build(BuildContext context) {
+    // 1. Membaca state dari gameProvider
+    final gameState = ref.watch(gameProvider);
+    final games = gameState.games;
+    final voteStats = gameState.voteStats;
+
+    // Hitung total seluruh suara dari semua game yang ada
+    final int totalVotes = voteStats?.totalVotes ??
+        games.fold<int>(0, (sum, game) => sum + game.voteCount);
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -101,6 +43,13 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
         ),
         actions: [
+          // Tombol Refresh Manual
+          IconButton(
+            icon: const Icon(LucideIcons.refresh_cw, size: 18, color: AppColors.textSecondary),
+            onPressed: () {
+              ref.read(gameProvider.notifier).loadAllData();
+            },
+          ),
           IconButton(
             icon: const Icon(LucideIcons.plus, color: AppColors.accentCyan),
             onPressed: () {
@@ -108,7 +57,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 SnackBar(
                   backgroundColor: AppColors.bgSurface,
                   content: Text(
-                    'Buat Voting Baru (Khusus Admin)',
+                    'Tambah Game Poll (Fitur Admin)',
                     style: GoogleFonts.spaceGrotesk(color: AppColors.textPrimary),
                   ),
                 ),
@@ -117,20 +66,43 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _polls.length,
-        itemBuilder: (context, index) {
-          final poll = _polls[index];
-          return _buildPollCard(poll);
-        },
-      ),
+      body: gameState.isLoading && games.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: AppColors.accentCyan))
+          : gameState.error != null && games.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: AppColors.accentRed, size: 40),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gagal mengambil data polling',
+                        style: GoogleFonts.spaceGrotesk(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentCyan),
+                        onPressed: () => ref.read(gameProvider.notifier).loadAllData(),
+                        child: Text('Coba Lagi', style: GoogleFonts.spaceGrotesk(color: Colors.black)),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => ref.read(gameProvider.notifier).loadAllData(),
+                  color: AppColors.accentCyan,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // Card Polling Utama dari Database
+                      _buildMainPollCard(games, totalVotes),
+                    ],
+                  ),
+                ),
     );
   }
 
-  Widget _buildPollCard(VotePoll poll) {
-    final bool hasVoted = poll.selectedOptionId != null;
-
+  Widget _buildMainPollCard(List<GameModel> games, int totalVotes) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -149,11 +121,11 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.accentCyan.withOpacity(0.12),
+                  color: AppColors.accentCyan.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  poll.category,
+                  'GAME SELECTION POLL',
                   style: GoogleFonts.spaceMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -163,17 +135,14 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               ),
               Row(
                 children: [
-                  Icon(
-                    poll.isClosed ? LucideIcons.circle_check : LucideIcons.clock,
-                    size: 13,
-                    color: poll.isClosed ? AppColors.textMuted : AppColors.accentGold,
-                  ),
+                  const Icon(LucideIcons.clock, size: 13, color: AppColors.accentGold),
                   const SizedBox(width: 4),
                   Text(
-                    poll.isClosed ? 'CLOSED' : 'Sisa 18 jam lagi',
+                    'LIVE VOTING',
                     style: GoogleFonts.spaceMono(
                       fontSize: 10,
-                      color: poll.isClosed ? AppColors.textMuted : AppColors.accentGold,
+                      color: AppColors.accentGold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -184,7 +153,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
 
           // Title
           Text(
-            poll.title,
+            'Game Apa yang Harus Dimainkan Pas Live Stream Nanti?',
             style: GoogleFonts.spaceGrotesk(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -193,112 +162,182 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Poll Options List
-          ...poll.options.map((option) {
-            final double percentage = poll.totalVotes > 0
-                ? (option.votesCount / poll.totalVotes)
-                : 0.0;
-            final bool isSelected = poll.selectedOptionId == option.id;
-
-            return GestureDetector(
-              onTap: (poll.isClosed)
-                  ? null
-                  : () {
-                      setState(() {
-                        if (poll.selectedOptionId != option.id) {
-                          if (poll.selectedOptionId != null) {
-                            final prev = poll.options.firstWhere((o) => o.id == poll.selectedOptionId);
-                            prev.votesCount--;
-                          }
-                          option.votesCount++;
-                          poll.selectedOptionId = option.id;
-                        }
-                      });
-                    },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.bgInput,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? AppColors.accentCyan : AppColors.borderSubtle,
-                    width: isSelected ? 1.5 : 1.0,
-                  ),
+          // Render Setiap Game sebagai Opsi Polling dari Database
+          if (games.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  'Belum ada kandidat game di database.',
+                  style: GoogleFonts.spaceGrotesk(color: AppColors.textMuted),
                 ),
-                child: Stack(
-                  children: [
-                    // Percentage Bar Background
-                    if (hasVoted || poll.isClosed)
+              ),
+            )
+          else
+            ...games.map((game) {
+              final gameVotes = game.voteCount;
+              final double percentage = totalVotes > 0 ? (gameVotes / totalVotes) : 0.0;
+
+              return GestureDetector(
+                onTap: () async {
+                  final bool? confirmVote = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: AppColors.bgSurface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                      ),
+                      title: Row(
+                        children: [
+                          const Icon(LucideIcons.gamepad_2, color: AppColors.accentCyan, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Konfirmasi Vote Game',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      content: Text(
+                        'Apakah Anda yakin ingin memberikan suara untuk pilihan ini?\n\n"${game.title}"',
+                        style: GoogleFonts.spaceMono(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text(
+                            'Batal',
+                            style: GoogleFonts.spaceMono(color: AppColors.textMuted),
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentCyan,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text(
+                            'Ya, Vote',
+                            style: GoogleFonts.spaceMono(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmVote != true) return;
+
+                  try {
+                    // Panggil fungsi submitVote di provider
+                    await ref
+                        .read(gameProvider.notifier)
+                        .submitVote(game.id, _deviceFingerprint);
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.bgSurface,
+                          content: Text(
+                            'Berhasil memberikan vote untuk ${game.title}!',
+                            style: GoogleFonts.spaceGrotesk(color: AppColors.accentCyan),
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.bgSurface,
+                          content: Text(
+                            'Gagal kirim vote: $e',
+                            style: GoogleFonts.spaceGrotesk(color: AppColors.accentRed),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgInput,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.borderSubtle),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Percentage Bar Background
                       Positioned.fill(
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
                           widthFactor: percentage,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.accentCyan.withOpacity(0.18)
-                                  : AppColors.borderSubtle.withOpacity(0.3),
+                              color: AppColors.accentCyan.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
                       ),
 
-                    // Option Content Text
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Icon(
-                                isSelected
-                                    ? LucideIcons.circle_check
-                                    : LucideIcons.circle,
-                                size: 16,
-                                color: isSelected
-                                    ? AppColors.accentCyan
-                                    : AppColors.textMuted,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  option.text,
-                                  style: GoogleFonts.spaceGrotesk(
-                                    fontSize: 13,
-                                    fontWeight:
-                                        isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: AppColors.textPrimary,
+                      // Option Content Text
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  LucideIcons.gamepad_2,
+                                  size: 16,
+                                  color: AppColors.accentCyan,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    game.title,
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        if (hasVoted || poll.isClosed)
                           Text(
-                            '${(percentage * 100).toStringAsFixed(0)}%',
+                            '${(percentage * 100).toStringAsFixed(0)}% ($gameVotes)',
                             style: GoogleFonts.spaceMono(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? AppColors.accentCyan
-                                  : AppColors.textSecondary,
+                              color: AppColors.accentCyan,
                             ),
                           ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
 
           const SizedBox(height: 6),
           // Total Votes Footer
           Text(
-            '${poll.totalVotes} total suara',
+            '$totalVotes total suara masuk',
             style: GoogleFonts.spaceMono(
               fontSize: 10,
               color: AppColors.textMuted,
