@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/todo_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/todo_provider.dart';
+import '../providers/schedule_provider.dart';
+import '../providers/game_provider.dart';
 import '../widgets/countdown_widget.dart';
 import '../widgets/stat_card.dart';
 import 'schedule_screen.dart';
@@ -38,7 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               radius: 16,
               backgroundColor: AppColors.accentPurple,
               child: Text(
-                user?.name.isNotEmpty == true ? user!.name[0] : 'X',
+                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'X',
                 style: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -50,7 +54,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.name ?? 'Xion Regalia',
+                  user?.name.isNotEmpty == true ? user!.name : 'Creator',
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -70,25 +74,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.bell, color: AppColors.textSecondary, size: 20),
-            onPressed: () {},
+            icon: const Icon(LucideIcons.refresh_cw, color: AppColors.textSecondary, size: 18),
+            onPressed: () {
+              ref.read(todoProvider.notifier).fetchTodos();
+              ref.read(scheduleProvider.notifier).fetchSchedules();
+              ref.read(gameProvider.notifier).loadAllData();
+            },
           ),
           IconButton(
             icon: const Icon(LucideIcons.log_out, color: AppColors.accentRed, size: 20),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppColors.bgSurface,
+                  title: const Text(
+                    'Konfirmasi Logout',
+                    style: TextStyle(color: AppColors.textPrimary),
+                  ),
+                  content: const Text(
+                    'Yakin ingin keluar dari X-VOCA?',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Logout', style: TextStyle(color: AppColors.accentRed)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await ref.read(authProvider.notifier).logout();
+              }
+            },
           ),
         ],
       ),
       body: IndexedStack(
-      index: _currentIndex,
-      children: [
-        _buildDashboardBody(),
-        const ScheduleScreen(),
-        const VotesScreen(),
-        const TodoScreen(),
-        const SettingsScreen(), // <-- Ganti baris ini
-      ],
-    ),
+        index: _currentIndex,
+        children: [
+          _buildDashboardBody(),
+          const ScheduleScreen(),
+          const VotesScreen(),
+          const TodoScreen(),
+          const SettingsScreen(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -110,139 +146,293 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildDashboardBody() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Toggle Broadcasting
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      LucideIcons.radio,
-                      color: _isBroadcasting ? AppColors.accentRed : AppColors.textMuted,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      _isBroadcasting ? 'BROADCASTING LIVE' : 'BROADCAST OFF',
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _isBroadcasting ? AppColors.accentRed : AppColors.textSecondary,
+    // Reading dynamic providers
+    final todoState = ref.watch(todoProvider);
+    final scheduleState = ref.watch(scheduleProvider);
+    final gameState = ref.watch(gameProvider);
+
+    // 1. Next Upcoming Stream for Countdown
+    final upcomingSchedules = scheduleState.schedules
+        .where((s) => s.status.toLowerCase() == 'upcoming')
+        .toList();
+    final now = DateTime.now();
+    final countdownSchedules = upcomingSchedules
+        .where((schedule) {
+          final scheduledAt = schedule.scheduledAt;
+          return schedule.countdownEnabled &&
+              scheduledAt != null &&
+              scheduledAt.isAfter(now);
+        })
+        .toList()
+      ..sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
+    final nextStream =
+        countdownSchedules.isNotEmpty ? countdownSchedules.first : null;
+
+    // 2. Total Votes calculation
+    final totalVotes = gameState.voteStats?.totalVotes ??
+        gameState.games.fold<int>(0, (sum, g) => sum + g.voteCount);
+
+    // 3. Top Voted Game
+    final sortedGames = List.of(gameState.games)
+      ..sort((a, b) => b.voteCount.compareTo(a.voteCount));
+    final topGameTitle = sortedGames.isNotEmpty ? sortedGames.first.title : 'Belum Ada';
+
+    // 4. Pending / Urgent Stats
+    final urgentTasksCount = todoState.todos.where((t) => t.isUrgent && !t.isCompleted).length;
+    final pendingSchedulesCount = upcomingSchedules.length;
+
+    // 5. Active Pending Tasks List (Max 3)
+    final pendingTasksList = todoState.todos.where((t) => !t.isCompleted).take(3).toList();
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await Future.wait([
+          ref.read(todoProvider.notifier).fetchTodos(),
+          ref.read(scheduleProvider.notifier).fetchSchedules(),
+          ref.read(gameProvider.notifier).loadAllData(),
+        ]);
+      },
+      color: AppColors.accentCyan,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Toggle Broadcasting
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        LucideIcons.radio,
+                        color: _isBroadcasting ? AppColors.accentRed : AppColors.textMuted,
+                        size: 20,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Text(
+                        _isBroadcasting ? 'BROADCASTING LIVE' : 'BROADCAST OFF',
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: _isBroadcasting ? AppColors.accentRed : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: _isBroadcasting,
+                    activeThumbColor: AppColors.accentRed,
+                    onChanged: (val) async {
+                      final bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: AppColors.bgSurface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: AppColors.borderSubtle),
+                          ),
+                          title: Row(
+                            children: [
+                              Icon(
+                                LucideIcons.radio,
+                                color: val ? AppColors.accentRed : AppColors.accentCyan,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                val ? 'Mulai Live Broadcast?' : 'Hentikan Broadcast?',
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: Text(
+                            val
+                                ? 'Apakah Anda yakin ingin mengaktifkan status siaran live (Broadcasting Live)?'
+                                : 'Apakah Anda yakin ingin menonaktifkan status siaran live?',
+                            style: GoogleFonts.spaceMono(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text(
+                                'Batal',
+                                style: GoogleFonts.spaceMono(color: AppColors.textMuted),
+                              ),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: val ? AppColors.accentRed : AppColors.accentCyan,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text(
+                                val ? 'Ya, Mulai Live' : 'Ya, Hentikan',
+                                style: GoogleFonts.spaceMono(
+                                  color: val ? Colors.white : Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true && mounted) {
+                        setState(() => _isBroadcasting = val);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Countdown Widget Dinamis
+            CountdownWidget(
+              targetDate: nextStream?.scheduledAt,
+              streamTitle: nextStream?.title,
+              onComplete: () {
+                if (mounted) setState(() {});
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Stat Cards Grid 2x2 Dinamis
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.3,
+              children: [
+                StatCard(
+                  title: 'TOTAL VOTES',
+                  value: totalVotes.toString(),
+                  icon: LucideIcons.vote,
+                  iconColor: AppColors.accentCyan,
+                  badgeText: 'LIVE',
                 ),
-                Switch(
-                  value: _isBroadcasting,
-                  activeColor: AppColors.accentRed,
-                  onChanged: (val) => setState(() => _isBroadcasting = val),
+                StatCard(
+                  title: 'TOP GAME',
+                  value: topGameTitle,
+                  icon: LucideIcons.gamepad_2,
+                  iconColor: AppColors.accentGold,
+                  badgeText: '#1 RANK',
+                ),
+                StatCard(
+                  title: 'SCHEDULES',
+                  value: '$pendingSchedulesCount Upcoming',
+                  icon: LucideIcons.calendar,
+                  iconColor: AppColors.accentPurple,
+                ),
+                StatCard(
+                  title: 'TASKS',
+                  value: '$urgentTasksCount Urgent',
+                  icon: LucideIcons.list_todo,
+                  iconColor: AppColors.accentRed,
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Countdown Widget
-          CountdownWidget(
-            targetDate: DateTime.now().add(const Duration(hours: 4, minutes: 12, seconds: 30)),
-            streamTitle: 'Cyberpunk 2077 Night Stream',
-          ),
-          const SizedBox(height: 16),
-
-          // Stat Cards Grid 2x2
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.3,
-            children: const [
-              StatCard(
-                title: 'TOTAL VOTES',
-                value: '1,420',
-                icon: LucideIcons.vote,
-                iconColor: AppColors.accentCyan,
-                badgeText: '+12%',
+            // Internal Tasks Section (3 To-Do Pending Teratas dari Database)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderSubtle),
               ),
-              StatCard(
-                title: 'TOP GAME',
-                value: 'GTA V',
-                icon: LucideIcons.gamepad_2,
-                iconColor: AppColors.accentGold,
-                badgeText: '#1 RANK',
-              ),
-              StatCard(
-                title: 'REQUESTS',
-                value: '5 Pending',
-                icon: LucideIcons.inbox,
-                iconColor: AppColors.accentPurple,
-              ),
-              StatCard(
-                title: 'TASKS',
-                value: '3 Urgent',
-                icon: LucideIcons.list_todo,
-                iconColor: AppColors.accentRed,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Internal Tasks Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'INTERNAL TASKS',
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'INTERNAL TASKS',
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const Icon(LucideIcons.chevron_right, color: AppColors.textMuted, size: 18),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildTaskTile('Check OBS Audio Filters', 'Virtual DSP gain compensation (-3.2dB)', true),
-                const Divider(color: AppColors.borderSubtle, height: 16),
-                _buildTaskTile('Render YouTube Shorts', 'Clip 1080x1920 60FPS high-moments', false),
-              ],
+                      GestureDetector(
+                        onTap: () => setState(() => _currentIndex = 3),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Lihat Semua',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 11,
+                                color: AppColors.accentCyan,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(LucideIcons.chevron_right, color: AppColors.accentCyan, size: 16),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (todoState.isLoading && pendingTasksList.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.accentCyan)),
+                    )
+                  else if (pendingTasksList.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Text(
+                        'Semua task sudah selesai!',
+                        style: GoogleFonts.spaceGrotesk(color: AppColors.textMuted, fontSize: 13),
+                      ),
+                    )
+                  else
+                    ...pendingTasksList.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final task = entry.value;
+                      return Column(
+                        children: [
+                          _buildTaskTile(task),
+                          if (idx < pendingTasksList.length - 1)
+                            const Divider(color: AppColors.borderSubtle, height: 16),
+                        ],
+                      );
+                    }),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTaskTile(String title, String subtitle, bool isUrgent) {
+  Widget _buildTaskTile(TodoModel task) {
     return Row(
       children: [
         Icon(
-          isUrgent ? LucideIcons.circle_alert : LucideIcons.clock,
-          color: isUrgent ? AppColors.accentRed : AppColors.accentGold,
+          task.isUrgent ? LucideIcons.circle_alert : LucideIcons.clock,
+          color: task.isUrgent ? AppColors.accentRed : AppColors.accentGold,
           size: 18,
         ),
         const SizedBox(width: 12),
@@ -251,7 +441,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                task.title,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -259,7 +449,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               Text(
-                subtitle,
+                task.description?.isNotEmpty == true
+                    ? task.description!
+                    : 'Tidak ada detail keterangan',
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
                   color: AppColors.textSecondary,

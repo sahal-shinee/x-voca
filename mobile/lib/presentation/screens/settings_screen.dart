@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import '../../core/config/env.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -19,8 +20,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Membaca data pengguna aktif dari authProvider secara dinamis
     final authState = ref.watch(authProvider);
     final user = authState.value;
+
+    final userName = user?.name.isNotEmpty == true ? user!.name : 'Creator Admin';
+    final userEmail = user?.email.isNotEmpty == true ? user!.email : 'admin@x-voca.com';
+    final userRole = (user?.role ?? 'creator').toUpperCase();
+    final rigInfo = user?.rigName != null && user!.rigName!.isNotEmpty
+        ? '${user.rigName} ${user.rigVersion != null ? "(${user.rigVersion})" : ""}'
+        : 'Rig-01 Primis (v2.4)';
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -40,7 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // User Profile Card
+          // User Profile Card Dinamis dari UserModel
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -51,12 +60,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 24,
+                  radius: 26,
                   backgroundColor: AppColors.accentPurple,
                   child: Text(
-                    user?.name.isNotEmpty == true ? user!.name[0] : 'X',
+                    userName[0].toUpperCase(),
                     style: GoogleFonts.spaceGrotesk(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -68,30 +77,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user?.name ?? 'Xion Regalia',
+                        userName,
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
                       Text(
-                        user?.rigName ?? 'Rig-01 Primis',
+                        userEmail,
                         style: GoogleFonts.spaceMono(
                           fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        rigInfo,
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 10,
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.accentCyan.withOpacity(0.15),
+                          color: AppColors.accentCyan.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'VTUBER CREATOR ADMIN',
+                          '$userRole ACCESS',
                           style: GoogleFonts.spaceMono(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
@@ -107,7 +123,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Section 1: System Status
+          // Section 1: System & Database Status
           _buildSectionHeader('SYSTEM & DATABASE STATUS'),
           const SizedBox(height: 10),
           Container(
@@ -128,8 +144,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(color: AppColors.borderSubtle, height: 1),
                 _buildStatusTile(
                   icon: LucideIcons.server,
-                  title: 'API Backend Server',
-                  subtitle: 'Railway Live Environment (Node/Express)',
+                  title: 'API Backend Base URL',
+                  subtitle: Env.apiBaseUrl,
                   statusText: 'ONLINE',
                   statusColor: Colors.greenAccent,
                 ),
@@ -138,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Section 2: STREAM & RIG INTEGRATION
+          // Section 2: Stream & Rig Integration
           _buildSectionHeader('STREAM & RIG INTEGRATION'),
           const SizedBox(height: 10),
           Container(
@@ -177,7 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Section 3: Account Actions
+          // Section 3: Account & Session
           _buildSectionHeader('ACCOUNT & SESSION'),
           const SizedBox(height: 10),
           Container(
@@ -203,14 +219,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppColors.textMuted,
                 ),
               ),
-              onTap: () {
-                ref.read(authProvider.notifier).logout();
-              },
+              onTap: () => _confirmLogout(context),
             ),
           ),
           const SizedBox(height: 24),
 
-          // App Version Info
+          // Info Versi Aplikasi
           Center(
             child: Text(
               'X-Voca VTuber Manager v1.0.4 (Build 2026)',
@@ -224,6 +238,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  // Dialog Konfirmasi Logout Sederhana
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text(
+          'Konfirmasi Logout',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari akun ini?',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Logout', style: TextStyle(color: AppColors.accentRed)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await ref.read(authProvider.notifier).logout();
+    }
   }
 
   Widget _buildSectionHeader(String title) {
@@ -261,7 +307,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.12),
+          color: statusColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
@@ -298,7 +344,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         style: GoogleFonts.spaceMono(fontSize: 10, color: AppColors.textSecondary),
       ),
       value: value,
-      activeColor: AppColors.accentCyan,
+      activeThumbColor: AppColors.accentCyan,
       onChanged: onChanged,
     );
   }

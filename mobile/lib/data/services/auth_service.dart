@@ -18,8 +18,10 @@ class AuthService {
       if (response.data['success'] == true) {
         final token = response.data['data']['token'];
         final userData = response.data['data']['user'];
+        final userId = userData['id']?.toString() ?? '1';
         
         await _storage.write(key: 'xvoca_token', value: token);
+        await _storage.write(key: 'xvoca_user_id', value: userId);
         if (keepSession) {
           await _storage.write(key: 'keep_session', value: 'true');
         }
@@ -29,22 +31,27 @@ class AuthService {
         throw Exception(response.data['message'] ?? 'Login gagal');
       }
     } on DioException catch (e) {
-      // Fallback Dummy jika Backend Sahal belum menyala
+      // Fallback Dummy jika Backend belum menyala atau koneksi gagal
       if (e.type == DioExceptionType.connectionError || e.response == null) {
-        if (email == 'xion@xvoca.id' && password == 'password123') {
+        final normEmail = email.toLowerCase().trim();
+        final isKnownUser = normEmail == 'xion@xvoca.id' || normEmail == 'xionregalia@gmail.com';
+        final isCorrectPassword = password == 'password123' || password == 'xvoca2026';
+
+        if (isKnownUser && isCorrectPassword) {
           const dummyToken = 'dummy_jwt_token_xvoca_creator';
           await _storage.write(key: 'xvoca_token', value: dummyToken);
+          await _storage.write(key: 'xvoca_user_id', value: '1');
           return UserModel(
             id: 1,
             name: 'Xion Regalia',
-            email: 'xion@xvoca.id',
-            role: 'creator',
-            rigName: 'Rig-01 Primis',
-            rigVersion: 'v2.4',
+            email: normEmail,
+            role: 'superadmin',
+            rigName: 'Obsidian Rig #03',
+            rigVersion: 'v3.4',
             isBroadcasting: false,
           );
         } else {
-          throw Exception('Email/Password salah! (Dummy: xion@xvoca.id / password123)');
+          throw Exception('Gagal terhubung ke backend server.\n(Demo offline: xionregalia@gmail.com / xvoca2026)');
         }
       }
       final msg = e.response?.data?['message'] ?? 'Gagal terhubung ke server';
@@ -54,28 +61,34 @@ class AuthService {
 
   Future<void> logout() async {
     await _storage.delete(key: 'xvoca_token');
+    await _storage.delete(key: 'xvoca_user_id');
   }
 
   Future<UserModel?> getMe() async {
     final token = await _storage.read(key: 'xvoca_token');
     if (token == null || token.isEmpty) return null;
 
+    // Jika token adalah dummy, kembalikan dummy user tanpa hit API
+    if (token == 'dummy_jwt_token_xvoca_creator') {
+      return UserModel(
+        id: 1,
+        name: 'Xion Regalia',
+        email: 'xionregalia@gmail.com',
+        role: 'superadmin',
+        rigName: 'Obsidian Rig #03',
+        rigVersion: 'v3.4',
+      );
+    }
+
     try {
       final response = await _dio.get('/auth/me');
       if (response.data['success'] == true) {
         return UserModel.fromJson(response.data['data']);
       }
+      return null;
     } catch (_) {
-      // Biarkan terautentikasi dengan dummy jika token ada
-      return UserModel(
-        id: 1,
-        name: 'Xion Regalia',
-        email: 'xion@xvoca.id',
-        role: 'creator',
-        rigName: 'Rig-01 Primis',
-        rigVersion: 'v2.4',
-      );
+      // Token ada tapi tidak bisa hit API (offline) → hapus token, suruh login ulang
+      return null;
     }
-    return null;
   }
 }

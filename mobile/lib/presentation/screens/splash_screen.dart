@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
-import 'dashboard_screen.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -40,22 +38,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   void _checkAuthAndNavigate() {
     if (!mounted) return;
-
-    // Ambil data auth yang sudah selesai di-fetch di background pas video lagi diputar
-    final authState = ref.read(authProvider);
-
-    Widget targetScreen = const LoginScreen();
-
-    authState.whenData((user) {
-      if (user != null) {
-        targetScreen = const DashboardScreen();
-      }
-    });
-
-    // Langsung pindah ke halaman tujuan tanpa lewat AuthWrapper / Loading lagi
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => targetScreen),
-    );
+    // Arahkan ke AuthWrapper — Riverpod yang akan memutuskan Login atau Dashboard
+    Navigator.of(context).pushReplacementNamed('/auth');
   }
 
   @override

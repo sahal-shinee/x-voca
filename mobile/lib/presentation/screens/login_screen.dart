@@ -39,6 +39,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _passwordController.text,
             keepSession: _keepSession,
           );
+      // AuthWrapper Riverpod otomatis bereaksi saat state berubah ke user != null.
+      // Tidak perlu Navigator manual.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

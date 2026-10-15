@@ -32,6 +32,9 @@ class XVocaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const SplashScreen(),
+      routes: {
+        '/auth': (context) => const AuthWrapper(),
+      },
     );
   }
 }
