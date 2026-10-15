@@ -3,17 +3,26 @@ const router = express.Router();
 const todoController = require('../controllers/todo.controller');
 const { authMiddleware } = require('../middleware/auth.middleware');
 
+// Log when todo routes are loaded
+console.log('[Routes] Todo routes loaded');
+
 // All todo routes are protected
 router.use(authMiddleware);
 
 // GET /api/todos - Get all todos for current user
-router.get('/', todoController.getTodos);
+router.get('/', (req, res, next) => {
+  console.log('[Todo Routes] GET /api/todos called');
+  next();
+}, todoController.getTodos);
 
 // GET /api/todos/:id - Get todo by ID
 router.get('/:id', todoController.getTodoById);
 
 // POST /api/todos - Create new todo
-router.post('/', todoController.createTodo);
+router.post('/', (req, res, next) => {
+  console.log('[Todo Routes] POST /api/todos called', req.body);
+  next();
+}, todoController.createTodo);
 
 // PATCH /api/todos/:id - Update todo
 router.patch('/:id', todoController.updateTodo);
