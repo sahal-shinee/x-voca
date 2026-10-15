@@ -20,6 +20,12 @@ let firebaseAdmin = null;
 const getFirebaseAdmin = () => {
   if (firebaseAdmin) return firebaseAdmin;
 
+  // Safety check - pastikan firebase-admin loaded dengan benar
+  if (!admin || !admin.apps) {
+    console.warn('⚠️ Firebase Admin SDK not properly loaded');
+    return null;
+  }
+
   // Jika sudah ada app instance, reuse
   if (admin.apps.length > 0) {
     firebaseAdmin = admin;
