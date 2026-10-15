@@ -25,6 +25,21 @@ class GameService {
     throw Exception(response.data['message'] ?? 'Gagal mengambil statistik vote');
   }
 
+  /// POST /api/games — tambah game kandidat baru (protected/admin)
+  Future<GameModel> createGame({required String title, String? genre}) async {
+    final response = await _dio.post(
+      '/games',
+      data: {
+        'title': title,
+        if (genre != null && genre.isNotEmpty) 'genre': genre,
+      },
+    );
+    if (response.data['success'] == true) {
+      return GameModel.fromJson(response.data['data']);
+    }
+    throw Exception(response.data['message'] ?? 'Gagal menambah game baru');
+  }
+
   /// POST /api/votes/:gameId — submit vote (public, memerlukan fingerprint)
   Future<Map<String, dynamic>> submitVote(int gameId, String fingerprint) async {
     final response = await _dio.post(

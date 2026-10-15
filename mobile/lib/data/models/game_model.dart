@@ -37,6 +37,33 @@ class GameModel {
       periodKey: json['period_key'] ?? '',
     );
   }
+
+  // Method copyWith untuk kemudahan Optimistic Update
+  GameModel copyWith({
+    int? id,
+    String? title,
+    String? genre,
+    String? publisher,
+    String? coverUrl,
+    int? voteCount,
+    String? status,
+    String? addedBy,
+    String? requesterInfo,
+    String? periodKey,
+  }) {
+    return GameModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      genre: genre ?? this.genre,
+      publisher: publisher ?? this.publisher,
+      coverUrl: coverUrl ?? this.coverUrl,
+      voteCount: voteCount ?? this.voteCount,
+      status: status ?? this.status,
+      addedBy: addedBy ?? this.addedBy,
+      requesterInfo: requesterInfo ?? this.requesterInfo,
+      periodKey: periodKey ?? this.periodKey,
+    );
+  }
 }
 
 class VoteStatsModel {
@@ -64,6 +91,24 @@ class VoteStatsModel {
       accepted: json['accepted'] ?? 0,
       playing: json['playing'] ?? 0,
       done: json['done'] ?? 0,
+    );
+  }
+
+  VoteStatsModel copyWith({
+    int? totalGames,
+    int? totalVotes,
+    int? requested,
+    int? accepted,
+    int? playing,
+    int? done,
+  }) {
+    return VoteStatsModel(
+      totalGames: totalGames ?? this.totalGames,
+      totalVotes: totalVotes ?? this.totalVotes,
+      requested: requested ?? this.requested,
+      accepted: accepted ?? this.accepted,
+      playing: playing ?? this.playing,
+      done: done ?? this.done,
     );
   }
 }
