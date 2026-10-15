@@ -3,10 +3,16 @@
  *
  * Helper functions untuk update Firebase Realtime Database
  * Dipanggil oleh controllers setelah setiap write operation
+ *
+ * SUPPORTED ENV VARS:
+ * - FIREBASE_SERVICE_ACCOUNT: JSON string dari service account (Production/Railway)
+ * - FIREBASE_SERVICE_ACCOUNT_PATH: Path ke file service account JSON (Development)
+ * - FIREBASE_DATABASE_URL: Firebase Realtime Database URL
  */
 
 const admin = require('firebase-admin');
 const path = require('path');
+const fs = require('fs');
 
 // Lazy initialization untuk Firebase Admin SDK
 let firebaseAdmin = null;
@@ -14,19 +20,61 @@ let firebaseAdmin = null;
 const getFirebaseAdmin = () => {
   if (firebaseAdmin) return firebaseAdmin;
 
+  // Jika sudah ada app instance, reuse
+  if (admin.apps.length > 0) {
+    firebaseAdmin = admin;
+    return firebaseAdmin;
+  }
+
   try {
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    let serviceAccount = null;
 
-    if (serviceAccountPath) {
-      const serviceAccount = require(path.resolve(serviceAccountPath));
-
-      if (!admin.apps.length) {
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          databaseURL: process.env.FIREBASE_DATABASE_URL
-        });
+    // 1. Opsi Utama (Production/Railway): Membaca teks JSON dari environment variable
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+          : process.env.FIREBASE_SERVICE_ACCOUNT;
+        console.log('📡 Firebase: Loading service account from FIREBASE_SERVICE_ACCOUNT env var');
+      } catch (err) {
+        console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
       }
+    }
+    // 2. Opsi Kedua: Membaca file dari path variabel env (Development)
+    else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      const resolvedPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+      if (fs.existsSync(resolvedPath)) {
+        serviceAccount = require(resolvedPath);
+        console.log(`📡 Firebase: Loading service account from file: ${resolvedPath}`);
+      } else {
+        console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
+      }
+    }
+    // 3. Opsi Ketiga: Fallback file lokal untuk development
+    else {
+      const defaultPath = path.resolve(process.cwd(), 'firebase-service-account.json');
+      if (fs.existsSync(defaultPath)) {
+        serviceAccount = require(defaultPath);
+        console.log(`📡 Firebase: Loading service account from default file: ${defaultPath}`);
+      } else {
+        console.warn('⚠️ Firebase: Tidak ada service account configured');
+      }
+    }
+
+    // Initialize jika service account berhasil dimuat
+    if (serviceAccount) {
+      const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: databaseURL
+      });
+
       firebaseAdmin = admin;
+      console.log('✅ Firebase Admin SDK initialized successfully');
+      console.log(`📍 Database URL: ${databaseURL}`);
+    } else {
+      console.warn('⚠️ Firebase service account not configured. Real-time features will be limited.');
     }
 
     return firebaseAdmin;

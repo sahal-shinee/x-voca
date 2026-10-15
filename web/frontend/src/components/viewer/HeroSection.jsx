@@ -806,9 +806,12 @@ function HeroSection({ onRequestCollab }) {
     const fetchNextSchedule = async () => {
       try {
         setLoading(true);
-        const data = await getNextSchedule();
-        if (data && data.id) {
-          setNextSchedule(data);
+        // getNextSchedule returns: { success, data: scheduleObject || null }
+        const result = await getNextSchedule();
+
+        if (result?.success && result?.data?.id) {
+          // Extract schedule data from response
+          setNextSchedule(result.data);
         } else {
           setNextSchedule(null);
         }

@@ -1,48 +1,50 @@
 import api from './api';
 
+/**
+ * Todo Service - API calls untuk todo CRUD operations
+ *
+ * Backend endpoints:
+ * GET  /api/todos      - Get all todos
+ * POST /api/todos      - Create todo
+ * PATCH /api/todos/:id - Update todo (title, description, priority, deadline, status)
+ * DELETE /api/todos/:id - Delete todo
+ */
+
 export const todoService = {
+  /**
+   * Get all todos for current user
+   * Backend returns: { success, data: { todos: [...], meta: {...} }
+   */
   getAll: async (params = {}) => {
-    try {
-      const response = await api.get('/api/todos', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching todos:', error);
-      throw error;
-    }
+    const response = await api.get('/api/todos', { params });
+    return response.data; // Return full response for stats/meta
   },
 
+  /**
+   * Create new todo
+   * Body: { title, description?, priority?, deadline?, tags? }
+   */
   create: async (data) => {
-    try {
-      const response = await api.post('/api/todos', data);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating todo:', error);
-      throw error;
-    }
+    const response = await api.post('/api/todos', data);
+    return response.data;
   },
 
+  /**
+   * Update todo by ID
+   * Body: { title?, description?, priority?, deadline?, status?, tags? }
+   * Status values: 'pending' | 'in_progress' | 'completed'
+   */
   update: async (id, data) => {
-    try {
-      const response = await api.patch(`/api/todos/${id}`, data);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating todo:', error);
-      throw error;
-    }
+    const response = await api.patch(`/api/todos/${id}`, data);
+    return response.data;
   },
 
+  /**
+   * Delete todo by ID
+   */
   delete: async (id) => {
-    try {
-      const response = await api.delete(`/api/todos/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting todo:', error);
-      throw error;
-    }
-  },
-
-  toggleComplete: async (id, isCompleted) => {
-    return todoService.update(id, { is_completed: isCompleted });
+    const response = await api.delete(`/api/todos/${id}`);
+    return response.data;
   },
 };
 

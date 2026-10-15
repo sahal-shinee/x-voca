@@ -3,6 +3,13 @@ import api from './api';
 /**
  * Schedule Service
  * Fungsi untuk operasi CRUD jadwal dari API
+ *
+ * Backend Response Format:
+ * {
+ *   success: true,
+ *   data: { schedules: [...], pagination: {...} },
+ *   message: "..."
+ * }
  */
 
 // Ambil semua jadwal dengan filter
@@ -16,7 +23,17 @@ export const getSchedules = async (params = {}) => {
     if (page) queryParams.append('page', page);
 
     const response = await api.get(`/api/schedules?${queryParams.toString()}`);
-    return response.data;
+
+    // Backend returns: { success, data: { schedules: [...], pagination: {...} } }
+    // Extract schedules array from nested data
+    const schedules = response.data?.data?.schedules || [];
+
+    return {
+      success: response.data?.success ?? true,
+      data: schedules,
+      pagination: response.data?.data?.pagination,
+      message: response.data?.message
+    };
   } catch (error) {
     console.error('Error fetching schedules:', error);
     throw error;
@@ -26,8 +43,15 @@ export const getSchedules = async (params = {}) => {
 // Ambil jadwal berikutnya (untuk countdown)
 export const getNextSchedule = async () => {
   try {
-    const response = await api.get('/api/schedules/next');
-    return response.data;
+    const response = await api.get(`/api/schedules/next`);
+
+    // Backend returns: { success: true, data: schedule || null, message: "..." }
+    // Return the schedule object directly or null
+    return {
+      success: response.data?.success ?? true,
+      data: response.data?.data || null,
+      message: response.data?.message
+    };
   } catch (error) {
     console.error('Error fetching next schedule:', error);
     throw error;

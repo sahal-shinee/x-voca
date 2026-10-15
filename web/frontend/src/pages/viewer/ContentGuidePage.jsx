@@ -136,16 +136,18 @@ function ContentGuidePage() {
         setError(null);
 
         // Fetch all data in parallel
-        const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.all([
-          getFeatured().catch(() => ({ success: true, data: null })),
-          getContent({ limit: 50 }).catch(() => ({ success: true, data: { contents: [] } })),
-          api.get('/api/content/stats').catch(() => ({ data: { success: true, data: null } })),
-          api.get('/api/content/categories').catch(() => ({ data: { success: true, data: [] } }))
+        // getContent returns: { success, data: [...contents], pagination }
+        // getFeatured returns: { success, data: contentObject || null }
+        const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.allSettled([
+          getFeatured(),
+          getContent({ limit: 50 }),
+          api.get('/api/content/stats'),
+          api.get('/api/content/categories')
         ]);
 
         // Process featured content
-        if (featuredRes?.success && featuredRes.data) {
-          const fc = featuredRes.data;
+        if (featuredRes.status === 'fulfilled' && featuredRes.value?.success && featuredRes.value?.data) {
+          const fc = featuredRes.value.data;
           setFeatured({
             id: fc.id,
             title: fc.title,
@@ -160,14 +162,15 @@ function ContentGuidePage() {
           });
         }
 
-        // Process contents
-        if (contentsRes?.data?.contents) {
-          setContents(contentsRes.data.contents);
+        // Process contents - getContent returns data directly as array now
+        if (contentsRes.status === 'fulfilled' && contentsRes.value?.success) {
+          const contentsData = contentsRes.value.data || [];
+          setContents(Array.isArray(contentsData) ? contentsData : []);
         }
 
         // Process stats
-        if (statsRes?.data?.data) {
-          const s = statsRes.data.data;
+        if (statsRes.status === 'fulfilled' && statsRes.value?.data?.data) {
+          const s = statsRes.value.data.data;
           setStats([
             { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
             { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
@@ -179,8 +182,8 @@ function ContentGuidePage() {
         }
 
         // Process categories with icons
-        if (categoriesRes?.data?.data && Array.isArray(categoriesRes.data.data)) {
-          const catsWithIcons = categoriesRes.data.data.map(cat => ({
+        if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.data?.data && Array.isArray(categoriesRes.value.data.data)) {
+          const catsWithIcons = categoriesRes.value.data.data.map(cat => ({
             ...cat,
             icon: cat.icon === 'ChatIcon' ? <ChatIcon /> :
                   cat.icon === 'EyeIcon' ? <EyeIcon /> :
