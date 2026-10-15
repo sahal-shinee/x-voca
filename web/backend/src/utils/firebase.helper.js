@@ -10,7 +10,8 @@
  * - FIREBASE_DATABASE_URL: Firebase Realtime Database URL
  */
 
-const admin = require('firebase-admin');
+const adminModule = require('firebase-admin');
+const admin = adminModule.default || adminModule; // Handling interop module (CJS / ESM compatibility)
 const path = require('path');
 const fs = require('fs');
 
