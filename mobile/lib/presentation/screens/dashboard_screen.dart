@@ -31,10 +31,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final authState = ref.watch(authProvider);
     final user = authState.value;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     return Scaffold(
-      backgroundColor: AppColors.bgBase,
+      backgroundColor: bgBase,
       appBar: AppBar(
-        backgroundColor: AppColors.bgNav,
+        backgroundColor: bgNav,
         elevation: 0,
         title: Row(
           children: [
@@ -58,14 +67,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: textPrimary,
                   ),
                 ),
                 Text(
                   user?.rigName ?? 'Rig-01 Primis',
                   style: GoogleFonts.spaceMono(
                     fontSize: 10,
-                    color: AppColors.textSecondary,
+                    color: textSecondary,
                   ),
                 ),
               ],
@@ -74,7 +83,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.refresh_cw, color: AppColors.textSecondary, size: 18),
+            icon: Icon(LucideIcons.refresh_cw, color: textSecondary, size: 18),
             onPressed: () {
               ref.read(todoProvider.notifier).fetchTodos();
               ref.read(scheduleProvider.notifier).fetchSchedules();
@@ -87,19 +96,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  backgroundColor: AppColors.bgSurface,
-                  title: const Text(
+                  backgroundColor: bgSurface,
+                  title: Text(
                     'Konfirmasi Logout',
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: textPrimary),
                   ),
-                  content: const Text(
+                  content: Text(
                     'Yakin ingin keluar dari X-VOCA?',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: textSecondary),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+                      child: Text('Batal', style: TextStyle(color: textMuted)),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, true),
@@ -118,7 +127,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          _buildDashboardBody(),
+          _buildDashboardBody(isDark),
           const ScheduleScreen(),
           const VotesScreen(),
           const TodoScreen(),
@@ -129,9 +138,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.bgNav,
-        selectedItemColor: AppColors.accentCyan,
-        unselectedItemColor: AppColors.textMuted,
+        backgroundColor: bgNav,
+        selectedItemColor: isDark ? AppColors.accentCyan : AppColors.accentPurple,
+        unselectedItemColor: textMuted,
         selectedLabelStyle: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.bold),
         unselectedLabelStyle: GoogleFonts.spaceGrotesk(fontSize: 10),
         items: const [
@@ -145,13 +154,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildDashboardBody() {
-    // Reading dynamic providers
+  Widget _buildDashboardBody(bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final todoState = ref.watch(todoProvider);
     final scheduleState = ref.watch(scheduleProvider);
     final gameState = ref.watch(gameProvider);
 
-    // 1. Next Upcoming Stream for Countdown
     final upcomingSchedules = scheduleState.schedules
         .where((s) => s.status.toLowerCase() == 'upcoming')
         .toList();
@@ -168,20 +181,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final nextStream =
         countdownSchedules.isNotEmpty ? countdownSchedules.first : null;
 
-    // 2. Total Votes calculation
     final totalVotes = gameState.voteStats?.totalVotes ??
         gameState.games.fold<int>(0, (sum, g) => sum + g.voteCount);
 
-    // 3. Top Voted Game
     final sortedGames = List.of(gameState.games)
       ..sort((a, b) => b.voteCount.compareTo(a.voteCount));
     final topGameTitle = sortedGames.isNotEmpty ? sortedGames.first.title : 'Belum Ada';
 
-    // 4. Pending / Urgent Stats
     final urgentTasksCount = todoState.todos.where((t) => t.isUrgent && !t.isCompleted).length;
     final pendingSchedulesCount = upcomingSchedules.length;
 
-    // 5. Active Pending Tasks List (Max 3)
     final pendingTasksList = todoState.todos.where((t) => !t.isCompleted).take(3).toList();
 
     return RefreshIndicator(
@@ -203,9 +212,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.bgSurface,
+                color: bgSurface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.borderSubtle),
+                border: Border.all(color: borderSubtle),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -214,7 +223,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Icon(
                         LucideIcons.radio,
-                        color: _isBroadcasting ? AppColors.accentRed : AppColors.textMuted,
+                        color: _isBroadcasting ? AppColors.accentRed : textMuted,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
@@ -223,7 +232,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         style: GoogleFonts.spaceMono(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _isBroadcasting ? AppColors.accentRed : AppColors.textSecondary,
+                          color: _isBroadcasting ? AppColors.accentRed : textSecondary,
                         ),
                       ),
                     ],
@@ -235,10 +244,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       final bool? confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          backgroundColor: AppColors.bgSurface,
+                          backgroundColor: bgSurface,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
-                            side: const BorderSide(color: AppColors.borderSubtle),
+                            side: BorderSide(color: borderSubtle),
                           ),
                           title: Row(
                             children: [
@@ -251,7 +260,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               Text(
                                 val ? 'Mulai Live Broadcast?' : 'Hentikan Broadcast?',
                                 style: GoogleFonts.spaceGrotesk(
-                                  color: AppColors.textPrimary,
+                                  color: textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -263,7 +272,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ? 'Apakah Anda yakin ingin mengaktifkan status siaran live (Broadcasting Live)?'
                                 : 'Apakah Anda yakin ingin menonaktifkan status siaran live?',
                             style: GoogleFonts.spaceMono(
-                              color: AppColors.textSecondary,
+                              color: textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -272,7 +281,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               onPressed: () => Navigator.pop(ctx, false),
                               child: Text(
                                 'Batal',
-                                style: GoogleFonts.spaceMono(color: AppColors.textMuted),
+                                style: GoogleFonts.spaceMono(color: textMuted),
                               ),
                             ),
                             ElevatedButton(
@@ -313,7 +322,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Stat Cards Grid 2x2 Dinamis
+            // Stat Cards Grid
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -352,13 +361,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Internal Tasks Section (3 To-Do Pending Teratas dari Database)
+            // Internal Tasks Section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.bgSurface,
+                color: bgSurface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.borderSubtle),
+                border: Border.all(color: borderSubtle),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +379,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         'INTERNAL TASKS',
                         style: GoogleFonts.spaceMono(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: textSecondary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -382,11 +391,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               'Lihat Semua',
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 11,
-                                color: AppColors.accentCyan,
+                                color: isDark ? AppColors.accentCyan : AppColors.accentPurple,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(LucideIcons.chevron_right, color: AppColors.accentCyan, size: 16),
+                            Icon(
+                              LucideIcons.chevron_right,
+                              color: isDark ? AppColors.accentCyan : AppColors.accentPurple,
+                              size: 16,
+                            ),
                           ],
                         ),
                       ),
@@ -403,7 +416,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Text(
                         'Semua task sudah selesai!',
-                        style: GoogleFonts.spaceGrotesk(color: AppColors.textMuted, fontSize: 13),
+                        style: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
                       ),
                     )
                   else
@@ -412,9 +425,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       final task = entry.value;
                       return Column(
                         children: [
-                          _buildTaskTile(task),
+                          _buildTaskTile(task, isDark),
                           if (idx < pendingTasksList.length - 1)
-                            const Divider(color: AppColors.borderSubtle, height: 16),
+                            Divider(color: borderSubtle, height: 16),
                         ],
                       );
                     }),
@@ -427,7 +440,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildTaskTile(TodoModel task) {
+  Widget _buildTaskTile(TodoModel task, bool isDark) {
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+
     return Row(
       children: [
         Icon(
@@ -445,7 +461,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                 ),
               ),
               Text(
@@ -454,7 +470,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     : 'Tidak ada detail keterangan',
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
-                  color: AppColors.textSecondary,
+                  color: textSecondary,
                 ),
               ),
             ],

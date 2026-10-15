@@ -5,6 +5,7 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../core/config/env.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -20,28 +21,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Membaca data pengguna aktif dari authProvider secara dinamis
     final authState = ref.watch(authProvider);
     final user = authState.value;
 
-    final userName = user?.name.isNotEmpty == true ? user!.name : 'Creator Admin';
-    final userEmail = user?.email.isNotEmpty == true ? user!.email : 'admin@x-voca.com';
+    final themeMode = ref.watch(themeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+
+    final userName =
+        user?.name.isNotEmpty == true ? user!.name : 'Creator Admin';
+    final userEmail =
+        user?.email.isNotEmpty == true ? user!.email : 'admin@x-voca.com';
     final userRole = (user?.role ?? 'creator').toUpperCase();
     final rigInfo = user?.rigName != null && user!.rigName!.isNotEmpty
         ? '${user.rigName} ${user.rigVersion != null ? "(${user.rigVersion})" : ""}'
         : 'Rig-01 Primis (v2.4)';
 
     return Scaffold(
-      backgroundColor: AppColors.bgBase,
+      backgroundColor: isDarkMode ? AppColors.bgBase : AppColors.bgBaseLight,
       appBar: AppBar(
-        backgroundColor: AppColors.bgNav,
+        backgroundColor: isDarkMode ? AppColors.bgNav : AppColors.bgNavLight,
         elevation: 0,
         title: Text(
           'SETTINGS & CONFIG',
           style: GoogleFonts.spaceGrotesk(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
             letterSpacing: 1,
           ),
         ),
@@ -49,13 +54,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // User Profile Card Dinamis dari UserModel
+          // User Profile Card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
+              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(
+                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+              ),
             ),
             child: Row(
               children: [
@@ -81,14 +88,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
                         ),
                       ),
                       Text(
                         userEmail,
                         style: GoogleFonts.spaceMono(
                           fontSize: 11,
-                          color: AppColors.textMuted,
+                          color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -96,7 +103,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         rigInfo,
                         style: GoogleFonts.spaceMono(
                           fontSize: 10,
-                          color: AppColors.textSecondary,
+                          color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -123,14 +130,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Section 1: System & Database Status
-          _buildSectionHeader('SYSTEM & DATABASE STATUS'),
+          // Section: Appearance & Theme
+          _buildSectionHeader('APPEARANCE & THEME', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
+              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(
+                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+              ),
+            ),
+            child: SwitchListTile(
+              secondary: Icon(
+                isDarkMode ? LucideIcons.moon : LucideIcons.sun,
+                color: isDarkMode ? AppColors.accentCyan : AppColors.accentGold,
+                size: 20,
+              ),
+              title: Text(
+                'Dark Mode',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                ),
+              ),
+              subtitle: Text(
+                isDarkMode ? 'Tampilan tema gelap aktif' : 'Tampilan tema terang aktif',
+                style: GoogleFonts.spaceMono(
+                  fontSize: 10,
+                  color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+                ),
+              ),
+              value: isDarkMode,
+              activeThumbColor: AppColors.accentCyan,
+              onChanged: (_) {
+                ref.read(themeProvider.notifier).toggleTheme();
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Section 1: System & Database Status
+          _buildSectionHeader('SYSTEM & DATABASE STATUS', isDarkMode),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+              ),
             ),
             child: Column(
               children: [
@@ -140,14 +190,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: 'tokaido.proxy.rlwy.net:40526',
                   statusText: 'CONNECTED',
                   statusColor: Colors.greenAccent,
+                  isDarkMode: isDarkMode,
                 ),
-                const Divider(color: AppColors.borderSubtle, height: 1),
+                Divider(
+                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+                  height: 1,
+                ),
                 _buildStatusTile(
                   icon: LucideIcons.server,
                   title: 'API Backend Base URL',
                   subtitle: Env.apiBaseUrl,
                   statusText: 'ONLINE',
                   statusColor: Colors.greenAccent,
+                  isDarkMode: isDarkMode,
                 ),
               ],
             ),
@@ -155,13 +210,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 20),
 
           // Section 2: Stream & Rig Integration
-          _buildSectionHeader('STREAM & RIG INTEGRATION'),
+          _buildSectionHeader('STREAM & RIG INTEGRATION', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
+              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(
+                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+              ),
             ),
             child: Column(
               children: [
@@ -171,22 +228,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: 'Auto-sync broadcast state & scene switcher',
                   value: _obsRemoteConnected,
                   onChanged: (val) => setState(() => _obsRemoteConnected = val),
+                  isDarkMode: isDarkMode,
                 ),
-                const Divider(color: AppColors.borderSubtle, height: 1),
+                Divider(
+                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+                  height: 1,
+                ),
                 _buildSwitchTile(
                   icon: LucideIcons.bell,
                   title: 'Push Notifications',
                   subtitle: 'Notifikasi jadwal stream & hasil voting baru',
                   value: _notificationsEnabled,
                   onChanged: (val) => setState(() => _notificationsEnabled = val),
+                  isDarkMode: isDarkMode,
                 ),
-                const Divider(color: AppColors.borderSubtle, height: 1),
+                Divider(
+                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+                  height: 1,
+                ),
                 _buildSwitchTile(
                   icon: LucideIcons.refresh_cw,
                   title: 'Auto-sync Activity Logs',
                   subtitle: 'Kirim riwayat perubahan ke server secara berkala',
                   value: _autoSyncLogs,
                   onChanged: (val) => setState(() => _autoSyncLogs = val),
+                  isDarkMode: isDarkMode,
                 ),
               ],
             ),
@@ -194,13 +260,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 20),
 
           // Section 3: Account & Session
-          _buildSectionHeader('ACCOUNT & SESSION'),
+          _buildSectionHeader('ACCOUNT & SESSION', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
+              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(
+                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
+              ),
             ),
             child: ListTile(
               leading: const Icon(LucideIcons.log_out, color: AppColors.accentRed),
@@ -216,10 +284,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Akhiri sesi aktif pada perangkat ini',
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
-                  color: AppColors.textMuted,
+                  color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
                 ),
               ),
-              onTap: () => _confirmLogout(context),
+              onTap: () => _confirmLogout(context, isDarkMode),
             ),
           ),
           const SizedBox(height: 24),
@@ -230,7 +298,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'X-Voca VTuber Manager v1.0.4 (Build 2026)',
               style: GoogleFonts.spaceMono(
                 fontSize: 10,
-                color: AppColors.textMuted,
+                color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
               ),
             ),
           ),
@@ -240,28 +308,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  // Dialog Konfirmasi Logout Sederhana
-  Future<void> _confirmLogout(BuildContext context) async {
+  // Dialog Konfirmasi Logout
+  Future<void> _confirmLogout(BuildContext context, bool isDarkMode) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgSurface,
-        title: const Text(
+        backgroundColor: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+        title: Text(
           'Konfirmasi Logout',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(
+            color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+          ),
         ),
-        content: const Text(
+        content: Text(
           'Apakah Anda yakin ingin keluar dari akun ini?',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(
+            color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Logout', style: TextStyle(color: AppColors.accentRed)),
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: AppColors.accentRed),
+            ),
           ),
         ],
       ),
@@ -272,13 +352,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isDarkMode) {
     return Text(
       title,
       style: GoogleFonts.spaceMono(
         fontSize: 11,
         fontWeight: FontWeight.bold,
-        color: AppColors.textSecondary,
+        color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
       ),
     );
   }
@@ -289,6 +369,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String subtitle,
     required String statusText,
     required Color statusColor,
+    required bool isDarkMode,
   }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.accentCyan, size: 20),
@@ -297,12 +378,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         style: GoogleFonts.spaceGrotesk(
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: GoogleFonts.spaceMono(fontSize: 10, color: AppColors.textSecondary),
+        style: GoogleFonts.spaceMono(
+          fontSize: 10,
+          color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+        ),
       ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -328,6 +412,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool isDarkMode,
   }) {
     return SwitchListTile(
       secondary: Icon(icon, color: AppColors.accentPurple, size: 20),
@@ -336,12 +421,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         style: GoogleFonts.spaceGrotesk(
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: GoogleFonts.spaceMono(fontSize: 10, color: AppColors.textSecondary),
+        style: GoogleFonts.spaceMono(
+          fontSize: 10,
+          color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+        ),
       ),
       value: value,
       activeThumbColor: AppColors.accentCyan,

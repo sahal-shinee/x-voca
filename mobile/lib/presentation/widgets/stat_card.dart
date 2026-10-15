@@ -20,12 +20,22 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bgSurface,
+        color: bgSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,16 +47,17 @@ class StatCard extends StatelessWidget {
               Icon(icon, color: iconColor, size: 22),
               if (badgeText != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.bgInput,
+                    color: bgInput,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     badgeText!,
                     style: GoogleFonts.spaceMono(
                       fontSize: 9,
-                      color: AppColors.textSecondary,
+                      color: textSecondary,
                     ),
                   ),
                 ),
@@ -61,7 +72,7 @@ class StatCard extends StatelessWidget {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -69,7 +80,7 @@ class StatCard extends StatelessWidget {
                 title,
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
-                  color: AppColors.textSecondary,
+                  color: textSecondary,
                 ),
               ),
             ],

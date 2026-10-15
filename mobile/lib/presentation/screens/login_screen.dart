@@ -39,8 +39,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _passwordController.text,
             keepSession: _keepSession,
           );
-      // AuthWrapper Riverpod otomatis bereaksi saat state berubah ke user != null.
-      // Tidak perlu Navigator manual.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -65,8 +63,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     return Scaffold(
-      backgroundColor: AppColors.bgBase,
+      backgroundColor: bgBase,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -79,9 +86,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.bgSurface,
+                    color: bgSurface,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.borderSubtle),
+                    border: Border.all(color: borderSubtle),
                   ),
                   child: const Icon(
                     LucideIcons.shield_alert,
@@ -97,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: textPrimary,
                     letterSpacing: 2,
                   ),
                 ),
@@ -118,9 +125,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.bgSurface,
+                    color: bgSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.borderSubtle),
+                    border: Border.all(color: borderSubtle),
                   ),
                   child: Form(
                     key: _formKey,
@@ -132,26 +139,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           'EMAIL ADDRESS',
                           style: GoogleFonts.spaceMono(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
-                          style: const TextStyle(color: AppColors.textPrimary),
+                          style: TextStyle(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: 'creator@xvoca.id',
-                            hintStyle: const TextStyle(color: AppColors.textMuted),
-                            prefixIcon: const Icon(LucideIcons.mail, color: AppColors.textSecondary, size: 20),
+                            hintStyle: TextStyle(color: textMuted),
+                            prefixIcon: Icon(LucideIcons.mail, color: textSecondary, size: 20),
                             filled: true,
-                            fillColor: AppColors.bgInput,
+                            fillColor: bgInput,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              borderSide: BorderSide(color: borderSubtle),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              borderSide: BorderSide(color: borderSubtle),
                             ),
                           ),
                           validator: (val) => val == null || val.isEmpty ? 'Email wajib diisi' : null,
@@ -163,35 +170,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           'SECURITY PASSWORD',
                           style: GoogleFonts.spaceMono(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(color: AppColors.textPrimary),
+                          style: TextStyle(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: '••••••••',
-                            hintStyle: const TextStyle(color: AppColors.textMuted),
-                            prefixIcon: const Icon(LucideIcons.lock, color: AppColors.textSecondary, size: 20),
+                            hintStyle: TextStyle(color: textMuted),
+                            prefixIcon: Icon(LucideIcons.lock, color: textSecondary, size: 20),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? LucideIcons.eye_off : LucideIcons.eye,
-                                color: AppColors.textSecondary,
+                                color: textSecondary,
                                 size: 20,
                               ),
                               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                             filled: true,
-                            fillColor: AppColors.bgInput,
+                            fillColor: bgInput,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              borderSide: BorderSide(color: borderSubtle),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              borderSide: BorderSide(color: borderSubtle),
                             ),
                           ),
                           validator: (val) => val == null || val.isEmpty ? 'Password wajib diisi' : null,
@@ -212,10 +219,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
+                            Text(
                               'Keep session active',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: textSecondary,
                                 fontSize: 13,
                               ),
                             ),

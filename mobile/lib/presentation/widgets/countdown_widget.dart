@@ -32,20 +32,20 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     if (widget.schedules == null || widget.schedules!.isEmpty) return null;
 
     final upcoming = widget.schedules!
-        .where((s) => s.status.toLowerCase() == 'upcoming' && s.scheduledAt != null)
+        .where((s) =>
+            s.status.toLowerCase() == 'upcoming' && s.scheduledAt != null)
         .toList();
 
     if (upcoming.isEmpty) return null;
 
     final now = DateTime.now();
-    // Prioritaskan jadwal di masa depan yang paling dekat
-    final futureUpcoming = upcoming.where((s) => s.scheduledAt!.isAfter(now)).toList();
+    final futureUpcoming =
+        upcoming.where((s) => s.scheduledAt!.isAfter(now)).toList();
     if (futureUpcoming.isNotEmpty) {
       futureUpcoming.sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
       return futureUpcoming.first;
     }
 
-    // Jika waktu terlewat tapi masih berstatus upcoming, ambil yang paling mendekati sekarang
     upcoming.sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
     return upcoming.last;
   }
@@ -119,6 +119,17 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final targetDate = _effectiveTargetDate;
     final streamTitle = _effectiveStreamTitle;
 
@@ -128,9 +139,9 @@ class _CountdownWidgetState extends State<CountdownWidget> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         decoration: BoxDecoration(
-          color: AppColors.bgSurface,
+          color: bgSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: borderSubtle),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -139,13 +150,13 @@ class _CountdownWidgetState extends State<CountdownWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.bgInput,
+                color: bgInput,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.borderSubtle),
+                border: Border.all(color: borderSubtle),
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.calendar_x,
-                color: AppColors.textMuted,
+                color: textMuted,
                 size: 32,
               ),
             ),
@@ -155,7 +166,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: textPrimary,
               ),
             ),
             const SizedBox(height: 4),
@@ -163,7 +174,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
               'Tambahkan jadwal siaran baru pada tab Schedule',
               style: GoogleFonts.spaceMono(
                 fontSize: 10,
-                color: AppColors.textSecondary,
+                color: textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -181,9 +192,9 @@ class _CountdownWidgetState extends State<CountdownWidget> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.bgSurface,
+        color: bgSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,17 +204,18 @@ class _CountdownWidgetState extends State<CountdownWidget> {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     LucideIcons.timer,
                     size: 14,
-                    color: AppColors.accentCyan,
+                    color:
+                        isDark ? AppColors.accentCyan : AppColors.accentPurple,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'NEXT STREAM COUNTDOWN',
                     style: GoogleFonts.spaceMono(
                       fontSize: 11,
-                      color: AppColors.textSecondary,
+                      color: textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -235,7 +247,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
             style: GoogleFonts.spaceGrotesk(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: textPrimary,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -243,11 +255,14 @@ class _CountdownWidgetState extends State<CountdownWidget> {
           const SizedBox(height: 14),
           Row(
             children: [
-              _buildTimeBox(hours, 'JAM'),
-              _buildColonSeparator(),
-              _buildTimeBox(minutes, 'MENIT'),
-              _buildColonSeparator(),
-              _buildTimeBox(seconds, 'DETIK'),
+              _buildTimeBox(hours, 'JAM', bgInput, borderSubtle,
+                  isDark ? AppColors.accentCyan : AppColors.accentPurple, textMuted),
+              _buildColonSeparator(textMuted),
+              _buildTimeBox(minutes, 'MENIT', bgInput, borderSubtle,
+                  isDark ? AppColors.accentCyan : AppColors.accentPurple, textMuted),
+              _buildColonSeparator(textMuted),
+              _buildTimeBox(seconds, 'DETIK', bgInput, borderSubtle,
+                  isDark ? AppColors.accentCyan : AppColors.accentPurple, textMuted),
             ],
           ),
         ],
@@ -255,14 +270,21 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     );
   }
 
-  Widget _buildTimeBox(String value, String label) {
+  Widget _buildTimeBox(
+    String value,
+    String label,
+    Color bgInput,
+    Color borderSubtle,
+    Color accentColor,
+    Color textMuted,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.bgInput,
+          color: bgInput,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: borderSubtle),
         ),
         child: Column(
           children: [
@@ -271,7 +293,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
               style: GoogleFonts.spaceMono(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppColors.accentCyan,
+                color: accentColor,
               ),
             ),
             const SizedBox(height: 2),
@@ -279,7 +301,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
               label,
               style: GoogleFonts.spaceMono(
                 fontSize: 9,
-                color: AppColors.textMuted,
+                color: textMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -289,7 +311,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     );
   }
 
-  Widget _buildColonSeparator() {
+  Widget _buildColonSeparator(Color textMuted) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Text(
@@ -297,7 +319,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
         style: GoogleFonts.spaceMono(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.textMuted,
+          color: textMuted,
         ),
       ),
     );

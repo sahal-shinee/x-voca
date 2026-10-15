@@ -30,18 +30,25 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     required String confirmText,
     Color confirmColor = AppColors.accentCyan,
   }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgSurface,
+        backgroundColor: bgSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.borderSubtle),
+          side: BorderSide(color: borderSubtle),
         ),
         title: Text(
           title,
           style: GoogleFonts.spaceGrotesk(
-            color: AppColors.textPrimary,
+            color: textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -49,7 +56,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         content: Text(
           content,
           style: GoogleFonts.spaceMono(
-            color: AppColors.textSecondary,
+            color: textSecondary,
             fontSize: 12,
           ),
         ),
@@ -58,7 +65,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Batal',
-              style: GoogleFonts.spaceMono(color: AppColors.textMuted),
+              style: GoogleFonts.spaceMono(color: textMuted),
             ),
           ),
           ElevatedButton(
@@ -94,14 +101,19 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bgSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+        final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+        final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+        final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+        final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+        final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
         return StatefulBuilder(
           builder: (modalContext, setModalState) {
-            return Padding(
+            return Container(
+              color: bgSurface,
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
@@ -127,14 +139,13 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: textPrimary,
                               ),
                             ),
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(LucideIcons.x,
-                              color: AppColors.textMuted, size: 20),
+                          icon: Icon(LucideIcons.x, color: textMuted, size: 20),
                           onPressed: () => Navigator.pop(modalContext),
                         ),
                       ],
@@ -143,23 +154,21 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                     Text(
                       'Nama / Judul Game',
                       style: GoogleFonts.spaceMono(
-                          fontSize: 12, color: AppColors.textSecondary),
+                          fontSize: 12, color: textSecondary),
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: titleController,
-                      style: GoogleFonts.spaceGrotesk(
-                          color: AppColors.textPrimary),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Contoh: Resident Evil 4 Remake',
                         hintStyle: GoogleFonts.spaceGrotesk(
-                            color: AppColors.textMuted, fontSize: 13),
+                            color: textMuted, fontSize: 13),
                         filled: true,
-                        fillColor: AppColors.bgInput,
+                        fillColor: bgInput,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderSubtle),
+                          borderSide: BorderSide(color: borderSubtle),
                         ),
                       ),
                       validator: (val) {
@@ -173,23 +182,21 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                     Text(
                       'Genre / Kategori (Opsional)',
                       style: GoogleFonts.spaceMono(
-                          fontSize: 12, color: AppColors.textSecondary),
+                          fontSize: 12, color: textSecondary),
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: genreController,
-                      style: GoogleFonts.spaceGrotesk(
-                          color: AppColors.textPrimary),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Contoh: Horror / Action / Survival',
                         hintStyle: GoogleFonts.spaceGrotesk(
-                            color: AppColors.textMuted, fontSize: 13),
+                            color: textMuted, fontSize: 13),
                         filled: true,
-                        fillColor: AppColors.bgInput,
+                        fillColor: bgInput,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderSubtle),
+                          borderSide: BorderSide(color: borderSubtle),
                         ),
                       ),
                     ),
@@ -219,7 +226,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                     Navigator.pop(modalContext);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        backgroundColor: AppColors.bgSurface,
+                                        backgroundColor: bgSurface,
                                         content: Text(
                                           'Game kandidat berhasil ditambahkan!',
                                           style: GoogleFonts.spaceGrotesk(
@@ -233,7 +240,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        backgroundColor: AppColors.bgSurface,
+                                        backgroundColor: bgSurface,
                                         content: Text(
                                           'Gagal menambah game: $e',
                                           style: GoogleFonts.spaceGrotesk(
@@ -273,26 +280,32 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
+    final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.bgBase,
+        backgroundColor: bgBase,
         appBar: AppBar(
-          backgroundColor: AppColors.bgNav,
+          backgroundColor: bgNav,
           elevation: 0,
           title: Text(
             'COMMUNITY HUB',
             style: GoogleFonts.spaceGrotesk(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: textPrimary,
               letterSpacing: 1,
             ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(LucideIcons.refresh_cw,
-                  size: 18, color: AppColors.textSecondary),
+              icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
               onPressed: () {
                 ref.read(gameProvider.notifier).loadAllData();
                 ref.read(collabProvider.notifier).fetchCollabRequests();
@@ -306,7 +319,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           bottom: TabBar(
             indicatorColor: AppColors.accentCyan,
             labelColor: AppColors.accentCyan,
-            unselectedLabelColor: AppColors.textMuted,
+            unselectedLabelColor: textMuted,
             labelStyle: GoogleFonts.spaceGrotesk(
                 fontWeight: FontWeight.bold, fontSize: 13),
             tabs: const [
@@ -317,16 +330,17 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         ),
         body: TabBarView(
           children: [
-            _buildGameVotesTab(),
-            _buildCollabRequestsTab(),
+            _buildGameVotesTab(isDark),
+            _buildCollabRequestsTab(isDark),
           ],
         ),
       ),
     );
   }
 
-  // ==================== TAB 1: GAME VOTES ====================
-  Widget _buildGameVotesTab() {
+  // TAB 1: GAME VOTES
+  Widget _buildGameVotesTab(bool isDark) {
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
     final gameState = ref.watch(gameProvider);
     final games = gameState.games;
     final voteStats = gameState.voteStats;
@@ -348,7 +362,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 color: AppColors.accentRed, size: 40),
             const SizedBox(height: 8),
             Text('Gagal mengambil data polling',
-                style: GoogleFonts.spaceGrotesk(color: AppColors.textPrimary)),
+                style: GoogleFonts.spaceGrotesk(color: textPrimary)),
             const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -368,15 +382,19 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildFilterChips(games),
+          _buildFilterChips(games, isDark),
           const SizedBox(height: 16),
-          _buildMainPollCard(games, totalVotes),
+          _buildMainPollCard(games, totalVotes, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChips(List<GameModel> games) {
+  Widget _buildFilterChips(List<GameModel> games, bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final filters = [
       {'key': 'all', 'label': 'Semua', 'count': games.length},
       {
@@ -416,17 +434,17 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.black : AppColors.textSecondary,
+                  color: isSelected ? Colors.black : textSecondary,
                 ),
               ),
-              backgroundColor: AppColors.bgSurface,
+              backgroundColor: bgSurface,
               selectedColor: AppColors.accentCyan,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
                   color: isSelected
                       ? AppColors.accentCyan
-                      : AppColors.borderSubtle,
+                      : borderSubtle,
                 ),
               ),
               onSelected: (_) {
@@ -441,7 +459,14 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
-  Widget _buildMainPollCard(List<GameModel> games, int totalVotes) {
+  Widget _buildMainPollCard(List<GameModel> games, int totalVotes, bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final filteredGames = games.where((g) {
       if (_selectedFilter == 'all') return true;
       return g.status == _selectedFilter;
@@ -453,9 +478,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.bgSurface,
+        color: bgSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,7 +524,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           Text(
             'Pilih game yang ingin kamu tonton. Suara kamu menentukan live dan playthrough berikutnya.',
             style: GoogleFonts.spaceGrotesk(
-                fontSize: 13, color: AppColors.textSecondary),
+                fontSize: 13, color: textSecondary),
           ),
           const SizedBox(height: 16),
           if (filteredGames.isEmpty)
@@ -508,7 +533,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               child: Center(
                 child: Text(
                   'Tidak ada game dalam kategori ini.',
-                  style: GoogleFonts.spaceGrotesk(color: AppColors.textMuted),
+                  style: GoogleFonts.spaceGrotesk(color: textMuted),
                 ),
               ),
             )
@@ -523,13 +548,12 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.bgInput,
+                  color: bgInput,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.borderSubtle),
+                  border: Border.all(color: borderSubtle),
                 ),
                 child: Column(
                   children: [
-                    // Area Vote
                     GestureDetector(
                       onTap: () async {
                         final confirmVote = await _showConfirmDialog(
@@ -551,7 +575,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                backgroundColor: AppColors.bgSurface,
+                                backgroundColor: bgSurface,
                                 content: Text(
                                   'Berhasil memberikan vote untuk ${game.title}!',
                                   style: GoogleFonts.spaceGrotesk(
@@ -564,7 +588,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                backgroundColor: AppColors.bgSurface,
+                                backgroundColor: bgSurface,
                                 content: Text(
                                   'Gagal kirim vote: $e',
                                   style: GoogleFonts.spaceGrotesk(
@@ -612,7 +636,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                             style: GoogleFonts.spaceGrotesk(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: AppColors.textPrimary,
+                                              color: textPrimary,
                                             ),
                                           ),
                                           Text(
@@ -642,15 +666,13 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                       ),
                     ),
 
-                    // Tombol Aksi Moderasi Kreator (Dengan Dialog Konfirmasi)
                     if (game.status != 'done') ...[
                       const SizedBox(height: 8),
-                      const Divider(color: AppColors.borderSubtle, height: 1),
+                      Divider(color: borderSubtle, height: 1),
                       const SizedBox(height: 6),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          // Tolak (Hapus)
                           if (game.status == 'requested')
                             InkWell(
                               onTap: () async {
@@ -688,7 +710,6 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
 
                           const SizedBox(width: 12),
 
-                          // Terima (Requested -> Accepted)
                           if (game.status == 'requested')
                             InkWell(
                               onTap: () async {
@@ -725,7 +746,6 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                               ),
                             ),
 
-                          // Mulai Mainkan (Accepted -> Playing)
                           if (game.status == 'accepted')
                             InkWell(
                               onTap: () async {
@@ -762,7 +782,6 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                               ),
                             ),
 
-                          // Tandai Selesai (Playing -> Done)
                           if (game.status == 'playing')
                             InkWell(
                               onTap: () async {
@@ -772,7 +791,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                   content:
                                       'Game "${game.title}" akan ditandai Selesai/Tamat (Done).',
                                   confirmText: 'Ya, Selesai',
-                                  confirmColor: AppColors.textMuted,
+                                  confirmColor: textMuted,
                                 );
 
                                 if (confirm) {
@@ -786,13 +805,13 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                     horizontal: 8, vertical: 4),
                                 child: Row(
                                   children: [
-                                    const Icon(LucideIcons.check_check,
-                                        size: 13, color: AppColors.textMuted),
+                                    Icon(LucideIcons.check_check,
+                                        size: 13, color: textMuted),
                                     const SizedBox(width: 4),
                                     Text('Tandai Selesai',
                                         style: GoogleFonts.spaceMono(
                                             fontSize: 11,
-                                            color: AppColors.textMuted)),
+                                            color: textMuted)),
                                   ],
                                 ),
                               ),
@@ -807,16 +826,18 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           const SizedBox(height: 6),
           Text(
             '$filteredTotalVotes suara pada kategori ini',
-            style:
-                GoogleFonts.spaceMono(fontSize: 10, color: AppColors.textMuted),
+            style: GoogleFonts.spaceMono(fontSize: 10, color: textMuted),
           ),
         ],
       ),
     );
   }
 
-  // ==================== TAB 2: COLLAB REQUESTS ====================
-  Widget _buildCollabRequestsTab() {
+  // TAB 2: COLLAB REQUESTS
+  Widget _buildCollabRequestsTab(bool isDark) {
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+
     final collabState = ref.watch(collabProvider);
     final requests = collabState.requests;
 
@@ -834,7 +855,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 color: AppColors.accentRed, size: 40),
             const SizedBox(height: 8),
             Text('Gagal mengambil data collab requests',
-                style: GoogleFonts.spaceGrotesk(color: AppColors.textPrimary)),
+                style: GoogleFonts.spaceGrotesk(color: textPrimary)),
             const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -858,7 +879,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           padding: const EdgeInsets.all(32),
           children: [
             const SizedBox(height: 60),
-            const Icon(LucideIcons.users, size: 48, color: AppColors.textMuted),
+            Icon(LucideIcons.users, size: 48, color: textMuted),
             const SizedBox(height: 12),
             Center(
               child: Text(
@@ -866,7 +887,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                 ),
               ),
             ),
@@ -876,7 +897,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 'Ajakan mabar atau collab dari streamer lain bakal muncul di sini.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.spaceMono(
-                    fontSize: 12, color: AppColors.textMuted),
+                    fontSize: 12, color: textMuted),
               ),
             ),
           ],
@@ -892,13 +913,18 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         itemCount: requests.length,
         itemBuilder: (context, index) {
           final collab = requests[index];
-          return _buildCollabCard(collab);
+          return _buildCollabCard(collab, isDark);
         },
       ),
     );
   }
 
-  Widget _buildCollabCard(CollabModel collab) {
+  Widget _buildCollabCard(CollabModel collab, bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     Color statusColor;
     switch (collab.status.toLowerCase()) {
       case 'accepted':
@@ -915,9 +941,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bgSurface,
+        color: bgSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -937,7 +963,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: textPrimary,
                         ),
                       ),
                     ),
@@ -968,7 +994,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               collab.message!,
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -978,7 +1004,11 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               collab.requestedStreamerSocial!.isNotEmpty) ...[
             GestureDetector(
               onTap: () async {
-                final url = Uri.parse(collab.requestedStreamerSocial!);
+                String rawUrl = collab.requestedStreamerSocial!.trim();
+                if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                  rawUrl = 'https://$rawUrl';
+                }
+                final url = Uri.parse(rawUrl);
                 if (await canLaunchUrl(url)) {
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 }
@@ -1006,9 +1036,8 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             const SizedBox(height: 12),
           ],
 
-          // Tombol Aksi Collab Requests (Dengan Dialog Konfirmasi)
           if (collab.status.toLowerCase() == 'pending') ...[
-            const Divider(color: AppColors.borderSubtle),
+            Divider(color: borderSubtle),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -1043,10 +1072,10 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.bgSurface,
+                              backgroundColor: bgSurface,
                               content: Text('Request collab ditolak',
                                   style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.textPrimary)),
+                                      color: textPrimary)),
                             ),
                           );
                         }
@@ -1054,7 +1083,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.bgSurface,
+                              backgroundColor: bgSurface,
                               content: Text('Gagal update: $e',
                                   style: GoogleFonts.spaceGrotesk(
                                       color: AppColors.accentRed)),
@@ -1098,7 +1127,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.bgSurface,
+                              backgroundColor: bgSurface,
                               content: Text('Request collab diterima!',
                                   style: GoogleFonts.spaceGrotesk(
                                       color: AppColors.accentCyan)),
@@ -1109,7 +1138,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.bgSurface,
+                              backgroundColor: bgSurface,
                               content: Text('Gagal update: $e',
                                   style: GoogleFonts.spaceGrotesk(
                                       color: AppColors.accentRed)),

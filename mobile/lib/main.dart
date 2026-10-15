@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
+import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/screens/splash_screen.dart';
@@ -22,15 +23,19 @@ void main() async {
   );
 }
 
-class XVocaApp extends StatelessWidget {
+class XVocaApp extends ConsumerWidget {
   const XVocaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'X-VOCA Mobile',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       home: const SplashScreen(),
       routes: {
         '/auth': (context) => const AuthWrapper(),
@@ -47,7 +52,8 @@ class AuthWrapper extends ConsumerWidget {
     final authState = ref.watch(authProvider);
 
     return authState.when(
-      data: (user) => user != null ? const DashboardScreen() : const LoginScreen(),
+      data: (user) =>
+          user != null ? const DashboardScreen() : const LoginScreen(),
       loading: () => const Scaffold(
         backgroundColor: AppColors.bgBase,
         body: Center(
