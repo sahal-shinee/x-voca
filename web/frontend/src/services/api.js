@@ -148,7 +148,7 @@ export const authAPI = {
   getMe: () =>
     api.get('/api/auth/me'),
   toggleBroadcasting: (isReady) =>
-    api.patch('/api/auth/broadcasting', { isReady }),
+    api.patch('/api/auth/broadcasting', { is_broadcasting: isReady }),
   updateProfile: (data) =>
     api.patch('/api/auth/profile', data),
   changePassword: (current_password, new_password) =>

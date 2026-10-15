@@ -55,7 +55,8 @@ export function GameCard({
   onDelete,
 }) {
   const cfg = STATUS_CONFIG[game.status] || STATUS_CONFIG.requested;
-  const voteCount = game.voteCount || 0;
+  // Support both snake_case (backend) and camelCase (frontend) field names
+  const voteCount = game.vote_count || game.voteCount || 0;
   const percentage = maxVotes > 0 ? Math.round((voteCount / maxVotes) * 100) : 0;
   const isPlaying = game.status === 'playing';
   const isDone = game.status === 'done';

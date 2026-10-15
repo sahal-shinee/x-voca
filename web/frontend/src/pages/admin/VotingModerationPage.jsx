@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStats } from '../../services/dashboardService';
 import { getGames, createGame, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
+import { downloadVotingPDF } from '../../utils/pdfExport';
 import Modal from '../../components/common/Modal';
 import GameCard from '../../components/common/GameCard';
 import GameFormPanel from '../../components/admin/GameFormPanel';
@@ -19,6 +20,7 @@ import {
   Loader2,
   X,
   ChevronDown,
+  FileText,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -145,40 +147,84 @@ function VotingModerationPage() {
   }, []);
 
   // ── Fetch games ────────────────────────────────────────────────────────────
+  // Normalize backend data to frontend expected format
+  const normalizeGames = (games) => {
+    return games.map(game => ({
+      id: game.id,
+      title: game.title,
+      genre: game.genre || game.category || '',
+      publisher: game.publisher || '',
+      cover_url: game.cover_url || game.coverUrl || '',
+      vote_count: game.vote_count || game.voteCount || 0,
+      vote_percentage: game.vote_percentage || game.votePercentage || 0,
+      status: game.status,
+      added_by: game.added_by || game.addedBy || 'creator',
+      requester_info: game.requester_info || game.requesterInfo || '',
+      period_key: game.period_key || game.periodKey || '',
+      isOfficial: game.added_by === 'creator' || game.addedBy === 'creator',
+      addedBy: game.added_by === 'creator' ? 'Creator' : (game.requester_info || game.requesterInfo || 'Viewer'),
+      category: game.genre || game.category || '',
+    }));
+  };
+
   const fetchGames = useCallback(async (status = 'all') => {
     setGamesLoading(true);
     setSelectedIds(new Set()); // clear selection on refetch
     try {
       const response = await getGames({ status });
       if (response?.data) {
-        const raw = Array.isArray(response.data) ? response.data : (response.data.games || []);
-        setGames([...raw].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0)));
+        // Handle both formats: direct array or wrapped in object
+        let rawGames = [];
+        if (Array.isArray(response.data)) {
+          rawGames = response.data;
+        } else if (response.data.games && Array.isArray(response.data.games)) {
+          rawGames = response.data.games;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          rawGames = response.data.data;
+        }
+
+        // Normalize field names and sort by votes
+        const normalizedGames = normalizeGames(rawGames);
+        setGames(normalizedGames.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0)));
       } else {
         setGames([]);
       }
     } catch (error) {
       console.error('Error fetching games:', error);
-      setGames([
-        { id: 1, title: 'Elden Ring: Shadow of the Erdtree', category: 'ACTION RPG', genre: 'Souls-like', publisher: 'FromSoftware', voteCount: 247, status: 'playing',   addedBy: 'Creator',      isOfficial: true },
-        { id: 2, title: 'Signalis',                          category: 'SURVIVAL HORROR', genre: 'Retro Sci-Fi', publisher: 'Rose-Engine', voteCount: 186, status: 'playing',   addedBy: 'Viewer #4021', isOfficial: false },
-        { id: 3, title: 'Outer Wilds',                       category: 'ADVENTURE',    genre: 'Exploration', publisher: 'Mobius Digital', voteCount: 142, status: 'accepted',  addedBy: 'Viewer #3891', isOfficial: false },
-        { id: 4, title: 'Hollow Knight: Silksong',           category: 'METROIDVANIA', genre: 'Action',      publisher: 'Team Cherry',    voteCount: 98,  status: 'accepted',  addedBy: 'Regalia Crew', isOfficial: false },
-        { id: 5, title: 'Stardew Valley',                    category: 'SIMULATION',   genre: 'Relaxing',    publisher: 'ConcernedApe',   voteCount: 76,  status: 'requested', addedBy: 'Viewer #2341', isOfficial: false },
-        { id: 6, title: 'Death Stranding',                   category: 'ACTION',       genre: 'Walking Sim', publisher: 'Kojima Productions', voteCount: 65, status: 'requested', addedBy: 'Viewer #1234', isOfficial: false },
-        { id: 7, title: 'Disco Elysium',                     category: 'RPG',          genre: 'Narrative',   publisher: 'ZA/UM',          voteCount: 54,  status: 'done',      addedBy: 'Creator',      isOfficial: true },
-      ]);
+      // Remove fallback dummy data - show empty state instead
+      setGames([]);
     } finally {
       setGamesLoading(false);
     }
   }, []);
 
-  // ── Initialize ─────────────────────────────────────────────────────────────
+  // ── Initialize & Auto-refresh ───────────────────────────────────────────────
   useEffect(() => {
     const id = setTimeout(() => {
       fetchSummaryStats();
       fetchGames(activeFilter);
     }, 0);
-    return () => clearTimeout(id);
+
+    // Auto-refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      fetchSummaryStats();
+      fetchGames(activeFilter);
+    }, 30000);
+
+    // Refresh when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSummaryStats();
+        fetchGames(activeFilter);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearTimeout(id);
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchSummaryStats, fetchGames, activeFilter]);
 
   // Close period dropdown on outside click
@@ -196,7 +242,7 @@ function VotingModerationPage() {
     g.genre?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const maxVotes = Math.max(...games.map((g) => g.voteCount || 0), 1);
+  const maxVotes = Math.max(...games.map((g) => g.vote_count || 0), 1);
 
   // Count per status for summary cards
   const countByStatus = games.reduce((acc, g) => {
@@ -333,9 +379,9 @@ function VotingModerationPage() {
     const rows = games.map((game, index) => [
       index + 1,
       game.title,
-      game.category || game.genre,
-      game.voteCount || 0,
-      maxVotes > 0 ? Math.round(((game.voteCount || 0) / maxVotes) * 100) : 0,
+      game.genre || game.category || '',
+      game.vote_count || 0,
+      maxVotes > 0 ? Math.round(((game.vote_count || 0) / maxVotes) * 100) : 0,
       game.status,
       game.addedBy || 'Unknown',
     ]);
@@ -350,6 +396,34 @@ function VotingModerationPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // ── Export PDF ───────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (games.length === 0) {
+      alert('Tidak ada data untuk di-export');
+      return;
+    }
+
+    setPdfExporting(true);
+    try {
+      await downloadVotingPDF({
+        games: games,
+        periodKey: summaryStats.periodKey,
+        stats: {
+          totalVotes: summaryStats.totalVotes || 0,
+          maxVotes: maxVotes,
+          totalGames: games.length,
+        },
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Gagal export PDF. Silakan coba lagi.');
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -376,6 +450,34 @@ function VotingModerationPage() {
           >
             <RefreshCw className="w-4 h-4" />
             Reset Periode
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={handleExportPDF}
+            disabled={pdfExporting || games.length === 0}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              pdfExporting || games.length === 0
+                ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+                : 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30 hover:bg-accent-purple/30'
+            }`}
+          >
+            {pdfExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Export PDF
+              </>
+            )}
           </button>
           <button
             onClick={handleAddGame}

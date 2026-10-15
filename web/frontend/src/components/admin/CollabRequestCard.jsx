@@ -116,6 +116,19 @@ export function CollabRequestCard({
     ? requested_streamer_name.replace(/^@/, '').charAt(0).toUpperCase()
     : '?';
 
+  // Auto-detect social type: link (http/https) or username (default)
+  const isSocialLink = requested_streamer_social?.startsWith('http://') ||
+                      requested_streamer_social?.startsWith('https://') ||
+                      requested_streamer_social?.includes('/');
+  const socialType = isSocialLink ? 'link' : 'username';
+
+  // Format social display based on type
+  const socialDisplay = requested_streamer_social
+    ? socialType === 'link'
+      ? new URL(requested_streamer_social.startsWith('http') ? requested_streamer_social : `https://${requested_streamer_social}`).hostname.replace('www.', '')
+      : `@${requested_streamer_social.replace('@', '')}`
+    : null;
+
   return (
     <div
       className={`
@@ -165,18 +178,25 @@ export function CollabRequestCard({
         </Badge>
       </div>
 
-      {/* SOCIAL MEDIA LINK */}
+      {/* SOCIAL MEDIA LINK with type badge */}
       {requested_streamer_social && (
-        <div className="mb-3 text-xs flex items-center gap-2">
-          <span className="text-text-muted font-mono">Social:</span>
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] text-text-muted font-medium">Social:</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+            socialType === 'link'
+              ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan'
+              : 'bg-accent-purple/10 border-accent-purple/30 text-accent-purple'
+          }`}>
+            {socialType === 'link' ? 'LINK' : 'USERNAME'}
+          </span>
           <a
             href={formattedSocialLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent-cyan hover:underline inline-flex items-center gap-1 truncate font-mono text-[11px]"
+            className="text-accent-cyan hover:underline inline-flex items-center gap-1 text-[11px] font-mono"
             title={requested_streamer_social}
           >
-            <span className="truncate">{requested_streamer_social}</span>
+            <span className="truncate max-w-[200px]">{socialDisplay}</span>
             <ExternalLink className="w-3 h-3 flex-shrink-0" />
           </a>
         </div>

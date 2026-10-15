@@ -98,6 +98,38 @@ function CollabRequestsPage() {
     });
   }, [activeStatus, selectedPeriod, activeSearch, currentPage, pageSize, fetchRequests]);
 
+  // Auto-refresh every 60 seconds
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      fetchRequests({
+        status: activeStatus === 'all' ? undefined : activeStatus,
+        period: selectedPeriod === 'all' ? undefined : selectedPeriod,
+        search: activeSearch || undefined,
+        page: currentPage,
+        limit: pageSize
+      });
+    }, 60000);
+
+    // Refresh when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRequests({
+          status: activeStatus === 'all' ? undefined : activeStatus,
+          period: selectedPeriod === 'all' ? undefined : selectedPeriod,
+          search: activeSearch || undefined,
+          page: currentPage,
+          limit: pageSize
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeStatus, selectedPeriod, activeSearch, currentPage, pageSize, fetchRequests]);
+
   // Handle Search submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();

@@ -6,6 +6,9 @@ const { testConnection, syncDatabase } = require('./src/models');
 // Import Firebase (initialize on startup)
 const firebaseDb = require('./src/config/firebase');
 
+// Import Schedule Cron Job
+const { startScheduleCron } = require('./src/utils/scheduleCron');
+
 const PORT = process.env.PORT || 3001;
 
 const startServer = async () => {
@@ -21,6 +24,12 @@ const startServer = async () => {
       : { alter: true };
 
     await syncDatabase(syncOptions);
+
+    // Start schedule auto-status cron job
+    // Checks every 1 minute for schedules that should go 'live'
+    if (process.env.NODE_ENV !== 'test') {
+      startScheduleCron({ intervalMinutes: 1 });
+    }
 
     // Start the server with host '0.0.0.0' for Railway compatibility
     app.listen(PORT, '0.0.0.0', () => {

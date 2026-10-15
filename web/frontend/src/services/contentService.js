@@ -2,6 +2,13 @@ import api from './api';
 
 /**
  * Content Service - API calls untuk content guide
+ *
+ * Backend Response Format:
+ * {
+ *   success: true,
+ *   data: { contents: [...], pagination: {...} },
+ *   message: "..."
+ * }
  */
 
 // Ambil semua konten dengan pagination dan filter
@@ -18,7 +25,18 @@ export const getContent = async (params = {}) => {
     if (admin) queryParams.append('admin', 'true');
 
     const response = await api.get(`/api/content?${queryParams.toString()}`);
-    return response.data;
+
+    // Backend returns: { success, data: { contents: [...], pagination: {...} }
+    // Extract contents array from nested data
+    const contents = response.data?.data?.contents || [];
+    const pagination = response.data?.data?.pagination;
+
+    return {
+      success: response.data?.success ?? true,
+      data: contents,
+      pagination: pagination,
+      message: response.data?.message
+    };
   } catch (error) {
     console.error('Error fetching content:', error);
     throw error;
@@ -33,13 +51,14 @@ export const getContentByTag = async (tag, params = {}) => {
 // Ambil featured content (hanya 1)
 export const getFeatured = async () => {
   try {
-    const response = await api.get('/api/content?featured=true&limit=1');
+    const response = await api.get(`/api/content?featured=true&limit=1`);
 
-    // Handle response from backend (transformed format)
-    const content = response.data?.data?.contents?.[0] || response.data?.data?.content?.[0] || null;
+    // Backend returns: { success, data: { contents: [...], pagination: {...} }
+    // Extract first content item from contents array
+    const content = response.data?.data?.contents?.[0] || null;
 
     return {
-      success: true,
+      success: response.data?.success ?? true,
       data: content
     };
   } catch (error) {

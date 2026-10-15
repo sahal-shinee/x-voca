@@ -81,87 +81,68 @@ function ContentManagementPage() {
         admin: true, // Get all content including hidden
       };
 
+      // getContent now returns: { success, data: [...contents], pagination }
       const response = await getContent(params);
 
-      if (response?.data) {
-        let data = Array.isArray(response.data) ? response.data : response.data.content || [];
+      // Extract contents array from response
+      // response.data is now directly the array (due to service fix)
+      let data = Array.isArray(response?.data) ? response.data : [];
+      const pagination = response?.pagination;
 
-        // Apply client-side filters based on status filter
-        if (statusFilter === 'visible') {
-          data = data.filter(c => c.is_visible);
-        } else if (statusFilter === 'hidden') {
-          data = data.filter(c => !c.is_visible);
-        } else if (statusFilter === 'featured') {
-          data = data.filter(c => c.is_featured);
-        }
-
-        // Apply sorting
-        data = [...data].sort((a, b) => {
-          if (sortBy === 'sort_order') {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-          } else if (sortBy === 'sort_order_desc') {
-            return (b.sort_order || 0) - (a.sort_order || 0);
-          } else if (sortBy === 'newest') {
-            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-          } else {
-            return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-          }
-        });
-
-        setContents(data);
-
-        // Calculate pagination (after filtering)
-        const totalAfterFilter = response.data.total || (Array.isArray(response.data) ? response.data.length : 0);
-        const filteredCount = data.length;
-        setTotalItems(filteredCount);
-        setTotalPages(Math.ceil(filteredCount / itemsPerPage));
-        setCurrentPage(1);
-
-        // Update stats
-        const allContent = Array.isArray(response.data) ? response.data : response.data.content || [];
-        const visibleCount = allContent.filter(c => c.is_visible).length;
-        const hiddenCount = allContent.filter(c => !c.is_visible).length;
-        const featuredItem = allContent.find(c => c.is_featured);
-
-        setStats({
-          total: allContent.length,
-          visible: visibleCount,
-          hidden: hiddenCount,
-          featured: allContent.filter(c => c.is_featured).length,
-          featuredTitle: featuredItem?.title || null,
-        });
-      } else {
-        setContents([]);
-        setTotalItems(0);
-        setTotalPages(1);
+      // Apply client-side filters based on status filter
+      if (statusFilter === 'visible') {
+        data = data.filter(c => c.is_visible);
+      } else if (statusFilter === 'hidden') {
+        data = data.filter(c => !c.is_visible);
+      } else if (statusFilter === 'featured') {
+        data = data.filter(c => c.is_featured);
       }
-    } catch (error) {
-      console.error('Error fetching contents:', error);
-      // Mock data on error
-      const mockData = [
-        { id: 1, title: 'Persona 3 Reload: Tartarus Midnight', game_tag: 'JRPG', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: true, is_visible: true, sort_order: 1, video_count: 14, total_duration: '48.5 Jam', quality: 'HD 1080p' },
-        { id: 2, title: 'Elden Ring: Shadow of the Erdtree', game_tag: 'ACTION RPG', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: false, is_visible: true, sort_order: 2, video_count: 22, total_duration: '65 Jam', quality: 'FHD 1080p' },
-        { id: 3, title: 'Minecraft: Building a Castle', game_tag: 'SURVIVAL', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: false, is_visible: true, sort_order: 3, video_count: 42, total_duration: '120 Jam', quality: 'HD 1080p' },
-        { id: 4, title: 'Signalis: Complete Walkthrough', game_tag: 'SURVIVAL HORROR', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: false, is_visible: false, sort_order: 4, video_count: 8, total_duration: '24 Jam', quality: 'HD 1080p' },
-        { id: 5, title: 'Stardew Valley: Year 1 Complete', game_tag: 'SIMULATION', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: false, is_visible: true, sort_order: 5, video_count: 28, total_duration: '56 Jam', quality: 'HD 1080p' },
-        { id: 6, title: 'Outer Wilds: Full Exploration', game_tag: 'ADVENTURE', youtube_url: 'https://youtube.com/playlist/...', thumbnail: '', is_featured: false, is_visible: true, sort_order: 6, video_count: 12, total_duration: '36 Jam', quality: '4K' },
-      ];
 
-      let filteredData = [...mockData];
-      if (statusFilter === 'visible') filteredData = filteredData.filter(c => c.is_visible);
-      else if (statusFilter === 'hidden') filteredData = filteredData.filter(c => !c.is_visible);
-      else if (statusFilter === 'featured') filteredData = filteredData.filter(c => c.is_featured);
+      // Apply sorting
+      data = [...data].sort((a, b) => {
+        if (sortBy === 'sort_order') {
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        } else if (sortBy === 'sort_order_desc') {
+          return (b.sort_order || 0) - (a.sort_order || 0);
+        } else if (sortBy === 'newest') {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        } else {
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        }
+      });
 
-      setContents(filteredData);
-      setTotalItems(filteredData.length);
-      setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
+      setContents(data);
+
+      // Calculate pagination (after filtering)
+      const totalFromPagination = pagination?.total || data.length;
+      const filteredCount = data.length;
+      setTotalItems(filteredCount);
+      setTotalPages(Math.ceil(filteredCount / itemsPerPage));
+      setCurrentPage(1);
+
+      // Update stats - use all data for stats calculation
+      const allContent = data;
+      const visibleCount = allContent.filter(c => c.is_visible).length;
+      const hiddenCount = allContent.filter(c => !c.is_visible).length;
+      const featuredItem = allContent.find(c => c.is_featured);
 
       setStats({
-        total: mockData.length,
-        visible: mockData.filter(c => c.is_visible).length,
-        hidden: mockData.filter(c => !c.is_visible).length,
-        featured: mockData.filter(c => c.is_featured).length,
-        featuredTitle: mockData.find(c => c.is_featured)?.title || null,
+        total: allContent.length,
+        visible: visibleCount,
+        hidden: hiddenCount,
+        featured: allContent.filter(c => c.is_featured).length,
+        featuredTitle: featuredItem?.title || null,
+      });
+    } catch (error) {
+      console.error('Error fetching contents:', error);
+      // Remove fallback dummy data - show empty state instead
+      setContents([]);
+      setStats({
+        total: 0,
+        visible: 0,
+        hidden: 0,
+        featured: 0,
+        featuredTitle: null,
       });
     } finally {
       setStatsLoading(false);
@@ -169,10 +150,28 @@ function ContentManagementPage() {
     }
   }, [searchQuery, statusFilter, sortBy]);
 
-  // Initialize data
+  // Initialize data & Auto-refresh
   useEffect(() => {
     fetchContents(1);
-  }, [fetchContents]);
+
+    // Auto-refresh every 60 seconds
+    const refreshInterval = setInterval(() => {
+      fetchContents(currentPage);
+    }, 60000);
+
+    // Refresh when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchContents(currentPage);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchContents, currentPage]);
 
   // Handle search with debounce
   useEffect(() => {
