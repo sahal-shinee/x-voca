@@ -28,11 +28,19 @@ function TodoPage() {
   const fetchTodos = async () => {
     try {
       const response = await todoService.getAll();
-      if (response?.data) {
-        setTodos(Array.isArray(response.data) ? response.data : []);
+      console.log('[TodoPage] Response:', response);
+
+      // Backend returns: { success, data: { todos: [...], meta: {...} } }
+      if (response?.data?.data?.todos) {
+        setTodos(response.data.data.todos);
+      } else if (response?.data?.todos) {
+        setTodos(response.data.todos);
+      } else if (Array.isArray(response?.data)) {
+        setTodos(response.data);
       } else if (Array.isArray(response)) {
         setTodos(response);
       } else {
+        console.warn('[TodoPage] Unexpected response format:', response);
         setTodos([]);
       }
     } catch (error) {
@@ -47,18 +55,18 @@ function TodoPage() {
     fetchTodos().finally(() => setLoading(false));
   }, []);
 
-  // Filter todos
+  // Filter todos - backend uses 'status' field
   const filteredTodos = todos.filter(todo => {
-    if (filter === 'pending') return !todo.is_completed;
-    if (filter === 'completed') return todo.is_completed;
+    if (filter === 'pending') return todo.status !== 'completed';
+    if (filter === 'completed') return todo.status === 'completed';
     return true;
   });
 
-  // Count stats
+  // Count stats - backend uses 'status' field
   const stats = {
     total: todos.length,
-    pending: todos.filter(t => !t.is_completed).length,
-    completed: todos.filter(t => t.is_completed).length,
+    pending: todos.filter(t => t.status !== 'completed').length,
+    completed: todos.filter(t => t.status === 'completed').length,
   };
 
   // CRUD handlers
