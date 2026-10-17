@@ -194,26 +194,49 @@ function DashboardPage() {
     setStatsLoading(true);
     try {
       const response = await getStats();
-      if (response?.data) {
+      // Backend returns: { data: { stats: {...}, recentActivity: [...] } }
+      if (response?.data?.data?.stats) {
+        const backendStats = response.data.data.stats;
         setStats({
-          totalVotes: response.data.totalVotes || 0,
-          upcomingSchedules: response.data.upcomingSchedules || 0,
-          pendingTodos: response.data.pendingTodos || 0,
-          activeContent: response.data.activeContent || 0,
-          votesGrowth: response.data.votesGrowth || 0,
-          urgentTodos: response.data.urgentTodos || 0,
+          totalVotes: backendStats.votes?.total || 0,
+          upcomingSchedules: backendStats.schedules?.upcoming || 0,
+          pendingTodos: backendStats.todos?.pending || 0,
+          activeContent: backendStats.content?.visible || 0,
+          votesGrowth: backendStats.votes?.change_percent || 0,
+          urgentTodos: backendStats.todos?.urgent || 0,
+        });
+      } else if (response?.data?.stats) {
+        // Alternative format
+        const backendStats = response.data.stats;
+        setStats({
+          totalVotes: backendStats.votes?.total || 0,
+          upcomingSchedules: backendStats.schedules?.upcoming || 0,
+          pendingTodos: backendStats.todos?.pending || 0,
+          activeContent: backendStats.content?.visible || 0,
+          votesGrowth: backendStats.votes?.change_percent || 0,
+          urgentTodos: backendStats.todos?.urgent || 0,
+        });
+      } else {
+        // Fallback if format doesn't match
+        setStats({
+          totalVotes: response?.data?.totalVotes || 0,
+          upcomingSchedules: response?.data?.upcomingSchedules || 0,
+          pendingTodos: response?.data?.pendingTodos || 0,
+          activeContent: response?.data?.activeContent || 0,
+          votesGrowth: response?.data?.votesGrowth || 0,
+          urgentTodos: response?.data?.urgentTodos || 0,
         });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Fallback mock data
+      // Clear stats on error instead of mock data
       setStats({
-        totalVotes: 1247,
-        upcomingSchedules: 3,
-        pendingTodos: 5,
-        activeContent: 18,
-        votesGrowth: 12,
-        urgentTodos: 2,
+        totalVotes: 0,
+        upcomingSchedules: 0,
+        pendingTodos: 0,
+        activeContent: 0,
+        votesGrowth: 0,
+        urgentTodos: 0,
       });
     } finally {
       setStatsLoading(false);
@@ -225,21 +248,41 @@ function DashboardPage() {
     setAuditLogsLoading(true);
     try {
       const response = await getAuditLogs({ limit: auditLogsLimit, page });
+      // Backend returns: { success: true, data: [...logs], meta: { total } }
+      // Or: { success: true, data: { logs: [...], total: N } }
+      let logs = [];
+      let total = 0;
+
       if (response?.data) {
-        setAuditLogs(response.data.logs || response.data || []);
-        setAuditLogsTotal(response.data.total || 0);
-        setAuditLogsPage(page);
+        // Case 1: Direct array in data
+        if (Array.isArray(response.data)) {
+          logs = response.data;
+          total = logs.length;
+        }
+        // Case 2: Wrapped in data.data or data.logs
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          logs = response.data.data;
+          total = response.data.meta?.total || logs.length;
+        }
+        else if (response.data.logs && Array.isArray(response.data.logs)) {
+          logs = response.data.logs;
+          total = response.data.total || response.data.meta?.total || logs.length;
+        }
+        // Case 3: Direct with meta
+        else if (response.data.logs !== undefined) {
+          logs = Array.isArray(response.data.logs) ? response.data.logs : [];
+          total = response.data.meta?.total || response.data.total || logs.length;
+        }
       }
+
+      setAuditLogs(logs);
+      setAuditLogsTotal(total);
+      setAuditLogsPage(page);
     } catch (error) {
       console.error('Error fetching logs:', error);
-      setAuditLogs([
-        { id: 1, action: 'VOTE_MASUK', details: 'New vote for Elden Ring', time: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
-        { id: 2, action: 'JADWAL_UPDATE', details: 'Schedule updated: Cyberpunk 2077', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-        { id: 3, action: 'REQUEST_GAME', details: 'New request: Signalis', time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-        { id: 4, action: 'CONTENT_ARCHIVE', details: 'Content archived: Minecraft Ep.42', time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-        { id: 5, action: 'BROADCASTING_TOGGLE', details: 'Broadcasting set to READY', time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-      ]);
-      setAuditLogsTotal(42);
+      // Clear logs on error instead of mock data
+      setAuditLogs([]);
+      setAuditLogsTotal(0);
       setAuditLogsPage(page);
     } finally {
       setAuditLogsLoading(false);
