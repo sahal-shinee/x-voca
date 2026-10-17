@@ -77,17 +77,30 @@ const formatScheduleTime = (dateString) => {
 
 /** Map action code to badge display */
 const getActionBadge = (action) => {
+  // Backend uses action_type, frontend uses action
+  const actionType = action?.action_type || action || '';
+
   const map = {
     VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
+    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
     JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
     REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
+    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
     CONTENT_ARCHIVE: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
+    asset_archived: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
+    period_reset: { label: 'Reset Periode', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    content_added: { label: 'Konten Ditambah', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
+    status_changed: { label: 'Status Diubah', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
     LOGIN: { label: 'Login', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
     LOGOUT: { label: 'Logout', bg: 'bg-bg-surface', text: 'text-text-secondary' },
     BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/10', text: 'text-status-live' },
     COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
   };
-  return map[action] || { label: action, bg: 'bg-bg-surface', text: 'text-text-secondary' };
+
+  const found = map[actionType] || map[actionType.toUpperCase()] || map[actionType.toLowerCase()];
+  return found || { label: actionType || '-', bg: 'bg-bg-surface', text: 'text-text-secondary' };
 };
 
 /** Filter options for audit log */
@@ -644,14 +657,22 @@ function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  auditLogs.map((log) => {
-                    const badge = getActionBadge(log.action);
+                  auditLogs.map((log, idx) => {
+                    // Normalize field names (backend uses action_type, detail, time_ago)
+                    const normalizedLog = {
+                      id: log.id || idx,
+                      action: log.action_type || log.action || '-',
+                      detail: log.detail || log.details || '-',
+                      sub_detail: log.sub_detail || '',
+                      time: log.time_ago || log.time || '-',
+                    };
+                    const badge = getActionBadge(normalizedLog.action);
                     return (
-                      <tr key={log.id} className="border-t border-border-subtle hover:bg-bg-surface/50 transition-colors">
+                      <tr key={normalizedLog.id} className="border-t border-border-subtle hover:bg-bg-surface/50 transition-colors">
                         <td className="px-5 py-4">
                           <span className="text-sm text-text-secondary flex items-center gap-2 whitespace-nowrap">
                             <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-                            {formatTimeAgo(log.time)}
+                            {normalizedLog.time}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -660,7 +681,12 @@ function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-sm text-text-primary">{log.details}</p>
+                          <p className="text-sm text-text-primary">
+                            {normalizedLog.detail}
+                            {normalizedLog.sub_detail && (
+                              <span className="text-text-muted"> - {normalizedLog.sub_detail}</span>
+                            )}
+                          </p>
                         </td>
                       </tr>
                     );
