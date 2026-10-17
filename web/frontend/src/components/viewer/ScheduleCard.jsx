@@ -1,5 +1,16 @@
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
 
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * ScheduleCard Component
  * Komponen card untuk menampilkan jadwal stream
@@ -8,33 +19,38 @@ const ScheduleCard = ({ schedule, variant = 'upcoming' }) => {
   const timeLeft = useCountdown(schedule?.scheduled_at);
   const { display, isLive } = formatCountdown(timeLeft);
 
-  // Format date untuk ditampilkan
+  // Format date untuk ditampilkan (safe version)
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const date = safeParseDate(dateString);
+    if (!date) return '';
 
-    const isToday = date.toDateString() === today.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const time = date.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+      const isToday = date.toDateString() === today.toDateString();
+      const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
-    if (isToday) return `Hari ini · ${time} WIB`;
-    if (isTomorrow) return `Besok · ${time} WIB`;
+      const time = date.toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
-    return date.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }) + ' WIB';
+      if (isToday) return `Hari ini · ${time} WIB`;
+      if (isTomorrow) return `Besok · ${time} WIB`;
+
+      return date.toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }) + ' WIB';
+    } catch {
+      return '';
+    }
   };
 
   // Get status based on variant

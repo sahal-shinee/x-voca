@@ -727,28 +727,43 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 
 // ========== HELPER FUNCTIONS ==========
 
-// Format tanggal ke format Indonesia
-const formatTanggalWIB = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const options = {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-    timeZoneName: 'short'
-  };
-  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
-  // Convert "00.00 WIB" format
-  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 };
 
-// Hitung countdown dari target date
+// Format tanggal ke format Indonesia (safe version)
+const formatTanggalWIB = (dateString) => {
+  const date = safeParseDate(dateString);
+  if (!date) return '';
+  try {
+    const options = {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+      timeZoneName: 'short'
+    };
+    const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+    // Convert "00.00 WIB" format
+    return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+  } catch {
+    return '';
+  }
+};
+
+// Hitung countdown dari target date (safe version)
 const hitungCountdown = (targetDateString) => {
-  if (!targetDateString) return null;
-  const target = new Date(targetDateString);
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
   const now = new Date();
   const diff = target - now;
 

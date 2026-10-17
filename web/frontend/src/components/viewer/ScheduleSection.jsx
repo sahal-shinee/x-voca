@@ -233,28 +233,43 @@ const useDragScroll = (containerRef) => {
 
 // ========== HELPER FUNCTIONS ==========
 
-// Format tanggal ke format Indonesia (WIB)
-const formatTanggalWIB = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const options = {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-    timeZoneName: 'short'
-  };
-  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
-  // Convert "00.00 WIB" format
-  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 };
 
-// Hitung countdown dan return string
+// Format tanggal ke format Indonesia (WIB) - safe version
+const formatTanggalWIB = (dateString) => {
+  const date = safeParseDate(dateString);
+  if (!date) return '';
+  try {
+    const options = {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+      timeZoneName: 'short'
+    };
+    const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+    // Convert "00.00 WIB" format
+    return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+  } catch {
+    return '';
+  }
+};
+
+// Hitung countdown dan return string - safe version
 const hitungCountdownString = (targetDateString) => {
-  if (!targetDateString) return null;
-  const target = new Date(targetDateString);
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
   const now = new Date();
   const diff = target - now;
 
@@ -420,10 +435,10 @@ const ScheduleSection = () => {
           ...(Array.isArray(doneData) ? doneData : doneData.data || []),
         ].map(transformScheduleData).filter(Boolean);
 
-        // Sort by scheduled_at (terdekat dulu)
+        // Sort by scheduled_at (terdekat dulu) - safe version
         allSchedules.sort((a, b) => {
-          const dateA = a.time ? new Date(a.time).getTime() : 0;
-          const dateB = b.time ? new Date(b.time).getTime() : 0;
+          const dateA = safeParseDate(a.scheduled_at)?.getTime() || 0;
+          const dateB = safeParseDate(b.scheduled_at)?.getTime() || 0;
           return dateA - dateB;
         });
 
