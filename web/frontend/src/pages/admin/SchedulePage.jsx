@@ -3,6 +3,7 @@ import { getStats } from '../../services/dashboardService';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from '../../services/scheduleService';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import Modal from '../../components/common/Modal';
+import { safeParseDate, safeFormatDate, safeFormatTime } from '../../utils/dateUtils';
 import {
   Radio,
   Calendar,
@@ -194,29 +195,31 @@ function SchedulePage() {
     schedule.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Format date time
+  // Format date time (safe version)
   const formatDateTime = (datetime) => {
-    if (!datetime) return '-';
-    const date = new Date(datetime);
-    return date.toLocaleDateString('id-ID', {
+    const date = safeParseDate(datetime);
+    if (!date) return '-';
+    const dateStr = safeFormatDate(datetime, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }) + ', ' + date.toLocaleTimeString('id-ID', {
+    }, '-');
+    const timeStr = safeFormatTime(datetime, {
       hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Jakarta',
-    }) + ' WIB';
+    }, '');
+    return dateStr + (timeStr ? ', ' + timeStr + ' WIB' : '');
   };
 
-  // Get status badge for schedule
+  // Get status badge for schedule (safe version)
   const getScheduleStatus = (schedule) => {
     if (!schedule.datetime) return 'upcoming';
     const now = new Date();
-    const scheduleDate = new Date(schedule.datetime);
+    const scheduleDate = safeParseDate(schedule.datetime);
 
     if (schedule.status === 'archived') return 'archived';
-    if (schedule.status === 'live' || (scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
+    if (schedule.status === 'live' || (scheduleDate && scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
     return 'upcoming';
   };
 
