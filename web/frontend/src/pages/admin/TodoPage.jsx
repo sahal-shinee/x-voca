@@ -9,6 +9,21 @@ const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', color: 'bg-status-live' },
 ];
 
+/**
+ * Safely format a date string to localized date
+ * Returns empty string if date is invalid
+ */
+const safeFormatDate = (dateString, options = {}) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('id-ID', options);
+  } catch {
+    return '';
+  }
+};
+
 function TodoPage() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -275,7 +290,7 @@ function TodoPage() {
                       {todo.deadline && (
                         <span className="text-xs text-text-muted flex items-center gap-1.5 bg-bg-surface px-2.5 py-1 rounded-lg">
                           <Clock className="w-3.5 h-3.5" />
-                          {new Date(todo.deadline).toLocaleDateString('id-ID', {
+                          {safeFormatDate(todo.deadline, {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
@@ -283,10 +298,10 @@ function TodoPage() {
                         </span>
                       )}
                       <span className="text-xs text-text-muted">
-                        {todo.created_at ? new Date(todo.created_at).toLocaleDateString('id-ID', {
+                        {safeFormatDate(todo.created_at, {
                           day: 'numeric',
                           month: 'short'
-                        }) : ''}
+                        })}
                       </span>
                     </div>
                   </div>

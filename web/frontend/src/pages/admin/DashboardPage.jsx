@@ -30,10 +30,21 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Safely parse date string to Date object
+ * Returns null if invalid
+ */
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 /** Format relative time for audit log entries */
 const formatTimeAgo = (dateString) => {
   if (!dateString) return '-';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '-';
   const now = new Date();
   const diff = Math.floor((now - date) / 1000);
 
@@ -47,7 +58,8 @@ const formatTimeAgo = (dateString) => {
 /** Format schedule date display */
 const formatScheduleDate = (dateString) => {
   if (!dateString) return '-';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '-';
   return date.toLocaleDateString('id-ID', {
     weekday: 'short',
     day: 'numeric',
@@ -58,7 +70,8 @@ const formatScheduleDate = (dateString) => {
 /** Format schedule time */
 const formatScheduleTime = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '';
   return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
