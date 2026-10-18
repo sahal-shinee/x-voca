@@ -76,7 +76,7 @@ const getFirebaseAdmin = () => {
 
     // Initialize jika service account berhasil dimuat
     if (serviceAccount) {
-      const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.firebaseio.com';
+      const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
