@@ -854,16 +854,17 @@ function HeroSection({ onRequestCollab }) {
     fetchNextSchedule();
   }, []);
 
-  // Countdown timer
+  // Countdown timer - use scheduled_at (ISO format) not scheduled_at_wib (Indonesian format)
   useEffect(() => {
     console.log("[HeroSection] Countdown effect triggered. nextSchedule:", nextSchedule?.id, nextSchedule?.title);
 
-    // Check both scheduled_at and scheduled_at_wib
-    const targetDateStr = nextSchedule?.scheduled_at_wib || nextSchedule?.scheduled_at;
-    console.log("[HeroSection] Target date string:", targetDateStr);
+    // ALWAYS use scheduled_at (ISO format) for countdown calculation
+    // scheduled_at_wib is for display only, not for calculations
+    const targetDateStr = nextSchedule?.scheduled_at;
+    console.log("[HeroSection] Using scheduled_at for countdown:", targetDateStr);
 
     if (!targetDateStr) {
-      console.log("[HeroSection] No target date, setting empty countdown");
+      console.log("[HeroSection] No scheduled_at, setting empty countdown");
       setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
       return;
     }
@@ -880,7 +881,7 @@ function HeroSection({ onRequestCollab }) {
 
       const now = new Date();
       const diff = target - now;
-      console.log("[HeroSection] Time diff (ms):", diff, "Target:", target, "Now:", now);
+      console.log("[HeroSection] Time diff (ms):", diff);
 
       if (diff <= 0) {
         console.log("[HeroSection] Stream is live or past");

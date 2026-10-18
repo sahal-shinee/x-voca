@@ -311,8 +311,13 @@ const getIconFromCategory = (category) => {
 const transformScheduleData = (data) => {
   if (!data || !data.id) return null;
 
-  const scheduledAt = data.scheduled_at_wib || data.scheduled_at;
-  const countdownString = hitungCountdownString(scheduledAt);
+  // Use scheduled_at (ISO format) for countdown calculations
+  // Use scheduled_at_wib for display only
+  const scheduledAtISO = data.scheduled_at; // ISO format for countdown
+  const scheduledAtWIB = data.scheduled_at_wib || data.scheduled_at; // For display
+
+  // Calculate countdown using ISO date
+  const countdownString = hitungCountdownString(scheduledAtISO);
 
   return {
     id: data.id,
@@ -320,7 +325,8 @@ const transformScheduleData = (data) => {
     title: data.title || 'Untitled Stream',
     subtitle: data.description ? data.description.substring(0, 50) : '',
     tag: data.game_category || 'GENERAL',
-    time: scheduledAt ? formatTanggalWIB(scheduledAt) : 'TBD',
+    time: scheduledAtWIB ? formatTanggalWIB(scheduledAtWIB) : 'TBD',
+    scheduled_at: scheduledAtISO, // Store ISO date for reference
     countdown: countdownString,
     estimated_duration: data.estimated_duration || '±2-3 Jam',
     platform: data.stream_platform || 'YouTube',
