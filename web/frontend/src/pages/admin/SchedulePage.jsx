@@ -22,6 +22,22 @@ import {
   Clock
 } from 'lucide-react';
 
+// Normalize schedule data from backend to frontend expected format
+const normalizeSchedule = (schedule) => ({
+  id: schedule.id,
+  title: schedule.title || '-',
+  game_category: schedule.game_category || schedule.game || '-',
+  scheduled_at: schedule.scheduled_at || schedule.scheduled_at || null,
+  description: schedule.description || '',
+  collab_guest: schedule.collab_guest || null,
+  collab_social: schedule.collab_social || null,
+  youtube_url: schedule.youtube_url || null,
+  thumbnail_url: schedule.thumbnail_url || null,
+  stream_platform: schedule.stream_platform || 'YouTube',
+  countdown_enabled: schedule.countdown_enabled !== false,
+  status: schedule.status || 'upcoming',
+});
+
 // Tab filter options
 const FILTER_TABS = [
   { key: 'all', label: 'SEMUA' },
@@ -102,19 +118,23 @@ function SchedulePage() {
     setSchedulesLoading(true);
     try {
       const response = await getSchedules({ status: status === 'all' ? undefined : status });
+      // Handle multiple response formats
+      let rawData = [];
       if (response?.data) {
-        setSchedules(Array.isArray(response.data) ? response.data : response.data.schedules || []);
-      } else {
-        setSchedules([]);
+        if (Array.isArray(response.data)) {
+          rawData = response.data;
+        } else if (response.data.schedules) {
+          rawData = response.data.schedules;
+        } else if (response.data.data) {
+          rawData = Array.isArray(response.data.data) ? response.data.data : [];
+        }
       }
+      // Normalize all schedules
+      const normalized = rawData.map(normalizeSchedule);
+      setSchedules(normalized);
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      setSchedules([
-        { id: 1, title: 'Elden Ring Rush', category: 'ACTION RPG', datetime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), status: 'upcoming', description: 'Exploring the Lands Between' },
-        { id: 2, title: 'Signalis: Solitary Resonance', category: 'SURVIVAL HORROR', datetime: new Date(Date.now() - 60 * 60 * 1000).toISOString(), status: 'live', description: 'Survival horror streaming session' },
-        { id: 3, title: 'Stardew Valley Chill', category: 'SIMULATION', datetime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), status: 'upcoming', description: 'Relaxing farming session' },
-        { id: 4, title: 'Minecraft Building Stream', category: 'SURVIVAL', datetime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'archived', description: 'Building a castle' },
-      ]);
+      setSchedules([]); // Clear on error instead of mock data
     } finally {
       setSchedulesLoading(false);
     }
@@ -192,7 +212,7 @@ function SchedulePage() {
   // Filter schedules by search
   const filteredSchedules = schedules.filter(schedule =>
     schedule.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    schedule.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    schedule.game_category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Format date time (safe version)
@@ -214,9 +234,9 @@ function SchedulePage() {
 
   // Get status badge for schedule (safe version)
   const getScheduleStatus = (schedule) => {
-    if (!schedule.datetime) return 'upcoming';
+    if (!schedule.scheduled_at) return 'upcoming';
     const now = new Date();
-    const scheduleDate = safeParseDate(schedule.datetime);
+    const scheduleDate = safeParseDate(schedule.scheduled_at);
 
     if (schedule.status === 'archived') return 'archived';
     if (schedule.status === 'live' || (scheduleDate && scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
@@ -451,14 +471,14 @@ function SchedulePage() {
                           inline-flex px-3 py-1 text-xs font-medium rounded-full
                           ${isLive ? 'bg-status-live/20 text-status-live' : 'bg-bg-input text-text-secondary'}
                         `}>
-                          {schedule.category || 'LAINNYA'}
+                          {schedule.game_category || 'LAINNYA'}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-text-muted" />
                           <span className="text-sm text-text-secondary">
-                            {formatDateTime(schedule.datetime)}
+                            {formatDateTime(schedule.scheduled_at)}
                           </span>
                         </div>
                       </td>
