@@ -19,7 +19,8 @@ import {
   Loader2,
   XCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Youtube
 } from 'lucide-react';
 
 // Normalize schedule data from backend to frontend expected format
@@ -63,8 +64,9 @@ function SchedulePage() {
     scheduledSlots: 0,
     syncStatus: 'Tersambung',
     syncLatency: '0.4s',
-    selectedGame: null,
-    selectedGamePercent: 0,
+    topVotedGame: null,
+    topGameVotes: 0,
+    topGamePercent: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -83,30 +85,42 @@ function SchedulePage() {
   const [deleteModal, setDeleteModal] = useState({ open: false, schedule: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Preview modal state
+  const [previewModal, setPreviewModal] = useState({ open: false, schedule: null });
+
+  // Preview handler
+  const handlePreview = (schedule) => {
+    setPreviewModal({ open: true, schedule });
+  };
+
   // Fetch summary stats
   const fetchSummaryStats = useCallback(async () => {
     setStatsLoading(true);
     try {
       const response = await getStats();
-      if (response?.data) {
+      if (response?.data?.stats) {
+        // Extract from nested structure: response.data.stats
+        const stats = response.data.stats;
         setSummaryStats({
-          activeBroadcast: response.data.activeBroadcast || null,
-          scheduledSlots: response.data.upcomingSchedules || 0,
+          activeBroadcast: stats.activeBroadcast || null,
+          scheduledSlots: stats.schedules?.upcoming || 0,
           syncStatus: 'Tersambung',
           syncLatency: '0.4s',
-          selectedGame: response.data.selectedGame || null,
-          selectedGamePercent: response.data.selectedGamePercent || 0,
+          topVotedGame: stats.topVotedGame?.title || null,
+          topGameVotes: stats.topVotedGame?.vote_count || 0,
+          topGamePercent: stats.topVotedGame?.percentage || 0,
         });
       }
     } catch (error) {
       console.error('Error fetching summary stats:', error);
       setSummaryStats({
         activeBroadcast: null,
-        scheduledSlots: 4,
+        scheduledSlots: 0,
         syncStatus: 'Tersambung',
         syncLatency: '0.4s',
-        selectedGame: 'Outer Wilds',
-        selectedGamePercent: 64,
+        topVotedGame: null,
+        topGameVotes: 0,
+        topGamePercent: 0,
       });
     } finally {
       setStatsLoading(false);
@@ -332,14 +346,19 @@ function SchedulePage() {
             <div className="w-10 h-10 rounded-lg bg-accent-gold/10 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-accent-gold" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-text-muted">Voting Terpilih</p>
-              {summaryStats.selectedGame ? (
-                <p className="text-sm font-semibold text-accent-gold">
-                  {summaryStats.selectedGame} ({summaryStats.selectedGamePercent}%)
-                </p>
+              {summaryStats.topVotedGame ? (
+                <>
+                  <p className="text-sm font-semibold text-accent-gold truncate">
+                    {summaryStats.topVotedGame}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {summaryStats.topGameVotes} votes ({summaryStats.topGamePercent}%)
+                  </p>
+                </>
               ) : (
-                <p className="text-sm text-text-muted">Belum ada</p>
+                <p className="text-sm text-text-muted">Belum ada voting</p>
               )}
             </div>
           </div>
@@ -492,6 +511,7 @@ function SchedulePage() {
                         <div className="flex items-center gap-1">
                           {/* Preview */}
                           <button
+                            onClick={() => handlePreview(schedule)}
                             className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
                             title="Preview"
                           >
@@ -542,6 +562,76 @@ function SchedulePage() {
         schedule={editingSchedule}
         loading={formLoading}
       />
+
+      {/* ========== PREVIEW MODAL ========== */}
+      <Modal
+        isOpen={previewModal.open}
+        onClose={() => setPreviewModal({ open: false, schedule: null })}
+        title="Detail Jadwal"
+      >
+        {previewModal.schedule && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Judul Stream</label>
+              <p className="text-text-primary font-semibold">{previewModal.schedule.title}</p>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Kategori</label>
+              <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-bg-input text-text-secondary">
+                {previewModal.schedule.game_category || 'LAINNYA'}
+              </span>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Waktu</label>
+              <p className="text-text-primary">{formatDateTime(previewModal.schedule.scheduled_at)}</p>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Status</label>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(previewModal.schedule.status).class}`}>
+                {(() => {
+                  const StatusIcon = getStatusBadge(previewModal.schedule.status).icon;
+                  return <StatusIcon className="w-3 h-3" />;
+                })()}
+                {getStatusBadge(previewModal.schedule.status).label}
+              </span>
+            </div>
+            {previewModal.schedule.description && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Deskripsi</label>
+                <p className="text-text-secondary text-sm">{previewModal.schedule.description}</p>
+              </div>
+            )}
+            {previewModal.schedule.collab_guest && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Collab Guest</label>
+                <p className="text-text-primary">@{previewModal.schedule.collab_guest}</p>
+              </div>
+            )}
+            {previewModal.schedule.youtube_url && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">YouTube</label>
+                <a
+                  href={previewModal.schedule.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+                >
+                  <Youtube size={16} />
+                  <span className="text-sm underline">{previewModal.schedule.youtube_url}</span>
+                </a>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
+              <span className={`text-xs ${previewModal.schedule.countdown_enabled ? 'text-status-upcoming' : 'text-text-muted'}`}>
+                Countdown: {previewModal.schedule.countdown_enabled ? 'Aktif' : 'Nonaktif'}
+              </span>
+              <span className="text-xs text-text-muted">
+                Created: {previewModal.schedule.created_at ? new Date(previewModal.schedule.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-'}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* ========== DELETE CONFIRMATION MODAL ========== */}
       <Modal

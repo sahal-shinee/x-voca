@@ -422,17 +422,22 @@ const ScheduleSection = () => {
         setError(null);
 
         // Fetch all schedules (live, upcoming, done)
-        const [liveData, upcomingData, doneData] = await Promise.all([
-          getSchedules({ status: 'live', limit: 5 }).catch(() => []),
-          getSchedules({ status: 'upcoming', limit: 10 }).catch(() => []),
-          getSchedules({ status: 'done', limit: 5 }).catch(() => []),
+        const [liveResult, upcomingResult, doneResult] = await Promise.all([
+          getSchedules({ status: 'live', limit: 5 }).catch(() => ({ data: [] })),
+          getSchedules({ status: 'upcoming', limit: 10 }).catch(() => ({ data: [] })),
+          getSchedules({ status: 'done', limit: 5 }).catch(() => ({ data: [] })),
         ]);
+
+        // Extract data arrays from response (service returns { success, data: [...] })
+        const liveSchedules = Array.isArray(liveResult) ? liveResult : (liveResult?.data || []);
+        const upcomingSchedules = Array.isArray(upcomingResult) ? upcomingResult : (upcomingResult?.data || []);
+        const doneSchedules = Array.isArray(doneResult) ? doneResult : (doneResult?.data || []);
 
         // Combine dan transform data
         const allSchedules = [
-          ...(Array.isArray(liveData) ? liveData : liveData.data || []),
-          ...(Array.isArray(upcomingData) ? upcomingData : upcomingData.data || []),
-          ...(Array.isArray(doneData) ? doneData : doneData.data || []),
+          ...liveSchedules,
+          ...upcomingSchedules,
+          ...doneSchedules,
         ].map(transformScheduleData).filter(Boolean);
 
         // Sort by scheduled_at (terdekat dulu) - safe version
@@ -935,24 +940,64 @@ const ScheduleSection = () => {
 
                   {/* CTA footer */}
                   <div className="mt-auto pt-6 border-t border-[rgba(61,53,96,0.5)]">
-                    <Link
-                      to={schedule.youtube_url || '#'}
-                      target={schedule.youtube_url ? '_blank' : '_self'}
-                      rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                      className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'pointer-events-none opacity-50' : ''}`}
-                      onClick={(e) => {
-                        if (!schedule.youtube_url) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <span className={`text-[13px] ${schedule.status === 'live' ? 'font-bold' : 'font-semibold'} font-body group-hover/link:underline underline-offset-2 transition-all tracking-wide`}>
-                        {schedule.cta}
-                      </span>
-                      <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
-                        {schedule.status === 'done' ? <ExternalArrowIcon /> : <ArrowRightIcon />}
-                      </span>
-                    </Link>
+                    {/* Live streams - always show YouTube link */}
+                    {schedule.status === 'live' ? (
+                      <a
+                        href={schedule.youtube_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-bold font-body flex items-center gap-2">
+                          <YouTubeIcon size={14} className="text-red-500" />
+                          Tonton di YouTube
+                        </span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ExternalArrowIcon />
+                        </span>
+                      </a>
+                    ) : schedule.status === 'done' ? (
+                      <a
+                        href={schedule.youtube_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-semibold font-body">Buka Arsip</span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ExternalArrowIcon />
+                        </span>
+                      </a>
+                    ) : (
+                      <Link
+                        to={schedule.youtube_url || '#'}
+                        target={schedule.youtube_url ? '_blank' : '_self'}
+                        rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-semibold font-body group-hover/link:underline underline-offset-2">
+                          {schedule.youtube_url ? 'Reserve Stream' : 'Link Belum Ada'}
+                        </span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ArrowRightIcon />
+                        </span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

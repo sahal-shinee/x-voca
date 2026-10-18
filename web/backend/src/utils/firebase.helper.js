@@ -23,21 +23,30 @@ console.log('[Firebase] Apps type:', typeof admin?.apps);
 
 // Lazy initialization untuk Firebase Admin SDK
 let firebaseAdmin = null;
+let initializationAttempted = false;
 
 const getFirebaseAdmin = () => {
+  // Return cached instance if available
   if (firebaseAdmin) return firebaseAdmin;
 
+  // Prevent multiple initialization attempts
+  if (initializationAttempted) {
+    return null;
+  }
+  initializationAttempted = true;
+
+  console.log('[Firebase] Starting initialization...');
+  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT env set:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
+
   // Safety check - pastikan firebase-admin loaded dengan benar
-  if (!admin || !admin.apps || !Array.isArray(admin.apps)) {
-    console.error('⚠️ Firebase Admin SDK not properly loaded');
-    console.error('[Firebase] admin exists:', !!admin);
-    console.error('[Firebase] admin.apps exists:', admin?.apps !== undefined);
-    console.error('[Firebase] admin.apps is array:', Array.isArray(admin?.apps));
+  if (!admin) {
+    console.error('⚠️ Firebase Admin SDK not available');
     return null;
   }
 
   // Jika sudah ada app instance, reuse
-  if (admin.apps.length > 0) {
+  if (admin.apps && admin.apps.length > 0) {
     firebaseAdmin = admin;
     console.log('✅ Firebase Admin reused existing app instance');
     return firebaseAdmin;
@@ -50,14 +59,25 @@ const getFirebaseAdmin = () => {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       try {
         const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
-        console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT length:', envValue?.length);
-        serviceAccount = typeof envValue === 'string' ? JSON.parse(envValue) : envValue;
-        console.log('[Firebase] Service account parsed:', !!serviceAccount);
+
+        // Handle escaped newlines in Railway environment variables
+        let cleanValue = envValue;
+        if (typeof envValue === 'string' && envValue.includes('\\n')) {
+          cleanValue = envValue.replace(/\\n/g, '\n');
+          console.log('[Firebase] Detected escaped newlines, cleaned for Railway');
+        }
+
+        serviceAccount = JSON.parse(cleanValue);
+        console.log('[Firebase] Service account parsed from env var:', !!serviceAccount);
         console.log('[Firebase] Has private_key:', !!(serviceAccount?.private_key));
+        console.log('[Firebase] Project ID:', serviceAccount?.project_id);
       } catch (err) {
         console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
+        console.error('[Firebase] Env value preview:', process.env.FIREBASE_SERVICE_ACCOUNT?.substring(0, 100) + '...');
       }
-    } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+    }
+    // 2. Development: Path ke file service account JSON
+    else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       const resolvedPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
       if (fs.existsSync(resolvedPath)) {
         serviceAccount = require(resolvedPath);
@@ -65,8 +85,10 @@ const getFirebaseAdmin = () => {
       } else {
         console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
       }
-    } else {
-      const defaultPath = path.resolve(process.cwd(), 'firebase-service-account.json');
+    }
+    // 3. Default: cari di root project
+    else {
+      const defaultPath = path.resolve(__dirname, '../../firebase-service-account.json');
       if (fs.existsSync(defaultPath)) {
         serviceAccount = require(defaultPath);
         console.log(`📡 Firebase: Loading service account from default file: ${defaultPath}`);
@@ -76,7 +98,7 @@ const getFirebaseAdmin = () => {
     }
 
     // Initialize jika service account berhasil dimuat
-    if (serviceAccount) {
+    if (serviceAccount && serviceAccount.private_key) {
       const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
 
       admin.initializeApp({
@@ -87,13 +109,16 @@ const getFirebaseAdmin = () => {
       firebaseAdmin = admin;
       console.log('✅ Firebase Admin SDK initialized successfully');
       console.log(`📍 Database URL: ${databaseURL}`);
+      return firebaseAdmin;
     } else {
-      console.warn('⚠️ Firebase service account not configured. Real-time features will be limited.');
+      console.warn('⚠️ Firebase: Service account invalid or missing. Real-time features will be limited.');
+      console.warn('[Firebase] serviceAccount:', !!serviceAccount);
+      console.warn('[Firebase] private_key:', !!(serviceAccount?.private_key));
+      return null;
     }
-
-    return firebaseAdmin;
   } catch (error) {
     console.error('❌ Firebase Admin initialization error:', error.message);
+    console.error('[Firebase] Error stack:', error.stack);
     return null;
   }
 };

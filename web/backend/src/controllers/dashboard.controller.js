@@ -48,13 +48,47 @@ const getDashboardStats = async (req, res) => {
       ? Math.round(((currentVotes - previousVotes) / previousVotes) * 100)
       : currentVotes > 0 ? 100 : 0;
 
-    // Get upcoming schedules count
+    // Get upcoming schedules count (next 7 days)
+    const sevenDaysLater = new Date();
+    sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+
     const upcomingSchedules = await Schedule.count({
       where: {
         status: 'upcoming',
-        scheduled_at: { [Op.gt]: new Date() }
+        scheduled_at: {
+          [Op.gt]: new Date(),
+          [Op.lte]: sevenDaysLater
+        }
       }
     });
+
+    // Get active broadcast (schedule with status 'live')
+    const activeBroadcast = await Schedule.findOne({
+      where: {
+        status: 'live'
+      },
+      order: [['scheduled_at', 'DESC']],
+      attributes: ['id', 'title', 'game_category', 'scheduled_at', 'youtube_url']
+    });
+
+    // Get top voted game for current period (only accepted/playing games)
+    const topVotedGame = await Game.findOne({
+      where: {
+        period_key: currentPeriod,
+        status: { [Op.in]: ['accepted', 'playing'] }
+      },
+      order: [['vote_count', 'DESC']],
+      attributes: ['id', 'title', 'vote_count']
+    });
+
+    // Calculate total votes for percentage calculation
+    const totalVotesForPeriod = await Game.sum('vote_count', {
+      where: { period_key: currentPeriod }
+    }) || 0;
+
+    const topGamePercent = topVotedGame && totalVotesForPeriod > 0
+      ? Math.round((topVotedGame.vote_count / totalVotesForPeriod) * 100)
+      : 0;
 
     // Get pending and in_progress todos count
     const pendingTodos = await Todo.count({
@@ -123,7 +157,22 @@ const getDashboardStats = async (req, res) => {
       games: {
         requested: requestedGames
       },
-      active_period: currentPeriod
+      active_period: currentPeriod,
+      // NEW: Active broadcast info
+      activeBroadcast: activeBroadcast ? {
+        id: activeBroadcast.id,
+        title: activeBroadcast.title,
+        game_category: activeBroadcast.game_category,
+        scheduled_at: activeBroadcast.scheduled_at,
+        youtube_url: activeBroadcast.youtube_url
+      } : null,
+      // NEW: Top voted game info
+      topVotedGame: topVotedGame ? {
+        id: topVotedGame.id,
+        title: topVotedGame.title,
+        vote_count: topVotedGame.vote_count,
+        percentage: topGamePercent
+      } : null
     };
 
     return res.status(200).json({

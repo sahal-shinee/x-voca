@@ -46,11 +46,20 @@ export const getNextSchedule = async () => {
     const response = await api.get(`/api/schedules/next`);
 
     // Backend returns: { success: true, data: schedule || null, message: "..." }
-    // Return the schedule object directly or null
+    // Handle nested data structure: { data: { data: schedule } } or { data: schedule }
+    const responseData = response.data;
+
+    // Extract schedule from potentially nested structure
+    let scheduleData = null;
+    if (responseData?.data) {
+      // Check if data.data exists (nested) or data directly (not nested)
+      scheduleData = responseData.data.data || responseData.data;
+    }
+
     return {
-      success: response.data?.success ?? true,
-      data: response.data?.data || null,
-      message: response.data?.message
+      success: responseData?.success ?? true,
+      data: scheduleData,
+      message: responseData?.message
     };
   } catch (error) {
     console.error('Error fetching next schedule:', error);
