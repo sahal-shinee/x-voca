@@ -57,11 +57,7 @@ const getFirebaseAdmin = () => {
       } catch (err) {
         console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
       }
-    } else {
-      console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT env var not set');
-    }
-    // 2. Opsi Kedua: Membaca file dari path variabel env (Development)
-    else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       const resolvedPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
       if (fs.existsSync(resolvedPath)) {
         serviceAccount = require(resolvedPath);
@@ -69,9 +65,7 @@ const getFirebaseAdmin = () => {
       } else {
         console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
       }
-    }
-    // 3. Opsi Ketiga: Fallback file lokal untuk development
-    else {
+    } else {
       const defaultPath = path.resolve(process.cwd(), 'firebase-service-account.json');
       if (fs.existsSync(defaultPath)) {
         serviceAccount = require(defaultPath);
