@@ -11,9 +11,15 @@
  */
 
 const adminModule = require('firebase-admin');
-const admin = adminModule.default || adminModule; // Handling interop module (CJS / ESM compatibility)
+const admin = adminModule.default || adminModule;
 const path = require('path');
 const fs = require('fs');
+
+// Debug Firebase admin module loading
+console.log('[Firebase] Module loaded:', !!adminModule);
+console.log('[Firebase] Admin module keys:', adminModule ? Object.keys(adminModule).slice(0, 10) : 'none');
+console.log('[Firebase] Has apps:', admin?.apps !== undefined);
+console.log('[Firebase] Apps type:', typeof admin?.apps);
 
 // Lazy initialization untuk Firebase Admin SDK
 let firebaseAdmin = null;
@@ -22,14 +28,18 @@ const getFirebaseAdmin = () => {
   if (firebaseAdmin) return firebaseAdmin;
 
   // Safety check - pastikan firebase-admin loaded dengan benar
-  if (!admin || !admin.apps) {
-    console.warn('⚠️ Firebase Admin SDK not properly loaded');
+  if (!admin || !admin.apps || !Array.isArray(admin.apps)) {
+    console.error('⚠️ Firebase Admin SDK not properly loaded');
+    console.error('[Firebase] admin exists:', !!admin);
+    console.error('[Firebase] admin.apps exists:', admin?.apps !== undefined);
+    console.error('[Firebase] admin.apps is array:', Array.isArray(admin?.apps));
     return null;
   }
 
   // Jika sudah ada app instance, reuse
   if (admin.apps.length > 0) {
     firebaseAdmin = admin;
+    console.log('✅ Firebase Admin reused existing app instance');
     return firebaseAdmin;
   }
 
@@ -39,19 +49,16 @@ const getFirebaseAdmin = () => {
     // 1. Opsi Utama (Production/Railway): Membaca teks JSON dari environment variable
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       try {
-        serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
-          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-          : process.env.FIREBASE_SERVICE_ACCOUNT;
-
-        // Handling karakter newline pada private_key agar terbaca utuh oleh OpenSSL
-        if (serviceAccount && serviceAccount.private_key) {
-          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-        }
-
-        console.log('📡 Firebase: Loading service account from FIREBASE_SERVICE_ACCOUNT env var');
+        const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
+        console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT length:', envValue?.length);
+        serviceAccount = typeof envValue === 'string' ? JSON.parse(envValue) : envValue;
+        console.log('[Firebase] Service account parsed:', !!serviceAccount);
+        console.log('[Firebase] Has private_key:', !!(serviceAccount?.private_key));
       } catch (err) {
         console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
       }
+    } else {
+      console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT env var not set');
     }
     // 2. Opsi Kedua: Membaca file dari path variabel env (Development)
     else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
