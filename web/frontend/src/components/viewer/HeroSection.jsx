@@ -823,6 +823,7 @@ function HeroSection({ onRequestCollab }) {
         setLoading(true);
         // getNextSchedule returns: { success, data: scheduleObject || null }
         const result = await getNextSchedule();
+        console.log("[HeroSection] Next schedule API response:", result);
 
         if (result?.success && result?.data?.id) {
           // Extract schedule data from response
