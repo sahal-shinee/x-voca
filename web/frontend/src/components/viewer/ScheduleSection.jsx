@@ -421,6 +421,8 @@ const ScheduleSection = () => {
         setLoading(true);
         setError(null);
 
+        console.log('[ScheduleSection] Fetching schedules...');
+
         // Fetch all schedules (live, upcoming, done)
         const [liveResult, upcomingResult, doneResult] = await Promise.all([
           getSchedules({ status: 'live', limit: 5 }).catch(() => ({ data: [] })),
@@ -428,10 +430,18 @@ const ScheduleSection = () => {
           getSchedules({ status: 'done', limit: 5 }).catch(() => ({ data: [] })),
         ]);
 
+        console.log('[ScheduleSection] liveResult:', liveResult);
+        console.log('[ScheduleSection] upcomingResult:', upcomingResult);
+        console.log('[ScheduleSection] doneResult:', doneResult);
+
         // Extract data arrays from response (service returns { success, data: [...] })
         const liveSchedules = Array.isArray(liveResult) ? liveResult : (liveResult?.data || []);
         const upcomingSchedules = Array.isArray(upcomingResult) ? upcomingResult : (upcomingResult?.data || []);
         const doneSchedules = Array.isArray(doneResult) ? doneResult : (doneResult?.data || []);
+
+        console.log('[ScheduleSection] Extracted liveSchedules:', liveSchedules.length);
+        console.log('[ScheduleSection] Extracted upcomingSchedules:', upcomingSchedules.length);
+        console.log('[ScheduleSection] Extracted doneSchedules:', doneSchedules.length);
 
         // Combine dan transform data
         const allSchedules = [
@@ -439,6 +449,9 @@ const ScheduleSection = () => {
           ...upcomingSchedules,
           ...doneSchedules,
         ].map(transformScheduleData).filter(Boolean);
+
+        console.log('[ScheduleSection] Final allSchedules count:', allSchedules.length);
+        console.log('[ScheduleSection] allSchedules:', allSchedules);
 
         // Sort by scheduled_at (terdekat dulu) - safe version
         allSchedules.sort((a, b) => {

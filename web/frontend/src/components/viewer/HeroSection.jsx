@@ -823,12 +823,24 @@ function HeroSection({ onRequestCollab }) {
         setLoading(true);
         // getNextSchedule returns: { success, data: scheduleObject || null }
         const result = await getNextSchedule();
-        console.log("[HeroSection] Next schedule API response:", result);
+        console.log("[HeroSection] Full API response:", JSON.stringify(result, null, 2));
+        console.log("[HeroSection] result.data:", result?.data);
+        console.log("[HeroSection] result.data type:", typeof result?.data);
+        console.log("[HeroSection] result.data?.id:", result?.data?.id);
 
-        if (result?.success && result?.data?.id) {
-          // Extract schedule data from response
-          setNextSchedule(result.data);
+        if (result?.success && result?.data) {
+          // Handle both direct schedule object and nested { data: schedule }
+          const scheduleData = result.data.data || result.data;
+
+          if (scheduleData?.id) {
+            console.log("[HeroSection] Schedule found:", scheduleData.title, "at", scheduleData.scheduled_at);
+            setNextSchedule(scheduleData);
+          } else {
+            console.log("[HeroSection] Schedule data has no ID:", scheduleData);
+            setNextSchedule(null);
+          }
         } else {
+          console.log("[HeroSection] No schedule found - result:", result);
           setNextSchedule(null);
         }
       } catch (err) {
@@ -844,15 +856,42 @@ function HeroSection({ onRequestCollab }) {
 
   // Countdown timer
   useEffect(() => {
-    if (!nextSchedule?.scheduled_at_wib && !nextSchedule?.scheduled_at) {
+    console.log("[HeroSection] Countdown effect triggered. nextSchedule:", nextSchedule?.id, nextSchedule?.title);
+
+    // Check both scheduled_at and scheduled_at_wib
+    const targetDateStr = nextSchedule?.scheduled_at_wib || nextSchedule?.scheduled_at;
+    console.log("[HeroSection] Target date string:", targetDateStr);
+
+    if (!targetDateStr) {
+      console.log("[HeroSection] No target date, setting empty countdown");
       setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
       return;
     }
 
     const updateCountdown = () => {
-      const targetDate = nextSchedule.scheduled_at_wib || nextSchedule.scheduled_at;
-      const countdownData = hitungCountdown(targetDate);
-      setCountdown(formatCountdownDisplay(countdownData));
+      const target = safeParseDate(targetDateStr);
+      console.log("[HeroSection] Parsed target date:", target);
+
+      if (!target || isNaN(target.getTime())) {
+        console.log("[HeroSection] Invalid date, setting empty countdown");
+        setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
+        return;
+      }
+
+      const now = new Date();
+      const diff = target - now;
+      console.log("[HeroSection] Time diff (ms):", diff, "Target:", target, "Now:", now);
+
+      if (diff <= 0) {
+        console.log("[HeroSection] Stream is live or past");
+        setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: true, isEmpty: false });
+        return;
+      }
+
+      const countdownData = { diff, days: 0, hours: 0, minutes: 0 };
+      const countdownResult = formatCountdownDisplay(countdownData);
+      console.log("[HeroSection] Countdown result:", countdownResult);
+      setCountdown(countdownResult);
     };
 
     // Initial update

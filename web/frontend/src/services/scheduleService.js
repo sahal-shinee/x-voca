@@ -22,17 +22,37 @@ export const getSchedules = async (params = {}) => {
     if (limit) queryParams.append('limit', limit);
     if (page) queryParams.append('page', page);
 
+    console.log('[scheduleService] getSchedules called:', { status, limit, page });
     const response = await api.get(`/api/schedules?${queryParams.toString()}`);
 
-    // Backend returns: { success, data: { schedules: [...], pagination: {...} } }
-    // Extract schedules array from nested data
-    const schedules = response.data?.data?.schedules || [];
+    console.log('[scheduleService] Raw response:', response);
+    console.log('[scheduleService] response.data:', response?.data);
+
+    // Backend returns: { success, data: { schedules: [...], pagination: {...} }
+    // Extract schedules array - handle multiple formats
+    const responseData = response.data;
+    console.log('[scheduleService] responseData:', responseData);
+    console.log('[scheduleService] responseData.data:', responseData?.data);
+
+    let schedules = [];
+    if (Array.isArray(responseData?.data)) {
+      // Direct array format
+      schedules = responseData.data;
+      console.log('[scheduleService] Using direct array, count:', schedules.length);
+    } else if (responseData?.data?.schedules) {
+      // Nested { schedules: [...] } format
+      schedules = responseData.data.schedules;
+      console.log('[scheduleService] Using nested schedules array, count:', schedules.length);
+    } else {
+      schedules = [];
+      console.log('[scheduleService] No schedules found');
+    }
 
     return {
-      success: response.data?.success ?? true,
+      success: responseData?.success ?? true,
       data: schedules,
-      pagination: response.data?.data?.pagination,
-      message: response.data?.message
+      pagination: responseData?.data?.pagination,
+      message: responseData?.message
     };
   } catch (error) {
     console.error('Error fetching schedules:', error);
@@ -43,11 +63,18 @@ export const getSchedules = async (params = {}) => {
 // Ambil jadwal berikutnya (untuk countdown)
 export const getNextSchedule = async () => {
   try {
+    console.log('[scheduleService] getNextSchedule called');
     const response = await api.get(`/api/schedules/next`);
+
+    console.log('[scheduleService] Raw API response:', response);
+    console.log('[scheduleService] response.data:', response?.data);
 
     // Backend returns: { success: true, data: schedule || null, message: "..." }
     // Handle nested data structure: { data: { data: schedule } } or { data: schedule }
     const responseData = response.data;
+    console.log('[scheduleService] responseData:', responseData);
+    console.log('[scheduleService] responseData.data:', responseData?.data);
+    console.log('[scheduleService] responseData.data?.data:', responseData?.data?.data);
 
     // Extract schedule from potentially nested structure
     let scheduleData = null;
@@ -55,6 +82,8 @@ export const getNextSchedule = async () => {
       // Check if data.data exists (nested) or data directly (not nested)
       scheduleData = responseData.data.data || responseData.data;
     }
+
+    console.log('[scheduleService] Final scheduleData:', scheduleData);
 
     return {
       success: responseData?.success ?? true,
