@@ -1,5 +1,5 @@
 const { Schedule, User, Game, AuditLog } = require('../models');
-const { updateNextSchedule } = require('../utils/firebase.helper');
+const { updateNextSchedule, clearNextSchedule, updateBroadcastingStatus } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
@@ -41,7 +41,11 @@ const getSchedules = async (req, res) => {
 
     const where = {};
     if (status) {
-      where.status = status;
+      if (status === 'archived' || status === 'done') {
+        where.status = { [Op.in]: ['done', 'archived'] };
+      } else {
+        where.status = status;
+      }
     }
 
     const { count, rows: schedules } = await Schedule.findAndCountAll({
@@ -362,6 +366,8 @@ const deleteSchedule = async (req, res) => {
     const nextScheduleData = await getNextScheduleData();
     if (nextScheduleData) {
       await updateNextSchedule(nextScheduleData);
+    } else {
+      await clearNextSchedule();
     }
 
     return res.status(200).json({
@@ -397,7 +403,7 @@ const endStream = async (req, res) => {
       });
     }
 
-    if (schedule.status === 'done') {
+    if (schedule.status === 'done' || schedule.status === 'archived') {
       return res.status(400).json({
         success: false,
         data: null,
@@ -439,8 +445,16 @@ const endStream = async (req, res) => {
       sub_detail: schedule.title
     });
 
-    // Update Firebase
-    await updateNextSchedule(schedule);
+    // Update Firebase with the next active/upcoming schedule (or clear if none)
+    const nextScheduleData = await getNextScheduleData();
+    if (nextScheduleData) {
+      await updateNextSchedule(nextScheduleData);
+    } else {
+      await clearNextSchedule();
+    }
+
+    // Update Firebase broadcasting status to false
+    await updateBroadcastingStatus(false);
 
     return res.status(200).json({
       success: true,

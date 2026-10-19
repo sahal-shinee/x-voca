@@ -4,6 +4,7 @@ import { getSchedules, createSchedule, updateSchedule, deleteSchedule, endStream
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import Modal from '../../components/common/Modal';
 import { safeParseDate, safeFormatDate, safeFormatTime } from '../../utils/dateUtils';
+import { isFirebaseConfigured } from '../../utils/firebase';
 import {
   Radio,
   Calendar,
@@ -52,7 +53,7 @@ const FILTER_TABS = [
   { key: 'all', label: 'SEMUA' },
   { key: 'live', label: 'LIVE' },
   { key: 'upcoming', label: 'UPCOMING' },
-  { key: 'archived', label: 'ARSIP' },
+  { key: 'done', label: 'SELESAI' },
 ];
 
 // Status badge configuration
@@ -60,7 +61,8 @@ const getStatusBadge = (status) => {
   const statusMap = {
     live: { label: 'LIVE NOW', class: 'bg-status-live/10 text-status-live border-status-live/20', icon: Radio },
     upcoming: { label: 'UPCOMING', class: 'bg-status-upcoming/10 text-status-upcoming border-status-upcoming/20', icon: Clock },
-    archived: { label: 'DONE', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
+    done: { label: 'SELESAI', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
+    archived: { label: 'SELESAI', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
   };
   return statusMap[status] || statusMap.upcoming;
 };
@@ -70,11 +72,9 @@ function SchedulePage() {
   const [summaryStats, setSummaryStats] = useState({
     activeBroadcast: null,
     scheduledSlots: 0,
+    completedSlots: 0,
     syncStatus: 'Tersambung',
-    syncLatency: '0.4s',
-    topVotedGame: null,
-    topGameVotes: 0,
-    topGamePercent: 0,
+    syncLatency: 'Realtime Aktif',
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -110,29 +110,27 @@ function SchedulePage() {
     setStatsLoading(true);
     try {
       const response = await getStats();
+      const isConfigured = isFirebaseConfigured();
       if (response?.data?.stats) {
         // Extract from nested structure: response.data.stats
         const stats = response.data.stats;
         setSummaryStats({
           activeBroadcast: stats.activeBroadcast || null,
           scheduledSlots: stats.schedules?.upcoming || 0,
-          syncStatus: 'Tersambung',
-          syncLatency: '0.4s',
-          topVotedGame: stats.topVotedGame?.title || null,
-          topGameVotes: stats.topVotedGame?.vote_count || 0,
-          topGamePercent: stats.topVotedGame?.percentage || 0,
+          completedSlots: stats.schedules?.completed || 0,
+          syncStatus: isConfigured ? 'Tersambung' : 'Lokal',
+          syncLatency: isConfigured ? 'Realtime Aktif' : 'Offline',
         });
       }
     } catch (error) {
       console.error('Error fetching summary stats:', error);
+      const isConfigured = isFirebaseConfigured();
       setSummaryStats({
         activeBroadcast: null,
         scheduledSlots: 0,
-        syncStatus: 'Tersambung',
-        syncLatency: '0.4s',
-        topVotedGame: null,
-        topGameVotes: 0,
-        topGamePercent: 0,
+        completedSlots: 0,
+        syncStatus: isConfigured ? 'Tersambung' : 'Lokal',
+        syncLatency: isConfigured ? 'Realtime Aktif' : 'Offline',
       });
     } finally {
       setStatsLoading(false);
@@ -285,12 +283,18 @@ function SchedulePage() {
 
   // Get status badge for schedule (safe version)
   const getScheduleStatus = (schedule) => {
+    if (!schedule) return 'upcoming';
+    const rawStatus = (schedule.status || '').toLowerCase();
+    if (rawStatus === 'done' || rawStatus === 'archived') return 'done';
+    if (rawStatus === 'live') return 'live';
+    if (rawStatus === 'upcoming') return 'upcoming';
+
     if (!schedule.scheduled_at) return 'upcoming';
     const now = new Date();
     const scheduleDate = safeParseDate(schedule.scheduled_at);
-
-    if (schedule.status === 'archived') return 'archived';
-    if (schedule.status === 'live' || (scheduleDate && scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
+    if (scheduleDate && scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000)) {
+      return 'live';
+    }
     return 'upcoming';
   };
 
@@ -377,25 +381,23 @@ function SchedulePage() {
           </div>
         </div>
 
-        {/* Card 4: Voting Terpilih */}
+        {/* Card 4: Siaran Selesai */}
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-gold/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-accent-gold" />
+            <div className="w-10 h-10 rounded-lg bg-status-done/10 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-status-done" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-muted">Voting Terpilih</p>
-              {summaryStats.topVotedGame ? (
-                <>
-                  <p className="text-sm font-semibold text-accent-gold truncate">
-                    {summaryStats.topVotedGame}
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    {summaryStats.topGameVotes} votes ({summaryStats.topGamePercent}%)
-                  </p>
-                </>
+              <p className="text-xs text-text-muted">Siaran Selesai</p>
+              {statsLoading ? (
+                <div className="h-5 w-16 bg-bg-input rounded animate-shimmer mt-1" />
               ) : (
-                <p className="text-sm text-text-muted">Belum ada voting</p>
+                <>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {summaryStats.completedSlots || schedules.filter(s => getScheduleStatus(s) === 'done').length} Sesi
+                  </p>
+                  <p className="text-xs text-text-muted">Tersimpan dalam arsip</p>
+                </>
               )}
             </div>
           </div>
@@ -634,12 +636,12 @@ function SchedulePage() {
             </div>
             <div>
               <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Status</label>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(previewModal.schedule.status).class}`}>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(getScheduleStatus(previewModal.schedule)).class}`}>
                 {(() => {
-                  const StatusIcon = getStatusBadge(previewModal.schedule.status).icon;
+                  const StatusIcon = getStatusBadge(getScheduleStatus(previewModal.schedule)).icon;
                   return <StatusIcon className="w-3 h-3" />;
                 })()}
-                {getStatusBadge(previewModal.schedule.status).label}
+                {getStatusBadge(getScheduleStatus(previewModal.schedule)).label}
               </span>
             </div>
             {previewModal.schedule.description && (

@@ -62,6 +62,13 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
+    // Get completed/archived schedules count
+    const completedSchedules = await Schedule.count({
+      where: {
+        status: { [Op.in]: ['done', 'archived'] }
+      }
+    });
+
     // Get active broadcast (schedule with status 'live')
     const activeBroadcast = await Schedule.findOne({
       where: {
@@ -145,7 +152,8 @@ const getDashboardStats = async (req, res) => {
         }, {})
       },
       schedules: {
-        upcoming: upcomingSchedules
+        upcoming: upcomingSchedules,
+        completed: completedSchedules
       },
       todos: {
         pending: pendingTodos,

@@ -124,11 +124,36 @@ const getFirebaseAdmin = () => {
 };
 
 /**
+ * Clear next schedule di Firebase
+ * @returns {Promise<boolean>} Success status
+ */
+const clearNextSchedule = async () => {
+  const fb = getFirebaseAdmin();
+  if (!fb) {
+    return false;
+  }
+
+  try {
+    const ref = fb.database().ref('/schedules/next');
+    await ref.remove();
+    console.log('✅ Firebase: Cleared /schedules/next');
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase clearNextSchedule error:', error.message);
+    return false;
+  }
+};
+
+/**
  * Update next schedule di Firebase
  * @param {Object} scheduleData Data jadwal stream
  * @returns {Promise<boolean>} Success status
  */
 const updateNextSchedule = async (scheduleData) => {
+  if (!scheduleData) {
+    return await clearNextSchedule();
+  }
+
   const fb = getFirebaseAdmin();
   if (!fb) {
     console.warn('⚠️ Firebase not available, skipping schedule update');
@@ -143,6 +168,7 @@ const updateNextSchedule = async (scheduleData) => {
       title: scheduleData.title,
       game: scheduleData.game_category || null,
       datetime: scheduleData.scheduled_at,
+      status: scheduleData.status || 'upcoming',
       countdownEnabled: scheduleData.countdown_enabled !== false,
       updatedAt: new Date().toISOString()
     });
@@ -300,6 +326,7 @@ const updateAllGamesVotes = async (games, periodKey) => {
 
 module.exports = {
   updateNextSchedule,
+  clearNextSchedule,
   updateVoteCount,
   updateBroadcastingStatus,
   resetVotingPeriod,

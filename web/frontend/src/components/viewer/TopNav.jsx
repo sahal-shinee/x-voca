@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase';
 
 // Icons
 const UserIcon = ({ size = 15, className = '' }) => (
@@ -26,6 +27,11 @@ const TopNav = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Live broadcast status from Firebase
+  const { isLive } = useBroadcastingStatus();
+  const { schedule: nextSchedule } = useNextSchedule();
+  const isCurrentlyLive = isLive || nextSchedule?.status === 'live';
 
   // Web Audio Ambient Synthesizer
   const audioCtxRef = useRef(null);
@@ -184,20 +190,22 @@ const TopNav = () => {
 
           {/* Right: Functional Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* LIVE NOW Interactive Scroll Trigger */}
-            <button
-              type="button"
-              onClick={handleLiveClick}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/35 hover:border-red-500/60 hover:bg-red-500/20 text-red-400 text-[10px] sm:text-[11px] font-bold font-sans tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(239,68,68,0.2)] group cursor-pointer"
-              title="Lihat Jadwal Siaran Langsung"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-              </span>
-              <span className="hidden sm:inline">LIVE NOW</span>
-              <span className="sm:hidden">LIVE</span>
-            </button>
+            {/* LIVE NOW Interactive Scroll Trigger - Only when actually live */}
+            {isCurrentlyLive && (
+              <button
+                type="button"
+                onClick={handleLiveClick}
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/35 hover:border-red-500/60 hover:bg-red-500/20 text-red-400 text-[10px] sm:text-[11px] font-bold font-sans tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(239,68,68,0.2)] group cursor-pointer"
+                title="Lihat Jadwal Siaran Langsung"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                <span className="hidden sm:inline">LIVE NOW</span>
+                <span className="sm:hidden">LIVE</span>
+              </button>
+            )}
 
             {/* Interactive Audio Ambient Synthesizer Button */}
             <button
