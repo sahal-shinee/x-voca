@@ -16,8 +16,6 @@ envContent.split('\n').forEach(line => {
   }
 });
 
-const mysql = require('mysql2/promise');
-
 async function testConnection() {
   console.log('🔄 Testing MySQL connection to Railway...\n');
 

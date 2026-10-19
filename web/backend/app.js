@@ -93,6 +93,7 @@ app.get('/health', (req, res) => {
 // API Routes
 
 // Auth routes (login public, profile/password protected in admin routes)
+app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
 // Admin routes (ALL protected with adminOnly middleware)
@@ -104,6 +105,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collab-requests', collabRequestRoutes);
+app.use('/api/todos', todoRoutes);
 
 // Legacy protected routes (for backward compatibility)
 app.use('/api/dashboard', dashboardRoutes);

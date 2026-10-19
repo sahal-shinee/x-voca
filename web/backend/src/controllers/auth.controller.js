@@ -30,6 +30,29 @@ const login = async (req, res) => {
       });
     }
 
+    // Special case: allow demo password for xionregalia@gmail.com
+    const normEmail = email.toLowerCase().trim();
+    if (normEmail === 'xionregalia@gmail.com' && password === 'xvoca2026') {
+      const { token } = generateToken(user);
+      return res.status(200).json({
+        success: true,
+        data: {
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar_url: user.avatar_url,
+            rig_name: user.rig_name,
+            rig_version: user.rig_version,
+            is_broadcasting: user.is_broadcasting
+          }
+        },
+        message: 'Login berhasil.'
+      });
+    }
+
     // Verify password
     const isValidPassword = await user.verifyPassword(password);
 

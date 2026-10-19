@@ -19,9 +19,7 @@ const startServer = async () => {
     // Sync database models (create tables if not exist)
     // Set alter: true in development to auto-update tables
     // Set alter: false in production for manual migrations
-    const syncOptions = process.env.NODE_ENV === 'production'
-      ? { alter: false }
-      : { alter: true };
+    const syncOptions = { alter: false };
 
     await syncDatabase(syncOptions);
 
