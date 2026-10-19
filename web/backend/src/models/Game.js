@@ -23,7 +23,7 @@ const Game = sequelize.define('Game', {
     allowNull: true
   },
   cover_url: {
-    type: DataTypes.STRING(500),
+    type: DataTypes.TEXT('medium'),
     allowNull: true,
     field: 'cover_url'
   },

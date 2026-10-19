@@ -66,6 +66,13 @@ const syncDatabase = async (options = {}) => {
   try {
     await sequelize.sync(options);
     console.log('✅ Database synchronized successfully.');
+
+    // Ensure games.cover_url supports long URLs and base64 data URIs
+    try {
+      await sequelize.query('ALTER TABLE games MODIFY COLUMN cover_url MEDIUMTEXT;');
+    } catch (colErr) {
+      // Column might already be modified or non-fatal
+    }
   } catch (error) {
     console.error('❌ Database synchronization error:', error.message);
     throw error;

@@ -21,7 +21,10 @@ import {
   XCircle,
   CheckCircle,
   Clock,
-  Power
+  Power,
+  Tv,
+  ExternalLink,
+  Users
 } from 'lucide-react';
 
 // YouTube Icon Component
@@ -32,12 +35,19 @@ const YouTubeIcon = ({ size = 16 }) => (
   </svg>
 );
 
+// Helper to extract YouTube video ID from URL
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 // Normalize schedule data from backend to frontend expected format
 const normalizeSchedule = (schedule) => ({
   id: schedule.id,
   title: schedule.title || '-',
   game_category: schedule.game_category || schedule.game || '-',
-  scheduled_at: schedule.scheduled_at || schedule.scheduled_at || null,
+  scheduled_at: schedule.scheduled_at || null,
   description: schedule.description || '',
   collab_guest: schedule.collab_guest || null,
   collab_social: schedule.collab_social || null,
@@ -46,6 +56,8 @@ const normalizeSchedule = (schedule) => ({
   stream_platform: schedule.stream_platform || 'YouTube',
   countdown_enabled: schedule.countdown_enabled !== false,
   status: schedule.status || 'upcoming',
+  created_at: schedule.created_at || schedule.createdAt || null,
+  updated_at: schedule.updated_at || schedule.updatedAt || null,
 });
 
 // Tab filter options
@@ -616,70 +628,215 @@ function SchedulePage() {
       <Modal
         isOpen={previewModal.open}
         onClose={() => setPreviewModal({ open: false, schedule: null })}
-        title="Detail Jadwal"
-      >
-        {previewModal.schedule && (
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Judul Stream</label>
-              <p className="text-text-primary font-semibold">{previewModal.schedule.title}</p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Kategori</label>
-              <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-bg-input text-text-secondary">
-                {previewModal.schedule.game_category || 'LAINNYA'}
-              </span>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Waktu</label>
-              <p className="text-text-primary">{formatDateTime(previewModal.schedule.scheduled_at)}</p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Status</label>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(getScheduleStatus(previewModal.schedule)).class}`}>
-                {(() => {
-                  const StatusIcon = getStatusBadge(getScheduleStatus(previewModal.schedule)).icon;
-                  return <StatusIcon className="w-3 h-3" />;
-                })()}
-                {getStatusBadge(getScheduleStatus(previewModal.schedule)).label}
-              </span>
-            </div>
-            {previewModal.schedule.description && (
-              <div>
-                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Deskripsi</label>
-                <p className="text-text-secondary text-sm">{previewModal.schedule.description}</p>
-              </div>
-            )}
-            {previewModal.schedule.collab_guest && (
-              <div>
-                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Collab Guest</label>
-                <p className="text-text-primary">@{previewModal.schedule.collab_guest}</p>
-              </div>
-            )}
-            {previewModal.schedule.youtube_url && (
-              <div>
-                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">YouTube</label>
-                <a
-                  href={previewModal.schedule.youtube_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
-                >
-                  <YouTubeIcon size={16} />
-                  <span className="text-sm underline">{previewModal.schedule.youtube_url}</span>
-                </a>
-              </div>
-            )}
-            <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
-              <span className={`text-xs ${previewModal.schedule.countdown_enabled ? 'text-status-upcoming' : 'text-text-muted'}`}>
-                Countdown: {previewModal.schedule.countdown_enabled ? 'Aktif' : 'Nonaktif'}
-              </span>
-              <span className="text-xs text-text-muted">
-                Created: {previewModal.schedule.created_at ? new Date(previewModal.schedule.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-'}
-              </span>
-            </div>
+        title="Detail Jadwal Siaran"
+        size="lg"
+        icon={<Tv className="w-5 h-5 text-accent-purple" />}
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              onClick={() => setPreviewModal({ open: false, schedule: null })}
+              className="px-4 py-2.5 rounded-xl bg-bg-card-hover border border-border-subtle text-text-secondary hover:text-text-primary text-sm font-medium transition-colors"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const scheduleToEdit = previewModal.schedule;
+                setPreviewModal({ open: false, schedule: null });
+                handleEditSchedule(scheduleToEdit);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-cta text-text-on-cta hover:opacity-90 text-sm font-semibold transition-opacity shadow-sm"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Edit Jadwal</span>
+            </button>
           </div>
-        )}
+        }
+      >
+        {previewModal.schedule && (() => {
+          const s = previewModal.schedule;
+          const statusKey = getScheduleStatus(s);
+          const statusBadge = getStatusBadge(statusKey);
+          const StatusIcon = statusBadge.icon;
+          const videoId = getYouTubeVideoId(s.youtube_url);
+          const thumbnailSrc = s.thumbnail_url || (videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null);
+
+          return (
+            <div className="space-y-4">
+              {/* Media Thumbnail or Title Banner */}
+              {thumbnailSrc ? (
+                <div className="rounded-xl overflow-hidden border border-border-subtle bg-bg-surface">
+                  <div className="aspect-video w-full max-h-52 overflow-hidden bg-black/60 relative">
+                    <img
+                      src={thumbnailSrc}
+                      alt={s.title}
+                      className="w-full h-full object-cover object-center"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-bg-base/90 via-transparent to-black/30" />
+                    
+                    {/* Floating Badges */}
+                    <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border backdrop-blur-md shadow-sm ${statusBadge.class}`}>
+                        <StatusIcon className="w-3.5 h-3.5" />
+                        {statusBadge.label}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-bg-base/80 border border-border-subtle text-text-primary backdrop-blur-md shadow-sm">
+                        {s.game_category || 'UMUM'}
+                      </span>
+                    </div>
+
+                    {s.youtube_url && (
+                      <div className="absolute bottom-3 right-3">
+                        <a
+                          href={s.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-xs font-semibold backdrop-blur-md transition-colors shadow-sm"
+                        >
+                          <YouTubeIcon size={14} />
+                          <span>Buka Siaran</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-bg-card">
+                    <h3 className="text-base font-bold text-text-primary leading-snug">
+                      {s.title}
+                    </h3>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-border-subtle bg-bg-surface space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border ${statusBadge.class}`}>
+                      <StatusIcon className="w-3.5 h-3.5" />
+                      {statusBadge.label}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-bg-input text-text-secondary border border-border-subtle">
+                      {s.game_category || 'UMUM'}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-text-primary leading-snug">
+                    {s.title}
+                  </h3>
+                </div>
+              )}
+
+              {/* 2-Column Schedule & Countdown Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-accent-purple/10 text-accent-purple border border-accent-purple/20 shrink-0 mt-0.5">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Waktu Siaran</p>
+                    <p className="text-sm font-semibold text-text-primary mt-0.5">
+                      {formatDateTime(s.scheduled_at)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-start gap-3">
+                  <div className={`p-2 rounded-lg shrink-0 mt-0.5 border ${
+                    s.countdown_enabled
+                      ? 'bg-status-upcoming/10 text-status-upcoming border-status-upcoming/20'
+                      : 'bg-bg-input text-text-muted border-border-subtle'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Countdown Fansite</p>
+                    <p className={`text-sm font-semibold mt-0.5 ${
+                      s.countdown_enabled ? 'text-status-upcoming' : 'text-text-muted'
+                    }`}>
+                      {s.countdown_enabled ? 'Aktif di Beranda' : 'Nonaktif'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collab Streamer Info */}
+              {s.collab_guest && (
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 rounded-lg bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Kolaborasi</p>
+                      <p className="text-sm font-semibold text-text-primary truncate mt-0.5">
+                        @{s.collab_guest.replace(/^@/, '')}
+                      </p>
+                    </div>
+                  </div>
+                  {s.collab_social && (
+                    <a
+                      href={s.collab_social.startsWith('http') ? s.collab_social : `https://${s.collab_social}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card hover:bg-bg-card-hover border border-border-subtle text-xs font-medium text-text-secondary hover:text-text-primary transition-colors shrink-0"
+                    >
+                      <span>Kanal Tamu</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Description */}
+              {s.description && (
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle space-y-1.5">
+                  <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Deskripsi Siaran</p>
+                  <p className="text-sm text-text-secondary whitespace-pre-line leading-relaxed">
+                    {s.description}
+                  </p>
+                </div>
+              )}
+
+              {/* YouTube Card (when no thumbnail was shown above) */}
+              {s.youtube_url && !thumbnailSrc && (
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 shrink-0">
+                      <YouTubeIcon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Tautan YouTube</p>
+                      <p className="text-xs font-mono text-text-secondary truncate mt-0.5">{s.youtube_url}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={s.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-sm transition-colors shrink-0"
+                  >
+                    <span>Buka YouTube</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {/* Metadata Footer: ID, Platform, Timestamps */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-border-subtle text-xs text-text-muted">
+                <div className="flex items-center gap-3">
+                  <span>ID Jadwal: #{s.id}</span>
+                  <span>Platform: {s.stream_platform || 'YouTube'}</span>
+                </div>
+                <div>
+                  <span>Dibuat: {s.created_at ? formatDateTime(s.created_at) : 'Tercatat di sistem'}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* ========== DELETE CONFIRMATION MODAL ========== */}

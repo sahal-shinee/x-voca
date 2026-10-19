@@ -1,20 +1,60 @@
 /**
  * PDF Export Utility for X-VOCA Voting Results
  *
- * Creates a formatted PDF report with:
- * - Header with title and period info
- * - Summary statistics
- * - Bar chart of game votes
- * - Detailed game table
+ * Creates a clean, professional, highly readable PDF report:
+ * - Executive header with period & timestamp
+ * - 3 KPI summary metrics cards
+ * - High-contrast, cleanly styled data table with Indonesian labels
+ * - Standardized footer with page numbering
  */
 
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-// Helper to format date
-const formatDate = () => {
-  const options = { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-  return new Date().toLocaleDateString('id-ID', options);
+// Helper to run autoTable safely across different bundlers
+const runAutoTable = (doc, options) => {
+  if (typeof doc.autoTable === 'function') {
+    return doc.autoTable(options);
+  }
+  if (typeof autoTable === 'function') {
+    return autoTable(doc, options);
+  }
+  if (autoTable && typeof autoTable.default === 'function') {
+    return autoTable.default(doc, options);
+  }
+  throw new Error('Plugin autoTable tidak dapat dimuat.');
+};
+
+// Format period key like "2026-10" to Indonesian string "Oktober 2026"
+const formatPeriodString = (periodKey) => {
+  if (!periodKey) return '-';
+  try {
+    const [year, month] = periodKey.split('-');
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  } catch {
+    return periodKey;
+  }
+};
+
+// Format timestamp in WIB
+const formatDateTimeWIB = () => {
+  return new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+  }) + ' WIB';
+};
+
+// Map database status to clean Indonesian label
+const STATUS_LABELS = {
+  requested: 'Menunggu Review',
+  accepted: 'Diterima',
+  playing: 'Sedang Dimainkan',
+  done: 'Selesai',
 };
 
 /**
@@ -26,167 +66,214 @@ const formatDate = () => {
  * @param {Object} options.stats - Summary statistics
  * @param {Function} options.onProgress - Progress callback (0-100)
  */
-export const generateVotingPDF = async ({ games, periodKey, stats, onProgress }) => {
-  const doc = new jsPDF();
+export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onProgress }) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  let yPos = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentWidth = pageWidth - (margin * 2);
 
-  // Report title
-  doc.setFontSize(20);
-  doc.setTextColor(126, 224, 210); // accent-cyan
-  doc.text('X-VOCA Voting Report', margin, yPos);
-  yPos += 10;
+  let yPos = 16;
 
-  // Period info
-  doc.setFontSize(12);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Periode: ${periodKey || 'Unknown'}`, margin, yPos);
+  if (onProgress) onProgress(15);
+
+  // ── 1. Top Decorative Bar ──────────────────────────────────────────
+  doc.setFillColor(30, 27, 46); // deep dark slate / indigo
+  doc.rect(margin, yPos, contentWidth, 3, 'F');
+  yPos += 9;
+
+  // ── 2. Header Title & Subtitle ─────────────────────────────────────
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.text('LAPORAN MODERASI VOTING GAME', margin, yPos);
+
+  yPos += 5.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.text('X-VOCA STREAMING & AUDIENCE GOVERNANCE', margin, yPos);
+
+  // Period & Generation Date on the right
+  const periodLabel = formatPeriodString(periodKey);
+  const nowStr = formatDateTimeWIB();
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Periode: ${periodLabel} (${periodKey || '-'})`, pageWidth - margin, yPos - 5.5, { align: 'right' });
+  doc.text(`Dicetak: ${nowStr}`, pageWidth - margin, yPos, { align: 'right' });
+
+  yPos += 8;
+
+  // Horizontal divider
+  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.setLineWidth(0.4);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+
   yPos += 6;
-  doc.text(`Generated: ${formatDate()}`, margin, yPos);
-  yPos += 15;
 
-  // Progress callback
-  if (onProgress) onProgress(20);
+  if (onProgress) onProgress(35);
 
-  // Summary Statistics Box
-  doc.setFillColor(245, 245, 250);
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 25, 'F');
+  // ── 3. Summary KPI Cards (3 Columns) ──────────────────────────────
+  const totalVotes = stats?.totalVotes || games.reduce((sum, g) => sum + (g.vote_count || 0), 0) || 0;
+  const totalGames = games.length;
+  const sortedGames = [...games].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+  const topGame = sortedGames[0] || null;
 
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-
-  const totalVotes = stats?.totalVotes || games?.reduce((sum, g) => sum + (g.vote_count || 0), 0) || 0;
-  const totalGames = games?.length || 0;
-
-  const summaryCol1 = margin + 5;
-  const summaryCol2 = margin + 55;
-  const summaryCol3 = margin + 105;
-
-  doc.text('Total Votes:', summaryCol1, yPos + 8);
-  doc.setFontSize(14);
-  doc.setTextColor(126, 224, 210);
-  doc.text(String(totalVotes), summaryCol1, yPos + 18);
-
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  doc.text('Total Games:', summaryCol2, yPos + 8);
-  doc.setFontSize(14);
-  doc.setTextColor(192, 132, 252);
-  doc.text(String(totalGames), summaryCol2, yPos + 18);
-
-  const statusCounts = games?.reduce((acc, g) => {
-    const status = g.status || 'unknown';
-    acc[status] = (acc[status] || 0) + 1;
+  const statusCounts = games.reduce((acc, g) => {
+    const s = g.status || 'requested';
+    acc[s] = (acc[s] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
+  const cardWidth = (contentWidth - 8) / 3;
+  const cardHeight = 22;
+
+  // Card 1: Total Votes
+  doc.setFillColor(248, 250, 252); // slate-50
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('TOTAL SUARA MASUK', margin + 4, yPos + 6);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(15, 23, 42);
+  doc.text(totalVotes.toLocaleString('id-ID'), margin + 4, yPos + 14);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Suara penonton terverifikasi', margin + 4, yPos + 19);
+
+  // Card 2: Top Voted Game
+  const card2X = margin + cardWidth + 4;
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(card2X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('GAME PERINGKAT #1', card2X + 4, yPos + 6);
+
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  doc.text('Active (Requested + Accepted):', summaryCol3, yPos + 8);
-  doc.setFontSize(14);
-  doc.setTextColor(100, 100, 100);
-  const activeCount = (statusCounts.requested || 0) + (statusCounts.accepted || 0);
-  doc.text(String(activeCount), summaryCol3, yPos + 18);
+  doc.setTextColor(15, 23, 42);
+  const topTitle = topGame ? (topGame.title.length > 20 ? topGame.title.slice(0, 19) + '...' : topGame.title) : '-';
+  doc.text(topTitle, card2X + 4, yPos + 13.5);
 
-  yPos += 35;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  const topVotesCount = topGame ? (topGame.vote_count || 0) : 0;
+  const topPercent = totalVotes > 0 ? Math.round((topVotesCount / totalVotes) * 100) : 0;
+  doc.text(topGame ? `${topVotesCount.toLocaleString('id-ID')} suara (${topPercent}% dari total)` : 'Belum ada suara', card2X + 4, yPos + 19);
 
-  if (onProgress) onProgress(40);
+  // Card 3: Status Distribution
+  const card3X = card2X + cardWidth + 4;
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(card3X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
 
-  // Bar Chart (simplified visual representation)
-  if (games && games.length > 0) {
-    doc.setFontSize(14);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Vote Distribution', margin, yPos);
-    yPos += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('STATUS USULAN GAME', card3X + 4, yPos + 6);
 
-    const maxVotes = Math.max(...games.map(g => g.vote_count || 0), 1);
-    const chartHeight = 50;
-    const barWidth = (pageWidth - (margin * 2) - 10) / Math.min(games.length, 10);
-    const displayGames = games.slice(0, 10).sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`${totalGames} Total Game`, card3X + 4, yPos + 13.5);
 
-    displayGames.forEach((game, index) => {
-      const x = margin + (index * barWidth);
-      const barHeight = ((game.vote_count || 0) / maxVotes) * chartHeight;
-      const barY = yPos + chartHeight - barHeight;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${statusCounts.accepted || 0} Diterima | ${statusCounts.playing || 0} Main | ${statusCounts.done || 0} Selesai`, card3X + 4, yPos + 19);
 
-      // Bar color gradient effect
-      doc.setFillColor(126, 224, 210);
-      if (index % 2 === 0) {
-        doc.setFillColor(192, 132, 252);
-      }
-
-      doc.rect(x, barY, barWidth - 2, barHeight, 'F');
-
-      // Vote count on top
-      doc.setFontSize(7);
-      doc.setTextColor(60, 60, 60);
-      doc.text(String(game.vote_count || 0), x + (barWidth / 2) - 3, barY - 2);
-    });
-
-    yPos += chartHeight + 15;
-  }
+  yPos += cardHeight + 8;
 
   if (onProgress) onProgress(60);
 
-  // Game Table
-  doc.setFontSize(14);
-  doc.setTextColor(40, 40, 40);
-  doc.text('Detailed Results', margin, yPos);
-  yPos += 5;
+  // ── 4. Detailed Results Table ──────────────────────────────────────
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Daftar Hasil Voting Game', margin, yPos);
+  yPos += 3.5;
 
-  const tableData = games?.map((game, index) => [
-    String(index + 1),
-    game.title || 'Unknown',
-    game.genre || game.category || '-',
-    String(game.vote_count || 0),
-    stats?.maxVotes > 0 ? `${Math.round(((game.vote_count || 0) / stats.maxVotes) * 100)}%` : '0%',
-    game.status?.toUpperCase() || 'N/A',
-  ]) || [];
+  const tableData = sortedGames.map((game, index) => {
+    const votes = game.vote_count || 0;
+    const maxV = stats?.maxVotes || (sortedGames[0]?.vote_count || 1);
+    const pct = maxV > 0 ? `${Math.round((votes / maxV) * 100)}%` : '0%';
+    const statusLabel = STATUS_LABELS[game.status] || game.status || '-';
 
-  doc.autoTable({
+    return [
+      String(index + 1),
+      game.title || '-',
+      game.genre || game.category || '-',
+      statusLabel,
+      votes.toLocaleString('id-ID'),
+      pct,
+    ];
+  });
+
+  runAutoTable(doc, {
     startY: yPos,
-    head: [['#', 'Game Title', 'Genre', 'Votes', '%', 'Status']],
+    head: [['#', 'Judul Game', 'Kategori / Genre', 'Status', 'Jumlah Suara', 'Rasio Suara']],
     body: tableData,
-    margin: { left: margin, right: margin },
+    margin: { left: margin, right: margin, bottom: 18 },
     styles: {
-      fontSize: 9,
-      cellPadding: 3,
-      lineColor: [200, 200, 200],
+      font: 'helvetica',
+      fontSize: 8,
+      cellPadding: 2.8,
+      lineColor: [226, 232, 240],
       lineWidth: 0.1,
+      textColor: [30, 41, 59],
     },
     headStyles: {
-      fillColor: [35, 31, 66],
+      fillColor: [30, 27, 46],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'left',
     },
     alternateRowStyles: {
-      fillColor: [248, 248, 252],
+      fillColor: [248, 250, 252],
     },
     columnStyles: {
-      0: { cellWidth: 12 },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
-      5: { cellWidth: 25 },
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 62 },
+      2: { cellWidth: 36 },
+      3: { cellWidth: 34, halign: 'center' },
+      4: { cellWidth: 20, halign: 'right', fontStyle: 'bold' },
+      5: { cellWidth: 20, halign: 'right' },
     },
   });
 
   if (onProgress) onProgress(90);
 
-  // Footer
+  // ── 5. Page Numbering & Footer ─────────────────────────────────────
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      `X-VOCA Voting Report - Page ${i} of ${pageCount}`,
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'center' }
-    );
+
+    // Footer divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text('X-VOCA Community Platform - Laporan resmi moderasi voting game.', margin, pageHeight - 7);
+    doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }
 
   if (onProgress) onProgress(100);
@@ -195,14 +282,14 @@ export const generateVotingPDF = async ({ games, periodKey, stats, onProgress })
 };
 
 /**
- * Download PDF with generated filename
+ * Download PDF with formatted filename
  *
  * @param {Object} options - Same as generateVotingPDF options
  */
 export const downloadVotingPDF = async (options) => {
   const doc = await generateVotingPDF(options);
   const periodKey = options.periodKey || new Date().toISOString().slice(0, 7);
-  doc.save(`xvoca-voting-report-${periodKey}.pdf`);
+  doc.save(`laporan_voting_${periodKey}.pdf`);
 };
 
 export default {

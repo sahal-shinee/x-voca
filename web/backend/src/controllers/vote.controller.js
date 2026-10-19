@@ -21,8 +21,9 @@ const getClientIP = (req) => {
 const submitVote = async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { fingerprint } = req.body;
+    const body = req.body || {};
     const ipAddress = getClientIP(req);
+    const fingerprint = body.fingerprint || ipAddress;
 
     // Validate game ID
     const game = await Game.findByPk(gameId);
@@ -35,12 +36,12 @@ const submitVote = async (req, res) => {
       });
     }
 
-    // Validate fingerprint
+    // Validate fingerprint / device identifier
     if (!fingerprint) {
       return res.status(400).json({
         success: false,
         data: null,
-        message: 'Fingerprint wajib diisi.'
+        message: 'Identitas perangkat tidak valid.'
       });
     }
 
@@ -116,9 +117,10 @@ const submitVote = async (req, res) => {
  */
 const submitGameRequest = async (req, res) => {
   try {
-    const { title, genre, publisher, cover_url } = req.body;
+    const body = req.body || {};
+    const { title, genre, publisher, cover_url } = body;
     const ipAddress = getClientIP(req);
-    const fingerprint = req.body.fingerprint || ipAddress;
+    const fingerprint = body.fingerprint || ipAddress;
 
     // Validate required fields
     if (!title) {
