@@ -44,11 +44,6 @@ const EyeIcon = ({ size = 16 }) => (
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
-const ChevronRightIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 const ExternalIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -83,15 +78,15 @@ const DiscordIcon = () => (
 const FALLBACK_STATS = [
   { label: "Total Stream", value: "0", color: "#7ee0d2" },
   { label: "Jam Konten", value: "0j", color: "#c084fc" },
-  { label: "Total Views", value: "0", color: "#fbbf24" },
+  { label: "Total Video", value: "0", color: "#fbbf24" },
   { label: "Konten Baru", value: "0", color: "#f472b6" },
 ];
 
 const FALLBACK_CATEGORIES = [
-  { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 0, totalViews: "0" },
-  { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 0, totalViews: "0" },
-  { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 0, totalViews: "0" },
-  { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 0, totalViews: "0" },
+  { id: "zatsu", name: "ZATSU", icon: <ChatIcon />, color: "#c084fc", count: 0, totalVideos: "0" },
+  { id: "live2d", name: "LIVE2D", icon: <EyeIcon />, color: "#7ee0d2", count: 0, totalVideos: "0" },
+  { id: "indie", name: "INDIE GAMES", icon: <GameIcon />, color: "#fbbf24", count: 0, totalVideos: "0" },
+  { id: "karaoke", name: "KARAOKE", icon: <MusicIcon />, color: "#f472b6", count: 0, totalVideos: "0" },
 ];
 
 const SORT_OPTIONS = [
@@ -179,7 +174,7 @@ function ContentGuidePage() {
         setStats([
           { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
           { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
-          { label: "Total Views", value: s.totalViews || "0", color: "#fbbf24" },
+          { label: "Total Video", value: s.totalVideos || "0", color: "#fbbf24" },
           { label: "Konten Baru", value: s.newContent || "0", color: "#f472b6" },
         ]);
       } else {
@@ -455,8 +450,8 @@ function ContentGuidePage() {
 
               <div className="relative flex flex-col lg:flex-row gap-0">
                 {/* Thumbnail */}
-                <div className="lg:w-[420px] flex-shrink-0">
-                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[220px] overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
+                <div className="lg:w-[320px] flex-shrink-0">
+                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[160px] overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
                     {featured.thumbnailUrl ? (
                       <img
                         src={featured.thumbnailUrl}
@@ -505,20 +500,20 @@ function ContentGuidePage() {
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 flex flex-col justify-center p-6 lg:p-8">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 flex flex-col justify-center p-4 lg:p-6">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs text-[#5c5480]">{featured.date}</span>
                     <span className="w-1 h-1 rounded-full bg-[#3d3560]" />
                     <span className="flex items-center gap-1 text-xs text-[#7c7898]">
                       <EyeIcon size={12} />
-                      {featured.viewCount} views
+                      {featured.videoCount} video
                     </span>
                   </div>
 
-                  <h2 className="text-xl lg:text-2xl font-bold text-white mb-2 leading-snug">
+                  <h2 className="text-lg lg:text-xl font-bold text-white mb-2 leading-snug">
                     {featured.title}
                   </h2>
-                  <p className="text-sm text-[#7c7898] mb-6 leading-relaxed max-w-md">
+                  <p className="text-sm text-[#7c7898] mb-4 leading-relaxed max-w-md">
                     {featured.subtitle}
                   </p>
 
@@ -534,14 +529,6 @@ function ContentGuidePage() {
                       <YouTubeIcon />
                       Tonton Sekarang
                     </a>
-                    <button
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#a89ec0] transition-all duration-200 hover:text-white"
-                      style={{ background: 'rgba(42,38,69,0.5)', border: '1px solid rgba(61,53,96,0.6)' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span>Detail</span>
-                      <ChevronRightIcon />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -592,7 +579,7 @@ function ContentGuidePage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span style={{ color: cat.color }}>{cat.icon}</span>
-                  <span className="text-[10px] font-mono text-[#5c5480]">{cat.totalViews || '0'}</span>
+                  <span className="text-[10px] font-mono text-[#5c5480]">{cat.totalVideos || '0'} vid</span>
                 </div>
                 <div className="text-xl font-bold font-mono mb-0.5" style={{ color: activeCategory === cat.name ? cat.color : '#fff' }}>
                   {cat.count || 0}
@@ -733,7 +720,7 @@ function ContentGuidePage() {
                         <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: catColor }}>{content.category}</div>
                         <h3 className="text-sm font-semibold text-white truncate group-hover:text-[#7ee0d2] transition-colors">{content.title}</h3>
                         <div className="flex items-center gap-3 mt-1 text-[11px] text-[#5c5480]">
-                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.viewCount}</span>
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.videoCount} video</span>
                           <span>{content.date}</span>
                         </div>
                       </div>
@@ -805,7 +792,7 @@ function ContentGuidePage() {
                       </h3>
                       <div className="flex items-center justify-between text-[11px] text-[#5c5480]">
                         <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.viewCount}</span>
+                          <span className="flex items-center gap-1"><EyeIcon size={11} />{content.videoCount} video</span>
                           <span>{content.date}</span>
                         </div>
                         <span className="text-[#3d3560] group-hover:text-[#7ee0d2] transition-colors"><ExternalIcon /></span>

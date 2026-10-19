@@ -76,8 +76,8 @@ const getContentStats = async (req, res) => {
       }
     });
 
-    // Calculate total views (estimate: 5000 views per stream average)
-    const totalViews = totalStreams * 5000;
+    // Calculate total videos across all content
+    const totalVideos = contents.reduce((sum, c) => sum + (c.video_count || 1), 0);
 
     // Count new content (last 7 days)
     const sevenDaysAgo = new Date();
@@ -87,19 +87,12 @@ const getContentStats = async (req, res) => {
     // Format hours display
     const hoursDisplay = formatDuration(totalMinutes);
 
-    // Format views display
-    const formatViews = (num) => {
-      if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-      if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
-      return num.toString();
-    };
-
     return res.status(200).json({
       success: true,
       data: {
         totalStreams: totalStreams.toString(),
         totalHours: hoursDisplay,
-        totalViews: formatViews(totalViews),
+        totalVideos: totalVideos.toString(),
         newContent: newContent.toString()
       },
       message: 'Stats berhasil diambil.'
@@ -130,10 +123,10 @@ const getContentCategories = async (req, res) => {
     contents.forEach(c => {
       const tag = c.game_tag || 'other';
       if (!grouped[tag]) {
-        grouped[tag] = { count: 0, views: 0 };
+        grouped[tag] = { count: 0, videos: 0 };
       }
       grouped[tag].count += 1;
-      grouped[tag].views += (c.video_count || 1) * 5000; // Estimate 5000 views per video
+      grouped[tag].videos += (c.video_count || 1);
     });
 
     // Transform to array with category config
@@ -145,7 +138,7 @@ const getContentCategories = async (req, res) => {
         icon: config.icon,
         color: config.color,
         count: data.count,
-        totalViews: data.views >= 1000 ? `${(data.views / 1000).toFixed(0)}K` : data.views.toString()
+        totalVideos: data.videos.toString()
       };
     });
 
@@ -231,19 +224,20 @@ const getContents = async (req, res) => {
     // Transform contents with computed fields for UI
     const transformedContents = contents.map(c => {
       const categoryConfig = getCategoryConfig(c.game_tag);
-      const viewCount = (c.video_count || 1) * 5000; // Estimate 5000 views per video
+      const videoCount = c.video_count || 1;
       const daysSinceCreated = Math.floor((new Date() - new Date(c.created_at)) / (1000 * 60 * 60 * 24));
 
       let status = '';
       if (daysSinceCreated <= 7) status = 'new';
-      else if (viewCount > 15000) status = 'popular';
+      else if (videoCount >= 5) status = 'popular';
 
       return {
         id: c.id,
         title: c.title,
         subtitle: `Stream oleh ${c.user?.name || 'X-VOCA'}`,
-        viewCount: viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount.toString(),
-        duration: c.total_duration || formatDuration((c.video_count || 1) * 60),
+        videoCount: videoCount,
+        video_count: videoCount,
+        duration: c.total_duration || formatDuration(videoCount * 60),
         total_duration: c.total_duration,
         category: categoryConfig.name,
         categoryId: (c.game_tag || 'other').toLowerCase().replace(/\s+/g, '-'),
@@ -256,8 +250,6 @@ const getContents = async (req, res) => {
         thumbnail_url: c.thumbnail_url,
         thumbnailUrl: c.thumbnail_url,
         thumbnail: c.thumbnail_url,
-        video_count: c.video_count || 1,
-        videoCount: c.video_count || 1,
         content_type: c.content_type || 'video',
         contentType: c.content_type || 'video',
         game_tag: c.game_tag,
