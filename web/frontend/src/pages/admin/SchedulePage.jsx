@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStats } from '../../services/dashboardService';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from '../../services/scheduleService';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, endStream } from '../../services/scheduleService';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import Modal from '../../components/common/Modal';
 import { safeParseDate, safeFormatDate, safeFormatTime } from '../../utils/dateUtils';
@@ -19,7 +19,8 @@ import {
   Loader2,
   XCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Power
 } from 'lucide-react';
 
 // YouTube Icon Component
@@ -91,6 +92,10 @@ function SchedulePage() {
   // Delete confirmation state
   const [deleteModal, setDeleteModal] = useState({ open: false, schedule: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // End stream confirmation state
+  const [endStreamModal, setEndStreamModal] = useState({ open: false, schedule: null });
+  const [endStreamLoading, setEndStreamLoading] = useState(false);
 
   // Preview modal state
   const [previewModal, setPreviewModal] = useState({ open: false, schedule: null });
@@ -228,6 +233,31 @@ function SchedulePage() {
 
   const handleDeleteCancel = () => {
     setDeleteModal({ open: false, schedule: null });
+  };
+
+  // Handle end stream
+  const handleEndStreamClick = (schedule) => {
+    setEndStreamModal({ open: true, schedule });
+  };
+
+  const handleEndStreamConfirm = async () => {
+    if (!endStreamModal.schedule) return;
+
+    setEndStreamLoading(true);
+    try {
+      await endStream(endStreamModal.schedule.id);
+      setEndStreamModal({ open: false, schedule: null });
+      fetchSchedules(activeFilter);
+      fetchSummaryStats();
+    } catch (error) {
+      console.error('Error ending stream:', error);
+    } finally {
+      setEndStreamLoading(false);
+    }
+  };
+
+  const handleEndStreamCancel = () => {
+    setEndStreamModal({ open: false, schedule: null });
   };
 
   // Filter schedules by search
@@ -516,6 +546,16 @@ function SchedulePage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1">
+                          {/* End Stream Button - Only for LIVE schedules */}
+                          {isLive && (
+                            <button
+                              onClick={() => handleEndStreamClick(schedule)}
+                              className="p-2 text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
+                              title="Akhiri Siaran"
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          )}
                           {/* Preview */}
                           <button
                             onClick={() => handlePreview(schedule)}
@@ -657,6 +697,33 @@ function SchedulePage() {
         <p className="text-text-muted text-xs mt-2">
           Tindakan ini tidak dapat dibatalkan.
         </p>
+      </Modal>
+
+      {/* ========== END STREAM CONFIRMATION MODAL ========== */}
+      <Modal
+        isOpen={endStreamModal.open}
+        onClose={handleEndStreamCancel}
+        title="Akhiri Siaran?"
+        confirmText="Akhiri Siaran"
+        cancelText="Batal"
+        onConfirm={handleEndStreamConfirm}
+        variant="danger"
+        loading={endStreamLoading}
+      >
+        <div className="space-y-3">
+          <p className="text-text-secondary text-sm">
+            Apakah kamu yakin ingin mengakhiri siaran <span className="text-text-primary font-semibold">"{endStreamModal.schedule?.title}"</span>?
+          </p>
+          <div className="p-3 bg-status-live/10 border border-status-live/20 rounded-lg">
+            <p className="text-status-live text-xs font-medium flex items-center gap-2">
+              <Power className="w-4 h-4" />
+              Siaran akan segera ditandai selesai
+            </p>
+          </div>
+          <p className="text-text-muted text-xs">
+            Stream akan otomatis berakhir setelah 5 jam jika tidak diakhiri manual.
+          </p>
+        </div>
       </Modal>
     </div>
   );

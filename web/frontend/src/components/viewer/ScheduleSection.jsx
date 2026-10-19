@@ -315,6 +315,7 @@ const transformScheduleData = (data) => {
   // Use scheduled_at_wib for display only
   const scheduledAtISO = data.scheduled_at; // ISO format for countdown
   const scheduledAtWIB = data.scheduled_at_wib || data.scheduled_at; // For display
+  const liveStartedAt = data.live_started_at; // Real start time for live streams
 
   // Calculate countdown using ISO date
   const countdownString = hitungCountdownString(scheduledAtISO);
@@ -327,6 +328,7 @@ const transformScheduleData = (data) => {
     tag: data.game_category || 'GENERAL',
     time: scheduledAtWIB ? formatTanggalWIB(scheduledAtWIB) : 'TBD',
     scheduled_at: scheduledAtISO, // Store ISO date for reference
+    live_started_at: liveStartedAt, // Real start time for live streams
     countdown: countdownString,
     estimated_duration: data.estimated_duration || '±2-3 Jam',
     platform: data.stream_platform || 'YouTube',
@@ -340,22 +342,39 @@ const transformScheduleData = (data) => {
   };
 };
 
-// ========== LIVE TIMER ==========
-const LiveTimer = () => {
-  const [elapsed, setElapsed] = useState({ h: 0, m: 37, s: 0 });
+// ========== LIVE TIMER (Real-time based on live_started_at) ==========
+const LiveTimer = ({ startTime }) => {
+  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
+
   useEffect(() => {
+    if (!startTime) return;
+
+    const startDate = new Date(startTime);
+
+    const calculateElapsed = () => {
+      const now = new Date();
+      const diff = Math.max(0, now - startDate); // Ensure non-negative
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const s = totalSeconds % 60;
+      const totalMinutes = Math.floor(totalSeconds / 60);
+      const m = totalMinutes % 60;
+      const h = Math.floor(totalMinutes / 60);
+
+      return { h, m, s };
+    };
+
+    // Initial calculation
+    setElapsed(calculateElapsed());
+
+    // Update every second
     const id = setInterval(() => {
-      setElapsed((prev) => {
-        let s = prev.s + 1;
-        let m = prev.m;
-        let h = prev.h;
-        if (s >= 60) { s = 0; m++; }
-        if (m >= 60) { m = 0; h++; }
-        return { h, m, s };
-      });
+      setElapsed(calculateElapsed());
     }, 1000);
+
     return () => clearInterval(id);
-  }, []);
+  }, [startTime]);
+
   return (
     <span className="font-mono text-[10px] text-red-400/70 tabular-nums">
       {String(elapsed.h).padStart(2, '0')}:{String(elapsed.m).padStart(2, '0')}:{String(elapsed.s).padStart(2, '0')}
@@ -632,7 +651,7 @@ const ScheduleSection = () => {
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                   <span className="text-[12px] font-bold text-red-400 tracking-wide">ON AIR</span>
                   <span className="ml-auto text-[11px]">
-                    <LiveTimer />
+                    <LiveTimer startTime={schedules.find(s => s.status === 'live')?.live_started_at} />
                   </span>
                 </div>
                 {/* Mini waveform */}
@@ -951,7 +970,7 @@ const ScheduleSection = () => {
                         </span>
                         <span className="font-bold text-[#ef4444] text-[11px] tracking-wider font-sans uppercase">Sedang Berlangsung</span>
                         <div className="ml-2 pl-3 border-l border-red-500/30 flex items-center">
-                          <LiveTimer />
+                          <LiveTimer startTime={schedule.live_started_at} />
                         </div>
                       </div>
                     )}

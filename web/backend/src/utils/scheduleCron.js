@@ -82,12 +82,21 @@ const updateScheduleStatuses = async () => {
     console.log(`[Cron] Part 1: Found ${schedulesToGoLive.length} schedules to go LIVE`);
 
     for (const schedule of schedulesToGoLive) {
-      const oldStatus = schedule.status;
+      // Set live_started_at to now (when stream actually starts)
+      const liveStartTime = new Date();
       schedule.status = 'live';
+      schedule.live_started_at = liveStartTime;
+
+      // Calculate auto_done_at (5 hours from now)
+      const autoDoneTime = new Date(liveStartTime.getTime() + STREAM_DURATION_HOURS * 60 * 60 * 1000);
+      schedule.auto_done_at = autoDoneTime;
+
       await schedule.save();
       changes.toLive++;
 
-      console.log(`✅ Schedule LIVE: "${schedule.title}" (ID: ${schedule.id}, Game: "${schedule.game_category}")`);
+      console.log(`✅ Schedule LIVE: "${schedule.title}" (ID: ${schedule.id})`);
+      console.log(`   📺 Stream started at: ${liveStartTime.toISOString()}`);
+      console.log(`   ⏰ Auto-done scheduled at: ${autoDoneTime.toISOString()}`);
 
       // Mark this schedule as just went live - skip in Part 2 this run
       justWentLiveThisRun.add(schedule.id);
@@ -122,16 +131,42 @@ const updateScheduleStatuses = async () => {
     }
 
     // ====== Part 2: live → done ======
-    const streamCutoffTime = new Date(now.getTime() - STREAM_DURATION_HOURS * 60 * 60 * 1000);
-    console.log(`[Cron] Part 2: Archive cutoff time: ${streamCutoffTime.toISOString()} (${STREAM_DURATION_HOURS} hours ago)`);
+    // Find schedules that should be archived:
+    // - auto_done_at has passed (stream ran for 5 hours), OR
+    // - live_started_at + 5 hours has passed (for schedules without auto_done_at)
+    console.log(`[Cron] Part 2: Checking for schedules to archive (current time: ${now.toISOString()})`);
 
-    const schedulesToArchive = await Schedule.findAll({
+    // Get all live schedules
+    const liveSchedules = await Schedule.findAll({
       where: {
-        status: 'live',
-        scheduled_at: {
-          [Op.lte]: streamCutoffTime
+        status: 'live'
+      }
+    });
+
+    // Filter: schedule if auto_done_at has passed OR manually_ended is true
+    const schedulesToArchive = liveSchedules.filter(schedule => {
+      // Skip if manually ended
+      if (schedule.manually_ended) {
+        console.log(`[Cron] Schedule "${schedule.title}" (ID: ${schedule.id}) was manually ended, skipping`);
+        return false;
+      }
+
+      // Archive if auto_done_at has passed
+      if (schedule.auto_done_at && new Date(schedule.auto_done_at) <= now) {
+        console.log(`[Cron] Schedule "${schedule.title}" (ID: ${schedule.id}): auto_done_at (${schedule.auto_done_at}) has passed`);
+        return true;
+      }
+
+      // Fallback: if no auto_done_at, use live_started_at + 5 hours
+      if (schedule.live_started_at) {
+        const fallbackCutoff = new Date(new Date(schedule.live_started_at).getTime() + STREAM_DURATION_HOURS * 60 * 60 * 1000);
+        if (fallbackCutoff <= now) {
+          console.log(`[Cron] Schedule "${schedule.title}" (ID: ${schedule.id}): fallback cutoff (${fallbackCutoff.toISOString()}) has passed`);
+          return true;
         }
       }
+
+      return false;
     });
 
     console.log(`[Cron] Part 2: Found ${schedulesToArchive.length} schedules to archive to DONE`);
@@ -143,11 +178,18 @@ const updateScheduleStatuses = async () => {
         continue;
       }
 
+      // Skip if manually ended
+      if (schedule.manually_ended) {
+        console.log(`[Cron] Schedule "${schedule.title}" (ID: ${schedule.id}) was manually ended, skipping`);
+        continue;
+      }
+
       schedule.status = 'done';
       await schedule.save();
       changes.toDone++;
 
       console.log(`📁 Schedule DONE: "${schedule.title}" (ID: ${schedule.id}, Game: "${schedule.game_category}")`);
+      console.log(`   ⏱️  Stream duration: ${schedule.live_started_at ? Math.round((new Date() - new Date(schedule.live_started_at)) / 60000) + ' minutes' : 'unknown'}`);
 
       // Auto-update game status to 'done'
       // Skip if already updated in this cron run (prevents race condition)

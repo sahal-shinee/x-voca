@@ -22,6 +22,7 @@ router.use(authMiddleware);
 router.post('/schedules', adminOnly, scheduleController.createSchedule);
 router.patch('/schedules/:id', adminOnly, scheduleController.updateSchedule);
 router.delete('/schedules/:id', adminOnly, scheduleController.deleteSchedule);
+router.post('/schedules/:id/end-stream', adminOnly, scheduleController.endStream);
 
 // --- Game Management (Protected) ---
 router.post('/games', adminOnly, gameController.createGame);

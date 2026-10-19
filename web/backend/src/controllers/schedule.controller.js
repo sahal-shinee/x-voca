@@ -1,4 +1,4 @@
-const { Schedule, User, AuditLog } = require('../models');
+const { Schedule, User, Game, AuditLog } = require('../models');
 const { updateNextSchedule } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
@@ -379,6 +379,84 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
+/**
+ * End stream manually (admin action)
+ * POST /api/admin/schedules/:id/end-stream
+ */
+const endStream = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const schedule = await Schedule.findByPk(id);
+
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'Jadwal tidak ditemukan.'
+      });
+    }
+
+    if (schedule.status === 'done') {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Jadwal sudah selesai.'
+      });
+    }
+
+    if (schedule.status === 'upcoming') {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Jadwal belum dimulai.'
+      });
+    }
+
+    // Set manually_ended flag
+    schedule.manually_ended = true;
+    schedule.status = 'done';
+    await schedule.save();
+
+    // Also update game status to 'done'
+    const game = await Game.findOne({
+      where: {
+        title: schedule.game_category,
+        status: 'playing'
+      }
+    });
+
+    if (game) {
+      game.status = 'done';
+      await game.save();
+      console.log(`✅ Game "${game.title}" manually ended to DONE`);
+    }
+
+    // Create audit log
+    await AuditLog.create({
+      action_type: 'schedule_updated',
+      detail: 'Siaran diakhiri manual',
+      sub_detail: schedule.title
+    });
+
+    // Update Firebase
+    await updateNextSchedule(schedule);
+
+    return res.status(200).json({
+      success: true,
+      data: addWIBField(schedule),
+      message: 'Siaran berhasil diakhiri.'
+    });
+  } catch (error) {
+    console.error('End stream error:', error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: 'Terjadi kesalahan saat mengakhiri siaran.'
+    });
+  }
+};
+
 // Helper function to get next schedule data (for Firebase)
 // Prioritizes LIVE streams, then upcoming
 const getNextScheduleData = async () => {
@@ -412,5 +490,6 @@ module.exports = {
   getScheduleById,
   createSchedule,
   updateSchedule,
-  deleteSchedule
+  deleteSchedule,
+  endStream
 };

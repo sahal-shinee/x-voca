@@ -70,6 +70,24 @@ const Schedule = sequelize.define('Schedule', {
   status: {
     type: DataTypes.ENUM('upcoming', 'live', 'done', 'archived'),
     defaultValue: 'upcoming'
+  },
+  live_started_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'live_started_at',
+    comment: 'Timestamp when stream actually started (became live)'
+  },
+  auto_done_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'auto_done_at',
+    comment: 'Scheduled time for auto-done (live_started_at + duration)'
+  },
+  manually_ended: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'manually_ended',
+    comment: 'True if admin manually ended the stream'
   }
 }, {
   tableName: 'schedules',

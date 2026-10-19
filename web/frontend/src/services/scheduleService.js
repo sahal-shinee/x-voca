@@ -140,6 +140,17 @@ export const deleteSchedule = async (id) => {
   }
 };
 
+// Akhiri streaming secara manual (admin)
+export const endStream = async (id) => {
+  try {
+    const response = await api.post(`/api/admin/schedules/${id}/end-stream`);
+    return response.data;
+  } catch (error) {
+    console.error('Error ending stream:', error);
+    throw error;
+  }
+};
+
 export default {
   getSchedules,
   getNextSchedule,
@@ -147,4 +158,5 @@ export default {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  endStream,
 };
