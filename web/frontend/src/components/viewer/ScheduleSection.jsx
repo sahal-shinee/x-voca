@@ -342,9 +342,9 @@ const transformScheduleData = (data) => {
   };
 };
 
-// ========== LIVE TIMER (Real-time based on live_started_at) ==========
+// ========== LIVE TIMER (Format: Xd Xj Xm) ==========
 const LiveTimer = ({ startTime }) => {
-  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
+  const [elapsed, setElapsed] = useState({ d: 0, h: 0, m: 0 });
 
   useEffect(() => {
     if (!startTime) return;
@@ -353,31 +353,47 @@ const LiveTimer = ({ startTime }) => {
 
     const calculateElapsed = () => {
       const now = new Date();
-      const diff = Math.max(0, now - startDate); // Ensure non-negative
+      const diff = Math.max(0, now - startDate);
 
-      const totalSeconds = Math.floor(diff / 1000);
-      const s = totalSeconds % 60;
-      const totalMinutes = Math.floor(totalSeconds / 60);
+      const totalMinutes = Math.floor(diff / (1000 * 60));
       const m = totalMinutes % 60;
-      const h = Math.floor(totalMinutes / 60);
+      const totalHours = Math.floor(totalMinutes / 60);
+      const h = totalHours % 24;
+      const d = Math.floor(totalHours / 24);
 
-      return { h, m, s };
+      return { d, h, m };
     };
 
     // Initial calculation
     setElapsed(calculateElapsed());
 
-    // Update every second
+    // Update every minute
     const id = setInterval(() => {
       setElapsed(calculateElapsed());
-    }, 1000);
+    }, 60000);
+
+    // Also update immediately on mount
+    setElapsed(calculateElapsed());
 
     return () => clearInterval(id);
   }, [startTime]);
 
+  // Format: "Xd Xj Xm" or "Xj Xm" or "Xm"
+  const formatElapsed = () => {
+    if (elapsed.d > 0) {
+      return `${elapsed.d}d ${elapsed.h}j ${elapsed.m}m`;
+    } else if (elapsed.h > 0) {
+      return `${elapsed.h}j ${elapsed.m}m`;
+    } else {
+      return `${elapsed.m}m`;
+    }
+  };
+
+  if (!startTime) return null;
+
   return (
-    <span className="font-mono text-[10px] text-red-400/70 tabular-nums">
-      {String(elapsed.h).padStart(2, '0')}:{String(elapsed.m).padStart(2, '0')}:{String(elapsed.s).padStart(2, '0')}
+    <span className="text-[10px] text-red-400/70 font-medium">
+      {formatElapsed()}
     </span>
   );
 };
@@ -640,52 +656,22 @@ const ScheduleSection = () => {
               </p>
             </div>
 
-            {/* Right: signal status panel */}
-            <div className="flex items-center gap-3 lg:pb-2">
-              <div className="px-5 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex flex-col gap-2.5 min-w-[200px]">
-                <div className="flex items-center justify-between gap-4 mb-1">
-                  <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">Status Siaran</span>
-                  <SignalIcon />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                  <span className="text-[12px] font-bold text-red-400 tracking-wide">ON AIR</span>
-                  <span className="ml-auto text-[11px]">
-                    <LiveTimer startTime={schedules.find(s => s.status === 'live')?.live_started_at} />
-                  </span>
-                </div>
-                {/* Mini waveform */}
-                <div className="flex items-end gap-[3px] h-5 mt-1">
-                  {[0.4, 0.7, 1, 0.6, 0.9, 0.5, 0.8, 1, 0.3, 0.7, 0.5, 0.9].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-[3px] rounded-full bg-red-400/50 animate-pulse"
-                      style={{
-                        height: `${h * 100}%`,
-                        animationDelay: `${i * 0.08}s`,
-                        animationDuration: `${0.6 + (i % 3) * 0.2}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Schedule count */}
-              <div className="px-5 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center min-w-[100px] h-full flex flex-col justify-center">
-                {loading ? (
-                  <>
-                    <div className="w-12 h-8 bg-white/5 rounded animate-pulse mx-auto mb-1"></div>
-                    <div className="w-16 h-3 bg-white/5 rounded animate-pulse mx-auto"></div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-3xl font-bold text-white mb-1">{schedules.length}</p>
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest">Jadwal</p>
-                    <div className="flex justify-center gap-1.5 mt-3">
-                      {schedules.slice(0, 5).map((s) => (
-                        <span
-                          key={s.id}
-                          className={`w-1.5 h-1.5 rounded-full ${
+            {/* Right: schedule count */}
+            <div className="px-5 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center min-w-[100px] h-full flex flex-col justify-center">
+              {loading ? (
+                <>
+                  <div className="w-12 h-8 bg-white/5 rounded animate-shimmer mx-auto mb-1"></div>
+                  <div className="w-16 h-3 bg-white/5 rounded animate-shimmer mx-auto"></div>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold text-white mb-1">{schedules.length}</p>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Jadwal</p>
+                  <div className="flex justify-center gap-1.5 mt-3">
+                    {schedules.slice(0, 5).map((s) => (
+                      <span
+                        key={s.id}
+                        className={`w-1.5 h-1.5 rounded-full ${
                             s.status === 'live' ? 'bg-red-400' :
                             s.status === 'upcoming' ? 'bg-cyan-400/70' :
                             'bg-white/20'
@@ -816,9 +802,9 @@ const ScheduleSection = () => {
                 <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
                   <CalendarIcon />
                 </div>
-                <h3 className="text-white text-lg font-semibold mb-2">Belum Ada Jadwal</h3>
+                <h3 className="text-white text-lg font-semibold mb-2">Tidak Ada Jadwal Live/Upcoming</h3>
                 <p className="text-[#a89ec0] text-sm max-w-[300px]">
-                  Saat ini belum ada jadwal stream yang tersedia. Silakan kembali lagi nanti.
+                  Saat ini belum ada jadwal stream yang sedang live atau upcoming. Silakan kembali lagi nanti.
                 </p>
               </div>
             )}
@@ -978,28 +964,8 @@ const ScheduleSection = () => {
 
                   {/* CTA footer */}
                   <div className="mt-auto pt-6 border-t border-[rgba(61,53,96,0.5)]">
-                    {/* Live streams - always show YouTube link */}
-                    {schedule.status === 'live' ? (
-                      <a
-                        href={schedule.youtube_url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={(e) => {
-                          if (!schedule.youtube_url) {
-                            e.preventDefault();
-                          }
-                        }}
-                      >
-                        <span className="text-[13px] font-bold font-body flex items-center gap-2">
-                          <YouTubeIcon size={14} className="text-red-500" />
-                          Tonton di YouTube
-                        </span>
-                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
-                          <ExternalArrowIcon />
-                        </span>
-                      </a>
-                    ) : schedule.status === 'done' ? (
+                    {/* Done streams - show archive link */}
+                    {schedule.status === 'done' ? (
                       <a
                         href={schedule.youtube_url || '#'}
                         target="_blank"
@@ -1017,6 +983,7 @@ const ScheduleSection = () => {
                         </span>
                       </a>
                     ) : (
+                      /* Live or Upcoming - show Reserve/Link button */
                       <Link
                         to={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
@@ -1029,7 +996,7 @@ const ScheduleSection = () => {
                         }}
                       >
                         <span className="text-[13px] font-semibold font-body group-hover/link:underline underline-offset-2">
-                          {schedule.youtube_url ? 'Reserve Stream' : 'Link Belum Ada'}
+                          {schedule.youtube_url ? (schedule.status === 'live' ? 'Tonton di YouTube' : 'Reserve Stream') : 'Link Belum Ada'}
                         </span>
                         <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
                           <ArrowRightIcon />
