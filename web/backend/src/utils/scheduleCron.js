@@ -15,7 +15,7 @@ const { updateNextSchedule } = require('./firebase.helper');
 const { Op } = require('sequelize');
 
 // Stream duration before auto-archive (in hours)
-const STREAM_DURATION_HOURS = 2;
+const STREAM_DURATION_HOURS = 10;
 
 /**
  * Find game by title that is in 'accepted' or 'playing' status
@@ -60,6 +60,10 @@ const updateScheduleStatuses = async () => {
     const now = new Date();
     let changes = { toLive: 0, toDone: 0, gamePlaying: 0, gameDone: 0 };
 
+    // Track which games have been updated to prevent duplicate updates in same cron run
+    // Key: game title, Value: 'playing' or 'done'
+    const gamesUpdatedThisRun = new Map();
+
     // ====== Part 1: upcoming → live ======
     const schedulesToGoLive = await Schedule.findAll({
       where: {
@@ -70,20 +74,39 @@ const updateScheduleStatuses = async () => {
       }
     });
 
+    console.log(`[Cron] Part 1: Found ${schedulesToGoLive.length} schedules to go LIVE`);
+
     for (const schedule of schedulesToGoLive) {
+      const oldStatus = schedule.status;
       schedule.status = 'live';
       await schedule.save();
       changes.toLive++;
 
-      console.log(`✅ Schedule auto-updated to LIVE: "${schedule.title}" (ID: ${schedule.id})`);
+      console.log(`✅ Schedule LIVE: "${schedule.title}" (ID: ${schedule.id}, Game: "${schedule.game_category}")`);
 
       // Auto-update game status to 'playing'
+      // Skip if already updated in this cron run (prevents race condition)
+      if (gamesUpdatedThisRun.has(schedule.game_category)) {
+        console.log(`[Cron] Game "${schedule.game_category}" already updated this run, skipping`);
+        await updateNextSchedule(schedule);
+        continue;
+      }
+
       const game = await findGameByTitle(schedule.game_category);
-      if (game && game.status === 'accepted') {
-        game.status = 'playing';
-        await game.save();
-        changes.gamePlaying++;
-        console.log(`🎮 Game auto-updated to PLAYING: "${game.title}" (ID: ${game.id})`);
+      if (game) {
+        console.log(`[Cron] Game found: "${game.title}", current status: "${game.status}"`);
+
+        if (game.status === 'accepted') {
+          game.status = 'playing';
+          await game.save();
+          changes.gamePlaying++;
+          gamesUpdatedThisRun.set(schedule.game_category, 'playing');
+          console.log(`🎮 Game PLAYING: "${game.title}" (ID: ${game.id})`);
+        } else {
+          console.log(`[Cron] Game status is "${game.status}", skipping update to playing`);
+        }
+      } else {
+        console.log(`[Cron] No game found for category: "${schedule.game_category}"`);
       }
 
       // Update Firebase for real-time sync
@@ -92,6 +115,7 @@ const updateScheduleStatuses = async () => {
 
     // ====== Part 2: live → done ======
     const streamCutoffTime = new Date(now.getTime() - STREAM_DURATION_HOURS * 60 * 60 * 1000);
+    console.log(`[Cron] Part 2: Archive cutoff time: ${streamCutoffTime.toISOString()} (${STREAM_DURATION_HOURS} hours ago)`);
 
     const schedulesToArchive = await Schedule.findAll({
       where: {
@@ -102,29 +126,43 @@ const updateScheduleStatuses = async () => {
       }
     });
 
+    console.log(`[Cron] Part 2: Found ${schedulesToArchive.length} schedules to archive to DONE`);
+
     for (const schedule of schedulesToArchive) {
       schedule.status = 'done';
       await schedule.save();
       changes.toDone++;
 
-      console.log(`📁 Schedule auto-archived to DONE: "${schedule.title}" (ID: ${schedule.id})`);
+      console.log(`📁 Schedule DONE: "${schedule.title}" (ID: ${schedule.id}, Game: "${schedule.game_category}")`);
 
       // Auto-update game status to 'done'
+      // Skip if already updated in this cron run (prevents race condition)
+      if (gamesUpdatedThisRun.has(schedule.game_category)) {
+        console.log(`[Cron] Game "${schedule.game_category}" already updated this run, skipping`);
+        continue;
+      }
+
       const game = await findGameByTitle(schedule.game_category);
-      if (game && game.status === 'playing') {
-        game.status = 'done';
-        await game.save();
-        changes.gameDone++;
-        console.log(`✅ Game auto-updated to DONE: "${game.title}" (ID: ${game.id})`);
+      if (game) {
+        console.log(`[Cron] Game found for archive: "${game.title}", current status: "${game.status}"`);
+
+        if (game.status === 'playing') {
+          game.status = 'done';
+          await game.save();
+          changes.gameDone++;
+          gamesUpdatedThisRun.set(schedule.game_category, 'done');
+          console.log(`✅ Game DONE: "${game.title}" (ID: ${game.id})`);
+        } else {
+          console.log(`[Cron] Game status is "${game.status}", skipping update to done`);
+        }
+      } else {
+        console.log(`[Cron] No game found for archive category: "${schedule.game_category}"`);
       }
     }
 
     // Log summary
     if (changes.toLive > 0 || changes.toDone > 0) {
-      console.log(`📊 Auto-update complete: ${changes.toLive} schedules → LIVE, ${changes.toDone} schedules → DONE`);
-      if (changes.gamePlaying > 0 || changes.gameDone > 0) {
-        console.log(`🎮 Game status updated: ${changes.gamePlaying} → PLAYING, ${changes.gameDone} → DONE`);
-      }
+      console.log(`📊 Auto-update: ${changes.toLive} → LIVE, ${changes.toDone} → DONE | Games: ${changes.gamePlaying} → PLAYING, ${changes.gameDone} → DONE`);
     }
 
     return changes;

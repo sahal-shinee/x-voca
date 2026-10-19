@@ -623,7 +623,7 @@ function SchedulePage() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
                 >
-                  <Youtube size={16} />
+                  <YouTubeIcon size={16} />
                   <span className="text-sm underline">{previewModal.schedule.youtube_url}</span>
                 </a>
               </div>
