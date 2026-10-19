@@ -324,6 +324,30 @@ const updateAllGamesVotes = async (games, periodKey) => {
   }
 };
 
+/**
+ * Broadcast update event for content guides di Firebase
+ * Dipanggil saat ada create, update, atau delete konten
+ * @returns {Promise<boolean>} Success status
+ */
+const triggerContentUpdate = async () => {
+  const fb = getFirebaseAdmin();
+  if (!fb) {
+    return false;
+  }
+
+  try {
+    const timestamp = new Date().toISOString();
+    await fb.database().ref('/content_updates').set({
+      lastUpdated: timestamp
+    });
+    console.log(`✅ Firebase: Broadcasted /content_updates (lastUpdated: ${timestamp})`);
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase triggerContentUpdate error:', error.message);
+    return false;
+  }
+};
+
 module.exports = {
   updateNextSchedule,
   clearNextSchedule,
@@ -331,5 +355,6 @@ module.exports = {
   updateBroadcastingStatus,
   resetVotingPeriod,
   updateAllGamesVotes,
+  triggerContentUpdate,
   getFirebaseAdmin
 };

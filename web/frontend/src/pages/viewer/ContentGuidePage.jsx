@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getContent, getFeatured } from '../../services/contentService';
 import { useToast } from '../../components/common/Toast';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
 import api from '../../services/api';
+import { ref, onValue, off } from 'firebase/database';
+import { getFirebaseDatabase, isFirebaseConfigured } from '../../utils/firebase';
 
 // ========== ICONS ==========
 const PlayIcon = ({ size = 20 }) => (
@@ -129,86 +131,127 @@ function ContentGuidePage() {
   const gridRef = useRef(null);
 
   // ========== FETCH REAL DATA ==========
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
+  const fetchData = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
         setLoading(true);
-        setError(null);
+      }
+      setError(null);
 
-        // Fetch all data in parallel
-        // getContent returns: { success, data: [...contents], pagination }
-        // getFeatured returns: { success, data: contentObject || null }
-        const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.allSettled([
-          getFeatured(),
-          getContent({ limit: 50 }),
-          api.get('/api/content/stats'),
-          api.get('/api/content/categories')
+      // Fetch all data in parallel
+      // getContent returns: { success, data: [...contents], pagination }
+      // getFeatured returns: { success, data: contentObject || null }
+      const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.allSettled([
+        getFeatured(),
+        getContent({ limit: 50 }),
+        api.get('/api/content/stats'),
+        api.get('/api/content/categories')
+      ]);
+
+      // Process featured content
+      if (featuredRes.status === 'fulfilled' && featuredRes.value?.success && featuredRes.value?.data) {
+        const fc = featuredRes.value.data;
+        setFeatured({
+          id: fc.id,
+          title: fc.title,
+          subtitle: fc.subtitle || `Stream oleh ${fc.user?.name || 'X-VOCA'}`,
+          viewCount: fc.viewCount,
+          duration: fc.duration || fc.total_duration,
+          category: fc.category || fc.game_tag?.toUpperCase(),
+          categoryColor: fc.categoryColor,
+          date: fc.date,
+          youtubeUrl: fc.youtubeUrl || fc.youtube_url,
+          thumbnailUrl: fc.thumbnailUrl || fc.thumbnail_url || fc.thumbnail
+        });
+      } else {
+        setFeatured(null);
+      }
+
+      // Process contents - getContent returns data directly as array now
+      if (contentsRes.status === 'fulfilled' && contentsRes.value?.success) {
+        const contentsData = contentsRes.value.data || [];
+        setContents(Array.isArray(contentsData) ? contentsData : []);
+      }
+
+      // Process stats
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data?.data) {
+        const s = statsRes.value.data.data;
+        setStats([
+          { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
+          { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
+          { label: "Total Views", value: s.totalViews || "0", color: "#fbbf24" },
+          { label: "Konten Baru", value: s.newContent || "0", color: "#f472b6" },
         ]);
-
-        // Process featured content
-        if (featuredRes.status === 'fulfilled' && featuredRes.value?.success && featuredRes.value?.data) {
-          const fc = featuredRes.value.data;
-          setFeatured({
-            id: fc.id,
-            title: fc.title,
-            subtitle: fc.subtitle || `Stream oleh ${fc.user?.name || 'X-VOCA'}`,
-            viewCount: fc.viewCount,
-            duration: fc.duration || fc.total_duration,
-            category: fc.category || fc.game_tag?.toUpperCase(),
-            categoryColor: fc.categoryColor,
-            date: fc.date,
-            youtubeUrl: fc.youtubeUrl || fc.youtube_url,
-            thumbnailUrl: fc.thumbnailUrl || fc.thumbnail_url
-          });
-        }
-
-        // Process contents - getContent returns data directly as array now
-        if (contentsRes.status === 'fulfilled' && contentsRes.value?.success) {
-          const contentsData = contentsRes.value.data || [];
-          setContents(Array.isArray(contentsData) ? contentsData : []);
-        }
-
-        // Process stats
-        if (statsRes.status === 'fulfilled' && statsRes.value?.data?.data) {
-          const s = statsRes.value.data.data;
-          setStats([
-            { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
-            { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
-            { label: "Total Views", value: s.totalViews || "0", color: "#fbbf24" },
-            { label: "Konten Baru", value: s.newContent || "0", color: "#f472b6" },
-          ]);
-        } else {
-          setStats(FALLBACK_STATS);
-        }
-
-        // Process categories with icons
-        if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.data?.data && Array.isArray(categoriesRes.value.data.data)) {
-          const catsWithIcons = categoriesRes.value.data.data.map(cat => ({
-            ...cat,
-            icon: cat.icon === 'ChatIcon' ? <ChatIcon /> :
-                  cat.icon === 'EyeIcon' ? <EyeIcon /> :
-                  cat.icon === 'GameIcon' ? <GameIcon /> :
-                  cat.icon === 'MusicIcon' ? <MusicIcon /> : <ChatIcon />
-          }));
-          setCategories(catsWithIcons);
-        } else {
-          setCategories(FALLBACK_CATEGORIES);
-        }
-
-      } catch (err) {
-        console.error('Error fetching content data:', err);
-        setError(err);
-        toast.error('Gagal memuat konten');
-        // Use fallback data
+      } else {
         setStats(FALLBACK_STATS);
+      }
+
+      // Process categories with icons
+      if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.data?.data && Array.isArray(categoriesRes.value.data.data)) {
+        const catsWithIcons = categoriesRes.value.data.data.map(cat => ({
+          ...cat,
+          icon: cat.icon === 'ChatIcon' ? <ChatIcon /> :
+                cat.icon === 'EyeIcon' ? <EyeIcon /> :
+                cat.icon === 'GameIcon' ? <GameIcon /> :
+                cat.icon === 'MusicIcon' ? <MusicIcon /> : <ChatIcon />
+        }));
+        setCategories(catsWithIcons);
+      } else {
         setCategories(FALLBACK_CATEGORIES);
-      } finally {
+      }
+
+    } catch (err) {
+      console.error('Error fetching content data:', err);
+      setError(err);
+      if (showLoading) {
+        toast.error('Gagal memuat konten');
+      }
+      // Use fallback data
+      setStats(FALLBACK_STATS);
+      setCategories(FALLBACK_CATEGORIES);
+    } finally {
+      if (showLoading) {
         setLoading(false);
       }
-    };
-
-    fetchData();
+    }
   }, [toast]);
+
+  // Initial load
+  useEffect(() => {
+    fetchData(true);
+  }, [fetchData]);
+
+  // Real-time listener for content updates via Firebase
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+
+    try {
+      const database = getFirebaseDatabase();
+      if (!database) return;
+
+      const contentUpdatesRef = ref(database, 'content_updates');
+      let isFirstMount = true;
+
+      const unsubscribe = onValue(contentUpdatesRef, (snapshot) => {
+        // Skip first trigger because initial fetch already executed
+        if (isFirstMount) {
+          isFirstMount = false;
+          return;
+        }
+
+        if (snapshot.exists()) {
+          console.log('[ContentGuide] Realtime change detected, syncing content...');
+          fetchData(false);
+        }
+      });
+
+      return () => {
+        off(contentUpdatesRef);
+      };
+    } catch (err) {
+      console.warn('[ContentGuide] Firebase listener warning:', err.message);
+    }
+  }, [fetchData]);
 
   useEffect(() => {
     const pairs = [
@@ -389,19 +432,19 @@ function ContentGuidePage() {
       </section>
 
       {/* ========== FEATURED CONTENT ========== */}
-      <section
-        ref={featuredRef}
-        className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-100 ${featuredVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          {/* Section label */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-4 rounded-full bg-[#7ee0d2]" />
-            <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Featured Stream</span>
-          </div>
+      {featured && (
+        <section
+          ref={featuredRef}
+          className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-100 ${featuredVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+        >
+          <div className="max-w-[1280px] mx-auto">
+            {/* Section label */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 rounded-full bg-[#7ee0d2]" />
+              <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Featured Stream</span>
+            </div>
 
-          {/* Featured Card */}
-          {featured ? (
+            {/* Featured Card */}
             <div
               className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
               style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
@@ -413,13 +456,22 @@ function ContentGuidePage() {
               <div className="relative flex flex-col lg:flex-row gap-0">
                 {/* Thumbnail */}
                 <div className="lg:w-[420px] flex-shrink-0">
-                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[200px]" style={{ background: 'rgba(13,11,26,0.9)' }}>
+                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[220px] overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
+                    {featured.thumbnailUrl ? (
+                      <img
+                        src={featured.thumbnailUrl}
+                        alt={featured.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : null}
+
                     {/* Dark gradient overlay with subtle category glow */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.95) 0%, rgba(26,20,50,0.85) 100%)' }} />
-                    <div className="absolute inset-0 opacity-[0.12]" style={{ background: `radial-gradient(ellipse at top right, ${featured.categoryColor || '#c084fc'}, transparent 60%)` }} />
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.45) 0%, rgba(26,20,50,0.65) 100%)' }} />
+                    <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ background: `radial-gradient(ellipse at top right, ${featured.categoryColor || '#c084fc'}, transparent 60%)` }} />
 
                     {/* Play button center */}
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="relative">
                         <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-105"
                           style={{ background: 'rgba(126,224,210,0.12)', border: '1px solid rgba(126,224,210,0.25)' }}>
@@ -494,17 +546,9 @@ function ContentGuidePage() {
                 </div>
               </div>
             </div>
-          ) : (
-            // Empty state for featured
-            <div
-              className="rounded-2xl p-8 text-center"
-              style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
-            >
-              <p className="text-[#5c5480]">Tidak ada konten featured saat ini</p>
-            </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* ========== CATEGORIES ========== */}
       <section
@@ -668,8 +712,16 @@ function ContentGuidePage() {
                     >
                       {/* Thumbnail */}
                       <div className="flex-shrink-0 w-28 h-16 rounded-lg relative overflow-hidden" style={{ background: 'rgba(13,11,26,0.9)' }}>
-                        <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse, ${catColor}, transparent 70%)` }} />
-                        <div className="absolute inset-0 flex items-center justify-center">
+                        {(content.thumbnailUrl || content.thumbnail_url || content.thumbnail) ? (
+                          <img
+                            src={content.thumbnailUrl || content.thumbnail_url || content.thumbnail}
+                            alt={content.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(ellipse, ${catColor}, transparent 70%)` }} />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: catColor }}>
                             <span className="text-[#0f0a22]"><PlayIcon size={12} /></span>
                           </div>
@@ -704,10 +756,18 @@ function ContentGuidePage() {
                   >
                     {/* Thumbnail */}
                     <div className="relative aspect-video overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
-                      <div className="absolute inset-0 opacity-[0.15]" style={{ background: `radial-gradient(ellipse at top right, ${catColor}, transparent 60%)` }} />
+                      {(content.thumbnailUrl || content.thumbnail_url || content.thumbnail) ? (
+                        <img
+                          src={content.thumbnailUrl || content.thumbnail_url || content.thumbnail}
+                          alt={content.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 opacity-[0.2] pointer-events-none" style={{ background: `radial-gradient(ellipse at top right, ${catColor}, transparent 60%)` }} />
 
                       {/* Play overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100"
                           style={{ background: catColor, boxShadow: `0 4px 20px ${catColor}50` }}>
                           <span className="text-[#0f0a22]"><PlayIcon size={14} /></span>

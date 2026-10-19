@@ -4,6 +4,8 @@ import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
+import { ref, onValue, off } from 'firebase/database';
+import { getFirebaseDatabase, isFirebaseConfigured } from '../../utils/firebase';
 import {
   BookOpen,
   Search,
@@ -174,6 +176,37 @@ function ContentManagementPage() {
       clearInterval(refreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
+  }, [fetchContents, currentPage]);
+
+  // Real-time listener for content updates via Firebase
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+
+    try {
+      const database = getFirebaseDatabase();
+      if (!database) return;
+
+      const contentUpdatesRef = ref(database, 'content_updates');
+      let isFirstMount = true;
+
+      const unsubscribe = onValue(contentUpdatesRef, (snapshot) => {
+        if (isFirstMount) {
+          isFirstMount = false;
+          return;
+        }
+
+        if (snapshot.exists()) {
+          console.log('[AdminContent] Realtime update signal received from Firebase');
+          fetchContents(currentPage);
+        }
+      });
+
+      return () => {
+        off(contentUpdatesRef);
+      };
+    } catch (err) {
+      console.warn('[AdminContent] Firebase listener error:', err.message);
+    }
   }, [fetchContents, currentPage]);
 
   // Handle search with debounce

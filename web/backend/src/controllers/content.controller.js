@@ -1,5 +1,6 @@
 const { ContentGuide, User, AuditLog } = require('../models');
 const { Op } = require('sequelize');
+const { triggerContentUpdate } = require('../utils/firebase.helper');
 
 // Category mapping untuk UI
 const CATEGORY_MAP = {
@@ -173,7 +174,7 @@ const getContentCategories = async (req, res) => {
  */
 const getContents = async (req, res) => {
   try {
-    const { game_tag, content_type, is_featured, is_visible, search, page = 1, limit = 20, admin } = req.query;
+    const { game_tag, content_type, is_featured, featured, is_visible, visible, search, page = 1, limit = 20, admin } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
@@ -182,9 +183,10 @@ const getContents = async (req, res) => {
 
     // For public viewer: only visible content
     // For admin: allow seeing all content, or filter by is_visible if requested
+    const visibleParam = is_visible !== undefined ? is_visible : visible;
     if (admin === 'true') {
-      if (is_visible !== undefined) {
-        where.is_visible = is_visible === 'true' || is_visible === true;
+      if (visibleParam !== undefined) {
+        where.is_visible = visibleParam === 'true' || visibleParam === true;
       }
     } else {
       where.is_visible = true;
@@ -198,8 +200,9 @@ const getContents = async (req, res) => {
       where.content_type = content_type;
     }
 
-    if (is_featured !== undefined) {
-      where.is_featured = is_featured === 'true' || is_featured === true;
+    const featuredParam = is_featured !== undefined ? is_featured : featured;
+    if (featuredParam !== undefined) {
+      where.is_featured = featuredParam === 'true' || featuredParam === true;
     }
 
     if (search) {
@@ -393,6 +396,13 @@ const createContent = async (req, res) => {
       console.warn('AuditLog creation skipped for content:', logErr.message);
     }
 
+    // Broadcast real-time update via Firebase
+    try {
+      await triggerContentUpdate();
+    } catch (fbErr) {
+      console.warn('Firebase content broadcast skipped:', fbErr.message);
+    }
+
     return res.status(201).json({
       success: true,
       data: content,
@@ -461,6 +471,13 @@ const updateContent = async (req, res) => {
       console.warn('AuditLog creation skipped for content update:', logErr.message);
     }
 
+    // Broadcast real-time update via Firebase
+    try {
+      await triggerContentUpdate();
+    } catch (fbErr) {
+      console.warn('Firebase content broadcast skipped:', fbErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       data: content,
@@ -503,6 +520,13 @@ const deleteContent = async (req, res) => {
       detail: 'Konten dihapus',
       sub_detail: contentTitle
     });
+
+    // Broadcast real-time update via Firebase
+    try {
+      await triggerContentUpdate();
+    } catch (fbErr) {
+      console.warn('Firebase content broadcast skipped:', fbErr.message);
+    }
 
     return res.status(200).json({
       success: true,
