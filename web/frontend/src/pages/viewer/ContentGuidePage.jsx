@@ -117,12 +117,12 @@ function ContentGuidePage() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
-  // Scroll reveal
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [featuredVisible, setFeaturedVisible] = useState(false);
-  const [categoriesVisible, setCategoriesVisible] = useState(false);
-  const [gridVisible, setGridVisible] = useState(false);
+  // Section visibility
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [statsVisible, setStatsVisible] = useState(true);
+  const [featuredVisible, setFeaturedVisible] = useState(true);
+  const [categoriesVisible, setCategoriesVisible] = useState(true);
+  const [gridVisible, setGridVisible] = useState(true);
 
   const headerRef = useRef(null);
   const statsRef = useRef(null);
@@ -435,7 +435,7 @@ function ContentGuidePage() {
       {featured && (
         <section
           ref={featuredRef}
-          className={`px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-700 delay-100 ${featuredVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+          className="px-4 sm:px-6 lg:px-12 pb-8 transition-all duration-500 opacity-100 translate-y-0"
         >
           <div className="max-w-[1280px] mx-auto">
             {/* Section label */}
