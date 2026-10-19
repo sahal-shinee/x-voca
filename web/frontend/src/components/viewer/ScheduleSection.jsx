@@ -1075,8 +1075,6 @@ const ScheduleSection = () => {
           </div>
         </div>
 
-      </div>
-
       {/* Collab Request Modal */}
       <CollabRequestModal
         isOpen={isCollabModalOpen}
