@@ -80,29 +80,45 @@ const getSchedules = async (req, res) => {
 };
 
 /**
- * Get next upcoming schedule
+ * Get next schedule - prioritizes LIVE streams over upcoming
  * GET /api/schedules/next
+ * Returns live stream if exists, otherwise upcoming schedule
  */
 const getNextSchedule = async (req, res) => {
   try {
     const now = new Date();
     console.log('[getNextSchedule] Request received at:', now.toISOString());
 
-    const schedule = await Schedule.findOne({
+    // Priority 1: Check for LIVE streams first
+    let schedule = await Schedule.findOne({
       where: {
-        status: 'upcoming',
-        scheduled_at: {
-          [Op.gt]: now
-        },
-        countdown_enabled: true
+        status: 'live'
       },
       include: [{
         model: User,
         as: 'user',
         attributes: ['id', 'name', 'avatar_url']
       }],
-      order: [['scheduled_at', 'ASC']]
+      order: [['scheduled_at', 'DESC']] // Most recent live stream first
     });
+
+    // Priority 2: If no live, get next upcoming schedule
+    if (!schedule) {
+      schedule = await Schedule.findOne({
+        where: {
+          status: 'upcoming',
+          scheduled_at: {
+            [Op.gt]: now
+          }
+        },
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'avatar_url']
+        }],
+        order: [['scheduled_at', 'ASC']]
+      });
+    }
 
     console.log('[getNextSchedule] Query result:', schedule ? {
       id: schedule.id,
@@ -124,14 +140,14 @@ const getNextSchedule = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: responseData,
-      message: schedule ? 'Jadwal berikutnya berhasil diambil.' : 'Tidak ada jadwal mendatang.'
+      message: schedule ? 'Jadwal ditemukan.' : 'Tidak ada jadwal upcoming.'
     });
   } catch (error) {
     console.error('Get next schedule error:', error);
     return res.status(500).json({
       success: false,
       data: null,
-      message: 'Terjadi kesalahan saat mengambil jadwal berikutnya.'
+      message: 'Terjadi kesalahan saat mengambil jadwal.'
     });
   }
 };
@@ -364,17 +380,30 @@ const deleteSchedule = async (req, res) => {
 };
 
 // Helper function to get next schedule data (for Firebase)
+// Prioritizes LIVE streams, then upcoming
 const getNextScheduleData = async () => {
-  return await Schedule.findOne({
+  // Priority 1: Check for LIVE streams first
+  let schedule = await Schedule.findOne({
     where: {
-      status: 'upcoming',
-      scheduled_at: {
-        [Op.gt]: new Date()
-      },
-      countdown_enabled: true
+      status: 'live'
     },
-    order: [['scheduled_at', 'ASC']]
+    order: [['scheduled_at', 'DESC']]
   });
+
+  // Priority 2: If no live, get next upcoming
+  if (!schedule) {
+    schedule = await Schedule.findOne({
+      where: {
+        status: 'upcoming',
+        scheduled_at: {
+          [Op.gt]: new Date()
+        }
+      },
+      order: [['scheduled_at', 'ASC']]
+    });
+  }
+
+  return schedule;
 };
 
 module.exports = {

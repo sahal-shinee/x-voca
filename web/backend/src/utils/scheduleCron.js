@@ -15,7 +15,7 @@ const { updateNextSchedule } = require('./firebase.helper');
 const { Op } = require('sequelize');
 
 // Stream duration before auto-archive (in hours)
-const STREAM_DURATION_HOURS = 10;
+const STREAM_DURATION_HOURS = 5;
 
 /**
  * Find game by title that is in 'accepted' or 'playing' status
@@ -64,6 +64,11 @@ const updateScheduleStatuses = async () => {
     // Key: game title, Value: 'playing' or 'done'
     const gamesUpdatedThisRun = new Map();
 
+    // Track which schedules were just changed to 'live' in this cron run
+    // Key: schedule ID, Value: true
+    // These will be skipped by Part 2 to ensure proper state transition
+    const justWentLiveThisRun = new Set();
+
     // ====== Part 1: upcoming → live ======
     const schedulesToGoLive = await Schedule.findAll({
       where: {
@@ -83,6 +88,9 @@ const updateScheduleStatuses = async () => {
       changes.toLive++;
 
       console.log(`✅ Schedule LIVE: "${schedule.title}" (ID: ${schedule.id}, Game: "${schedule.game_category}")`);
+
+      // Mark this schedule as just went live - skip in Part 2 this run
+      justWentLiveThisRun.add(schedule.id);
 
       // Auto-update game status to 'playing'
       // Skip if already updated in this cron run (prevents race condition)
@@ -129,6 +137,12 @@ const updateScheduleStatuses = async () => {
     console.log(`[Cron] Part 2: Found ${schedulesToArchive.length} schedules to archive to DONE`);
 
     for (const schedule of schedulesToArchive) {
+      // Skip schedules that just went live this cron run (prevents skip from playing → done)
+      if (justWentLiveThisRun.has(schedule.id)) {
+        console.log(`[Cron] Schedule "${schedule.title}" (ID: ${schedule.id}) just went live this run, skipping archive`);
+        continue;
+      }
+
       schedule.status = 'done';
       await schedule.save();
       changes.toDone++;
