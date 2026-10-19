@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Clock,
@@ -19,11 +18,13 @@ import {
 } from 'lucide-react';
 import { useCollabRequests } from '../../hooks/useCollabRequests';
 import CollabRequestRow, { STATUS_CONFIG } from '../../components/admin/CollabRequestRow';
+import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import StatCard from '../../components/common/StatCard';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
 import { safeFormatTimeAgo, safeFormatDate } from '../../utils/dateUtils';
+import { createSchedule } from '../../services/scheduleService';
 
 /**
  * Filter status tabs (Opsi B: Alur Kerja Kreator)
@@ -57,7 +58,6 @@ function getPeriodOptions() {
  * CollabRequestsPage - Admin page for managing viewer collab requests in a compact, informative list
  */
 function CollabRequestsPage() {
-  const navigate = useNavigate();
   const toast = useToast();
 
   // Filters state
@@ -83,6 +83,13 @@ function CollabRequestsPage() {
     open: false,
     request: null
   });
+
+  // Inline schedule form panel state (opened from collab request row)
+  const [schedulePanel, setSchedulePanel] = useState({
+    open: false,
+    collabData: null  // { collab_guest, collab_social } from collab request
+  });
+  const [scheduleFormLoading, setScheduleFormLoading] = useState(false);
 
   // Custom hook for requests & stats
   const {
@@ -196,8 +203,9 @@ function CollabRequestsPage() {
     }
   };
 
-  // Add to Schedule action (auto mark as scheduled & open drawer)
+  // Open inline schedule form drawer from Collab Request row
   const handleAddToSchedule = async (request) => {
+    // Optimistically update status to scheduled if not already
     if (request.status !== 'scheduled') {
       try {
         await updateStatus(request.id, 'scheduled');
@@ -205,12 +213,30 @@ function CollabRequestsPage() {
         console.warn('Auto update status to scheduled warning:', err);
       }
     }
-    const query = new URLSearchParams({
-      action: 'create',
-      collab_guest: request.requested_streamer_name || '',
-      collab_social: request.requested_streamer_social || ''
-    }).toString();
-    navigate(`/admin/schedules?${query}`);
+    // Open inline ScheduleFormPanel with collab data pre-filled
+    setSchedulePanel({
+      open: true,
+      collabData: {
+        collab_guest: request.requested_streamer_name || '',
+        collab_social: request.requested_streamer_social || ''
+      }
+    });
+  };
+
+  // Save schedule from inline panel
+  const handleScheduleSave = async (data) => {
+    setScheduleFormLoading(true);
+    try {
+      await createSchedule(data);
+      setSchedulePanel({ open: false, collabData: null });
+      toast.success('Jadwal stream berhasil disimpan.');
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Gagal menyimpan jadwal.';
+      toast.error(msg);
+      throw err;
+    } finally {
+      setScheduleFormLoading(false);
+    }
   };
 
   return (
@@ -591,6 +617,16 @@ function CollabRequestsPage() {
           Apakah Anda yakin ingin menghapus usulan collab ini? Tindakan ini tidak dapat dibatalkan dan usulan beserta catatannya akan dihapus dari sistem.
         </p>
       </Modal>
+
+      {/* 10. INLINE SCHEDULE FORM DRAWER (from Collab Request) */}
+      <ScheduleFormPanel
+        isOpen={schedulePanel.open}
+        onClose={() => setSchedulePanel({ open: false, collabData: null })}
+        onSave={handleScheduleSave}
+        schedule={null}
+        loading={scheduleFormLoading}
+        initialCollabData={schedulePanel.collabData}
+      />
     </div>
   );
 }

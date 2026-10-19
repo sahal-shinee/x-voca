@@ -80,6 +80,13 @@ const syncDatabase = async (options = {}) => {
     } catch (colErr) {
       // Column might already be modified or non-fatal
     }
+
+    // Ensure content_guides.thumbnail_url supports long URLs and base64 data URIs
+    try {
+      await sequelize.query('ALTER TABLE content_guides MODIFY COLUMN thumbnail_url MEDIUMTEXT;');
+    } catch (colErr) {
+      // Column might already be modified or non-fatal
+    }
   } catch (error) {
     console.error('❌ Database synchronization error:', error.message);
     throw error;

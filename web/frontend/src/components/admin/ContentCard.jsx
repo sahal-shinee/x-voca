@@ -1,7 +1,20 @@
 import { useState } from 'react';
+import {
+  Play,
+  ExternalLink,
+  Edit3,
+  Eye,
+  EyeOff,
+  Star,
+  Trash2,
+  Tv,
+  Layers,
+  Clock
+} from 'lucide-react';
 
 /**
  * ContentCard - Card komponen untuk grid konten di ContentManagementPage
+ * Zero emojis, clean UI, standard Lucide icons & reliable thumbnail rendering
  */
 function ContentCard({
   content,
@@ -12,163 +25,219 @@ function ContentCard({
 }) {
   const [imageError, setImageError] = useState(false);
 
-  // Badge configuration
-  const getStatusBadge = () => {
-    if (content.is_featured) {
-      return { label: '★ FEATURED', class: 'bg-accent-gold/20 text-accent-gold border-accent-gold/30' };
-    }
-    if (!content.is_visible) {
-      return { label: '⊗ HIDDEN', class: 'bg-status-live/20 text-status-live border-status-live/30' };
-    }
-    return { label: '● VISIBLE', class: 'bg-status-done/20 text-status-done border-status-done/30' };
-  };
+  if (!content) return null;
 
-  const badge = getStatusBadge();
+  // Resolve thumbnail from various possible field aliases
+  const thumbnailSrc = content.thumbnail_url || content.thumbnailUrl || content.thumbnail || null;
+  const isFeatured = Boolean(content.is_featured);
+  const isVisible = content.is_visible !== false;
+  const sortOrder = content.sort_order ?? content.sortOrder ?? 1;
+  const categoryLabel = content.game_tag || content.category || 'LAINNYA';
+  const isPlaylist = content.content_type === 'playlist' || (content.video_count && content.video_count > 1);
 
-  // Handle image error
-  const handleImageError = () => {
-    setImageError(true);
+  // Status Badge Configuration
+  const renderStatusBadge = () => {
+    if (isFeatured) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase rounded border bg-accent-gold/15 text-accent-gold border-accent-gold/30">
+          <Star className="w-3 h-3 fill-accent-gold flex-shrink-0" />
+          <span>Sorotan</span>
+        </span>
+      );
+    }
+    if (!isVisible) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase rounded border bg-status-live/15 text-status-live border-status-live/30">
+          <EyeOff className="w-3 h-3 flex-shrink-0" />
+          <span>Draft / Hidden</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase rounded border bg-status-done/15 text-status-done border-status-done/30">
+        <Eye className="w-3 h-3 flex-shrink-0" />
+        <span>Publik</span>
+      </span>
+    );
   };
 
   return (
-    <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden hover:border-border-active transition-all group">
-      {/* Thumbnail */}
-      <div className="relative aspect-video bg-bg-input overflow-hidden">
-        {content.thumbnail && !imageError ? (
-          <img
-            src={content.thumbnail}
-            alt={content.title}
-            onError={handleImageError}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-bg-input">
-            <span className="text-4xl opacity-30">📺</span>
+    <div
+      className={`
+        bg-bg-card border rounded-2xl overflow-hidden
+        transition-all duration-200 group flex flex-col justify-between
+        ${isFeatured ? 'border-accent-gold/40 shadow-sm' : 'border-border-subtle hover:border-border-active'}
+      `}
+    >
+      <div>
+        {/* ── THUMBNAIL AREA ─────────────────────────────────────────── */}
+        <div className="relative aspect-video bg-bg-surface overflow-hidden border-b border-border-subtle">
+          {thumbnailSrc && !imageError ? (
+            <img
+              src={thumbnailSrc}
+              alt={content.title || 'Thumbnail'}
+              onError={() => setImageError(true)}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-surface text-text-muted gap-2">
+              <Tv className="w-10 h-10 opacity-40" />
+              <span className="text-[11px] font-mono opacity-60">Tidak ada thumbnail</span>
+            </div>
+          )}
+
+          {/* Top-left: Status badge */}
+          <div className="absolute top-2.5 left-2.5">
+            {renderStatusBadge()}
           </div>
-        )}
 
-        {/* Top-left badge */}
-        <span className={`absolute top-2 left-2 px-2 py-0.5 text-[10px] font-medium rounded border ${badge.class}`}>
-          {badge.label}
-        </span>
-
-        {/* Top-right badge - video count or duration */}
-        {content.video_count && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-mono bg-bg-base/80 text-text-secondary rounded">
-            {content.video_count} VIDEO
-          </span>
-        )}
-
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-bg-base/40">
-          <div className="w-12 h-12 rounded-full bg-bg-base/80 flex items-center justify-center">
-            <span className="text-xl text-text-primary ml-0.5">▶</span>
+          {/* Top-right: Type / Count badge */}
+          <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+            {isPlaylist ? (
+              <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-bg-base/85 text-accent-purple rounded border border-border-subtle backdrop-blur-sm flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                <span>{content.video_count || 1} Video</span>
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-bg-base/85 text-text-secondary rounded border border-border-subtle backdrop-blur-sm">
+                Single Video
+              </span>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Content Info */}
-      <div className="p-4">
-        {/* Genre & Sort Order */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">
-            {content.game_tag || content.category || 'LAINNYA'}
-          </span>
-          {content.sort_order !== undefined && (
-            <span className="text-[10px] font-mono text-text-muted">
-              #{content.sort_order}
-            </span>
-          )}
-        </div>
-
-        {/* Title */}
-        <h3 className="text-sm font-semibold text-text-primary line-clamp-2 mb-2">
-          {content.title}
-        </h3>
-
-        {/* URL */}
-        {content.youtube_url && (
-          <p className="text-xs text-text-muted truncate mb-2">
-            {content.youtube_url.replace(/(https?:\/\/)?(www\.)?(youtu\.be\/|youtube\.com\/)/g, '').slice(0, 40)}...
-          </p>
-        )}
-
-        {/* Stats */}
-        <div className="flex items-center gap-3 text-xs text-text-muted mb-3">
-          {content.video_count && (
-            <span>{content.video_count} Video</span>
-          )}
-          {content.total_duration && (
-            <span>{content.total_duration}</span>
-          )}
-          {content.quality && (
-            <span>{content.quality}</span>
-          )}
-        </div>
-
-        {/* Action Bar */}
-        <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
-          {/* Left - External link */}
+          {/* Hover Play Button Overlay */}
           {content.youtube_url && (
             <a
               href={content.youtube_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-text-muted hover:text-accent-cyan transition-colors flex items-center gap-1"
+              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-bg-base/40 backdrop-blur-[2px]"
+              title="Buka di YouTube"
             >
-              <span>↗</span>
-              YouTube
+              <div className="w-12 h-12 rounded-full bg-accent-cyan/90 text-text-on-cta flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <Play className="w-5 h-5 ml-0.5 fill-current" />
+              </div>
             </a>
           )}
+        </div>
 
-          {/* Right - Actions */}
-          <div className="flex items-center gap-1">
-            {/* Edit */}
-            <button
-              onClick={() => onEdit?.(content)}
-              className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
-              title="Edit"
-            >
-              <span className="text-sm">✏</span>
-            </button>
-
-            {/* Toggle Visibility */}
-            <button
-              onClick={() => onToggleVisibility?.(content)}
-              className={`p-2 rounded-lg transition-colors ${
-                content.is_visible
-                  ? 'text-status-done hover:bg-status-done/10'
-                  : 'text-text-muted hover:bg-status-live/10'
-              }`}
-              title={content.is_visible ? 'Sembunyikan' : 'Tampilkan'}
-            >
-              <span className="text-sm">
-                {content.is_visible ? '👁' : '👁‍🗨'}
-              </span>
-            </button>
-
-            {/* Toggle Featured */}
-            <button
-              onClick={() => onToggleFeatured?.(content)}
-              className={`p-2 rounded-lg transition-colors ${
-                content.is_featured
-                  ? 'text-accent-gold hover:bg-accent-gold/10'
-                  : 'text-text-muted hover:bg-bg-input'
-              }`}
-              title={content.is_featured ? 'Hapus Featured' : 'Jadikan Featured'}
-            >
-              <span className="text-sm">★</span>
-            </button>
-
-            {/* Delete */}
-            <button
-              onClick={() => onDelete?.(content)}
-              className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
-              title="Hapus"
-            >
-              <span className="text-sm">🗑</span>
-            </button>
+        {/* ── CONTENT INFO ────────────────────────────────────────────── */}
+        <div className="p-4 space-y-2.5">
+          {/* Category & Sort Order */}
+          <div className="flex items-center justify-between text-[11px] font-mono">
+            <span className="px-2 py-0.5 bg-bg-surface border border-border-subtle text-accent-cyan rounded font-semibold uppercase tracking-wider">
+              {categoryLabel}
+            </span>
+            <span className="text-text-muted">
+              Urutan: <strong className="text-text-secondary">#{sortOrder}</strong>
+            </span>
           </div>
+
+          {/* Title */}
+          <h3
+            className="text-sm font-semibold text-text-primary line-clamp-2 leading-snug font-display"
+            title={content.title}
+          >
+            {content.title || 'Tanpa Judul'}
+          </h3>
+
+          {/* Metadata info: Total Duration / Video Count */}
+          {(content.total_duration || (isPlaylist && content.video_count)) && (
+            <div className="flex items-center gap-3 text-xs text-text-muted font-mono pt-1">
+              {content.total_duration && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-text-muted" />
+                  <span>{content.total_duration}</span>
+                </span>
+              )}
+              {isPlaylist && content.video_count && (
+                <span className="flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-text-muted" />
+                  <span>{content.video_count} video dalam seri</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── ACTION FOOTER ───────────────────────────────────────────── */}
+      <div className="px-4 py-3 border-t border-border-subtle/80 bg-bg-surface/30 flex items-center justify-between gap-2">
+        {/* Left: YouTube Link */}
+        {content.youtube_url ? (
+          <a
+            href={content.youtube_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-text-muted hover:text-accent-cyan transition-colors flex items-center gap-1 font-mono truncate max-w-[120px]"
+            title="Buka link YouTube"
+          >
+            <span>YouTube</span>
+            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+          </a>
+        ) : (
+          <span className="text-xs text-text-muted font-mono">-</span>
+        )}
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1">
+          {/* Toggle Visibility (Publish / Draft) */}
+          <button
+            type="button"
+            onClick={() => onToggleVisibility?.(content)}
+            className={`
+              p-2 rounded-lg transition-colors border text-xs
+              ${
+                isVisible
+                  ? 'text-status-done hover:bg-status-done/10 border-status-done/30'
+                  : 'text-text-muted hover:text-text-primary hover:bg-bg-card border-border-subtle'
+              }
+            `}
+            title={isVisible ? 'Klik untuk Sembunyikan (Jadikan Draft)' : 'Klik untuk Publikasikan (Aktif)'}
+            aria-label="Ubah Visibilitas"
+          >
+            {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Toggle Featured */}
+          <button
+            type="button"
+            onClick={() => onToggleFeatured?.(content)}
+            className={`
+              p-2 rounded-lg transition-colors border text-xs
+              ${
+                isFeatured
+                  ? 'text-accent-gold bg-accent-gold/10 border-accent-gold/40'
+                  : 'text-text-muted hover:text-accent-gold hover:bg-bg-card border-border-subtle'
+              }
+            `}
+            title={isFeatured ? 'Hapus dari Sorotan Utama' : 'Jadikan Sorotan Utama (Featured Banner)'}
+            aria-label="Ubah Status Sorotan"
+          >
+            <Star className={`w-3.5 h-3.5 ${isFeatured ? 'fill-accent-gold' : ''}`} />
+          </button>
+
+          {/* Edit */}
+          <button
+            type="button"
+            onClick={() => onEdit?.(content)}
+            className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-card rounded-lg border border-border-subtle transition-colors"
+            title="Edit Detail Konten"
+            aria-label="Edit Konten"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Delete */}
+          <button
+            type="button"
+            onClick={() => onDelete?.(content)}
+            className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg border border-border-subtle hover:border-status-live/30 transition-colors"
+            title="Hapus Konten"
+            aria-label="Hapus Konten"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </div>

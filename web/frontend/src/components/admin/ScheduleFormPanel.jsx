@@ -24,8 +24,16 @@ function ScheduleFormPanel({
   onSave,
   schedule = null,
   loading = false,
+  /**
+   * initialCollabData - Pre-fill collab fields when opening from Collab Requests page.
+   * Format: { collab_guest?: string, collab_social?: string, sourceLabel?: string }
+   * Only used when schedule is null (new schedule, not edit).
+   */
+  initialCollabData = null,
 }) {
   const isEdit = !!schedule;
+  // Flag: form was opened from Collab Requests (to show contextual header)
+  const isFromCollab = !isEdit && !!initialCollabData;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -65,6 +73,23 @@ function ScheduleFormPanel({
         countdown_enabled: schedule.countdown_enabled !== false,
       });
       setShowCollab(hasCollab);
+    } else if (initialCollabData) {
+      // New schedule pre-filled with collab data from Collab Requests
+      const guestName = initialCollabData.collab_guest || '';
+      const guestSocial = initialCollabData.collab_social || '';
+      setFormData({
+        title: '',
+        game_category: '',
+        date: '',
+        time: '',
+        description: '',
+        collab_guest: guestName,
+        collab_social: guestSocial,
+        youtube_url: '',
+        countdown_enabled: true,
+      });
+      // Auto-expand collab section since it's pre-filled
+      setShowCollab(true);
     } else {
       setFormData({
         title: '',
@@ -81,7 +106,7 @@ function ScheduleFormPanel({
     }
     setErrors({});
     setYoutubeError('');
-  }, [schedule, isOpen]);
+  }, [schedule, initialCollabData, isOpen]);
 
   // Fetch accepted games from voting system
   useEffect(() => {
@@ -231,15 +256,29 @@ function ScheduleFormPanel({
             <div className="flex items-center gap-1.5 mb-1">
               <Calendar className="w-3.5 h-3.5 text-accent-cyan" />
               <span className="text-[10px] font-mono text-accent-cyan tracking-wider uppercase">
-                {isEdit ? 'EDIT JADWAL' : 'JADWAL BARU'}
+                {isEdit ? 'EDIT JADWAL' : isFromCollab ? 'JADWAL DARI COLLAB REQUEST' : 'JADWAL BARU'}
               </span>
             </div>
             <h2 className="text-lg font-bold text-text-primary font-display">
               {isEdit ? 'Edit Jadwal Siaran' : 'Tambah Jadwal Siaran'}
             </h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Atur detail siaran dan sinkronisasi ke portal publik
-            </p>
+            {isFromCollab && initialCollabData?.collab_guest ? (
+              <p className="text-xs text-accent-purple mt-0.5 flex items-center gap-1.5">
+                <Users className="w-3 h-3 flex-shrink-0" />
+                <span>
+                  Data collab dari:{' '}
+                  <strong className="font-semibold">
+                    {initialCollabData.collab_guest.startsWith('@')
+                      ? initialCollabData.collab_guest
+                      : `@${initialCollabData.collab_guest}`}
+                  </strong>
+                </span>
+              </p>
+            ) : (
+              <p className="text-xs text-text-muted mt-0.5">
+                Atur detail siaran dan sinkronisasi ke portal publik
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -431,20 +470,26 @@ function ScheduleFormPanel({
           </div>
 
           {/* Kolaborasi Streamer (Collapsible) */}
-          <div className="border border-border-subtle rounded-xl overflow-hidden bg-bg-input/20">
+          <div className={`border rounded-xl overflow-hidden ${isFromCollab ? 'border-accent-purple/40 bg-accent-purple/5' : 'border-border-subtle bg-bg-input/20'}`}>
             <button
               type="button"
               onClick={() => setShowCollab(!showCollab)}
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-bg-input/40 transition-colors text-left"
             >
               <div className="flex items-center gap-2.5">
-                <Users className="w-4 h-4 text-accent-purple" />
+                <Users className={`w-4 h-4 ${isFromCollab ? 'text-accent-purple' : 'text-accent-purple'}`} />
                 <span className="text-xs font-semibold text-text-primary">
                   Kolaborasi Streamer
                 </span>
-                <span className="text-[10px] font-mono text-text-muted bg-bg-card px-2 py-0.5 rounded border border-border-subtle">
-                  Opsional
-                </span>
+                {isFromCollab ? (
+                  <span className="text-[10px] font-mono bg-accent-purple/15 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded">
+                    Dari Request
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono text-text-muted bg-bg-card px-2 py-0.5 rounded border border-border-subtle">
+                    Opsional
+                  </span>
+                )}
               </div>
               <ChevronDown
                 className={`w-4 h-4 text-text-muted transition-transform duration-200 ${showCollab ? 'rotate-180' : ''}`}
@@ -452,6 +497,14 @@ function ScheduleFormPanel({
             </button>
             {showCollab && (
               <div className="p-4 pt-2 space-y-3 border-t border-border-subtle/50 bg-bg-base/30">
+                {isFromCollab && (
+                  <div className="flex items-start gap-2 p-2.5 bg-accent-purple/10 border border-accent-purple/20 rounded-lg">
+                    <Users className="w-3.5 h-3.5 text-accent-purple flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-accent-purple leading-relaxed">
+                      Data streamer diisi otomatis dari usulan Collab Request. Anda bisa mengubah data ini sebelum menyimpan jadwal.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="text-[11px] font-mono text-text-secondary uppercase tracking-wider mb-1.5 block">
                     Nama Streamer Tamu

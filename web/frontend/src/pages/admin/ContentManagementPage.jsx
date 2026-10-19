@@ -3,6 +3,7 @@ import { getContent, createContent, updateContent, deleteContent, toggleContentV
 import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
 import Modal from '../../components/common/Modal';
+import { useToast } from '../../components/common/Toast';
 import {
   BookOpen,
   Search,
@@ -37,6 +38,8 @@ const SORT_OPTIONS = [
 ];
 
 function ContentManagementPage() {
+  const toast = useToast();
+
   // Stats state
   const [stats, setStats] = useState({
     total: 0,
@@ -84,16 +87,31 @@ function ContentManagementPage() {
       // getContent now returns: { success, data: [...contents], pagination }
       const response = await getContent(params);
 
-      // Extract contents array from response
-      // response.data is now directly the array (due to service fix)
-      let data = Array.isArray(response?.data) ? response.data : [];
+      // Extract raw contents array from response
+      const rawList = Array.isArray(response?.data) ? response.data : [];
       const pagination = response?.pagination;
 
+      // Update stats using full rawList before client-side status filter
+      const totalCount = rawList.length;
+      const visibleCount = rawList.filter(c => c.is_visible !== false).length;
+      const hiddenCount = rawList.filter(c => c.is_visible === false).length;
+      const featuredCount = rawList.filter(c => c.is_featured).length;
+      const featuredItem = rawList.find(c => c.is_featured);
+
+      setStats({
+        total: totalCount,
+        visible: visibleCount,
+        hidden: hiddenCount,
+        featured: featuredCount,
+        featuredTitle: featuredItem?.title || null,
+      });
+
       // Apply client-side filters based on status filter
+      let data = [...rawList];
       if (statusFilter === 'visible') {
-        data = data.filter(c => c.is_visible);
+        data = data.filter(c => c.is_visible !== false);
       } else if (statusFilter === 'hidden') {
-        data = data.filter(c => !c.is_visible);
+        data = data.filter(c => c.is_visible === false);
       } else if (statusFilter === 'featured') {
         data = data.filter(c => c.is_featured);
       }
@@ -114,25 +132,10 @@ function ContentManagementPage() {
       setContents(data);
 
       // Calculate pagination (after filtering)
-      const totalFromPagination = pagination?.total || data.length;
       const filteredCount = data.length;
       setTotalItems(filteredCount);
-      setTotalPages(Math.ceil(filteredCount / itemsPerPage));
+      setTotalPages(Math.ceil(filteredCount / itemsPerPage) || 1);
       setCurrentPage(1);
-
-      // Update stats - use all data for stats calculation
-      const allContent = data;
-      const visibleCount = allContent.filter(c => c.is_visible).length;
-      const hiddenCount = allContent.filter(c => !c.is_visible).length;
-      const featuredItem = allContent.find(c => c.is_featured);
-
-      setStats({
-        total: allContent.length,
-        visible: visibleCount,
-        hidden: hiddenCount,
-        featured: allContent.filter(c => c.is_featured).length,
-        featuredTitle: featuredItem?.title || null,
-      });
     } catch (error) {
       console.error('Error fetching contents:', error);
       // Remove fallback dummy data - show empty state instead
@@ -199,14 +202,17 @@ function ContentManagementPage() {
     try {
       if (editingContent) {
         await updateContent(editingContent.id, data);
+        toast.success('Konten katalog berhasil diperbarui.');
       } else {
         await createContent(data);
+        toast.success('Konten katalog baru berhasil ditambahkan.');
       }
       setFormPanelOpen(false);
       setEditingContent(null);
       fetchContents(currentPage);
     } catch (error) {
       console.error('Error saving content:', error);
+      toast.error(error?.response?.data?.message || 'Gagal menyimpan konten.');
       throw error;
     } finally {
       setFormLoading(false);
@@ -216,20 +222,26 @@ function ContentManagementPage() {
   // Handle toggle visibility
   const handleToggleVisibility = async (content) => {
     try {
-      await toggleContentVisibility(content.id, !content.is_visible);
+      const nextVisible = !content.is_visible;
+      await toggleContentVisibility(content.id, nextVisible);
+      toast.success(nextVisible ? 'Konten kini tayang di portal publik.' : 'Konten dialihkan ke status Draft / Hidden.');
       fetchContents(currentPage);
     } catch (error) {
       console.error('Error toggling visibility:', error);
+      toast.error('Gagal mengubah visibilitas konten.');
     }
   };
 
   // Handle toggle featured
   const handleToggleFeatured = async (content) => {
     try {
-      await toggleContentFeatured(content.id, !content.is_featured);
+      const nextFeatured = !content.is_featured;
+      await toggleContentFeatured(content.id, nextFeatured);
+      toast.success(nextFeatured ? 'Konten dijadikan Sorotan Utama (Featured Banner).' : 'Konten dicopot dari Sorotan Utama.');
       fetchContents(currentPage);
     } catch (error) {
       console.error('Error toggling featured:', error);
+      toast.error('Gagal mengubah status sorotan.');
     }
   };
 
@@ -245,9 +257,11 @@ function ContentManagementPage() {
     try {
       await deleteContent(deleteModal.content.id);
       setDeleteModal({ open: false, content: null });
+      toast.success('Konten katalog berhasil dihapus.');
       fetchContents(currentPage);
     } catch (error) {
       console.error('Error deleting content:', error);
+      toast.error('Gagal menghapus konten.');
     } finally {
       setDeleteLoading(false);
     }
