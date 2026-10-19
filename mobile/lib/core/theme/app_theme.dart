@@ -3,18 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Dark Mode Colors (Bawaan)
-  static const Color bgBase        = Color(0xFF0D0B1A); // Background utama[cite: 9]
-  static const Color bgSurface     = Color(0xFF1A1730); // Card & container[cite: 9]
-  static const Color bgInput       = Color(0xFF252240); // Input field & badge[cite: 9]
-  static const Color bgNav         = Color(0xFF130F2A); // Bottom navigation[cite: 9]
-  static const Color accentCyan    = Color(0xFF2DFFC2); // Aksen utama, CTA, toggle[cite: 9]
-  static const Color accentPurple  = Color(0xFF9B6DFF); // Gradient, aksen kedua[cite: 9]
-  static const Color accentGold    = Color(0xFFFFD700); // Gold, status playing[cite: 9]
-  static const Color accentRed     = Color(0xFFFF4444); // Merah, LIVE, hapus, error[cite: 9]
-  static const Color textPrimary   = Color(0xFFEEEAFF); // Teks utama[cite: 9]
-  static const Color textSecondary = Color(0xFF9B97C0); // Sub-teks, label[cite: 9]
-  static const Color textMuted     = Color(0xFF5C587A); // Teks redup, tab non-aktif[cite: 9]
-  static const Color borderSubtle  = Color(0xFF2A2550); // Border card & divider[cite: 9]
+  static const Color bgBase        = Color(0xFF0D0B1A); // Background utama
+  static const Color bgSurface     = Color(0xFF1A1730); // Card & container
+  static const Color bgInput       = Color(0xFF252240); // Input field & badge
+  static const Color bgNav         = Color(0xFF130F2A); // Bottom navigation
+  static const Color accentCyan    = Color(0xFF2DFFC2); // Aksen utama, CTA, toggle
+  static const Color accentPurple  = Color(0xFF9B6DFF); // Gradient, aksen kedua
+  static const Color accentGold    = Color(0xFFFFD700); // Gold, status playing
+  static const Color accentRed     = Color(0xFFFF4444); // Merah, LIVE, hapus, error
+  static const Color textPrimary   = Color(0xFFEEEAFF); // Teks utama
+  static const Color textSecondary = Color(0xFF9B97C0); // Sub-teks, label
+  static const Color textMuted     = Color(0xFF5C587A); // Teks redup, tab non-aktif
+  static const Color borderSubtle  = Color(0xFF2A2550); // Border card & divider
 
   // Light Mode Colors (Disesuaikan dengan tema cyberpunk/futuristik versi terang)
   static const Color bgBaseLight        = Color(0xFFF4F3FA); // Background utama terang

@@ -3,7 +3,7 @@ class Env {
   static const bool useProduction = false;
 
   // IP Lokal Laptop saat ini di jaringan Wi-Fi (Cek via `ipconfig`)
-  static const String localHostIp = '192.168.1.22';
+  static const String localHostIp = '192.168.43.13';
   static const int backendPort = 3001;
 
   // Definisi URL
@@ -16,12 +16,12 @@ class Env {
   // Daftar fallback otomatis berurutan jika terjadi connectionError pada HP/Emulator
   static List<String> get fallbackUrls => [
     localApiUrl,
-    'http://192.168.1.22:3001/api', // IP Wi-Fi Laptop
-    'http://192.168.43.13:3001/api', // IP Tethering HP
-    'http://10.0.2.2:3001/api',       // Android Emulator Loopback
-    railwayProductionUrl,             // URL Production Railway
-    'http://127.0.0.1:3001/api',
-    'http://localhost:3001/api',
+    'http://127.0.0.1:3001/api',       // USB ADB Reverse (Sangat Stabil)
+    'http://localhost:3001/api',       // USB ADB Reverse Alternate
+    'http://192.168.43.13:3001/api',   // IP Tethering HP
+    'http://192.168.1.22:3001/api',    // IP Wi-Fi Rumah
+    'http://10.0.2.2:3001/api',        // Android Emulator Loopback
+    railwayProductionUrl,              // URL Production Railway
   ];
 
   static const String firebaseDatabaseUrl = 'https://xvoca-project.firebaseio.com';

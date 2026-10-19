@@ -50,14 +50,17 @@ class AuthWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return authState.when(
       data: (user) =>
           user != null ? const DashboardScreen() : const LoginScreen(),
-      loading: () => const Scaffold(
-        backgroundColor: AppColors.bgBase,
+      loading: () => Scaffold(
+        backgroundColor: isDark ? AppColors.bgBase : AppColors.bgBaseLight,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.accentCyan),
+          child: CircularProgressIndicator(
+            color: isDark ? AppColors.accentCyan : AppColors.accentPurple,
+          ),
         ),
       ),
       error: (_, __) => const LoginScreen(),
