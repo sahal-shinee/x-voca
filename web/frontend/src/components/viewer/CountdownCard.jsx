@@ -5,20 +5,36 @@ import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
  * Komponen countdown reusable untuk menampilkan waktu mundur ke jadwal stream berikutnya
  * Referensi: UI_SPEC_WEB.md Section 1.1 Countdown Card
  */
+
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+};
+
 const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
   const timeLeft = useCountdown(schedule?.scheduled_at);
   const { display, isLive } = formatCountdown(timeLeft);
 
-  // Format WIB time
+  // Format WIB time (safe version)
   const formatWIB = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    const date = safeParseDate(dateString);
+    if (!date) return '';
+    try {
+      return date.toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return '';
+    }
   };
 
   // Loading state

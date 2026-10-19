@@ -85,11 +85,14 @@ const getSchedules = async (req, res) => {
  */
 const getNextSchedule = async (req, res) => {
   try {
+    const now = new Date();
+    console.log('[getNextSchedule] Request received at:', now.toISOString());
+
     const schedule = await Schedule.findOne({
       where: {
         status: 'upcoming',
         scheduled_at: {
-          [Op.gt]: new Date()
+          [Op.gt]: now
         },
         countdown_enabled: true
       },
@@ -101,9 +104,26 @@ const getNextSchedule = async (req, res) => {
       order: [['scheduled_at', 'ASC']]
     });
 
+    console.log('[getNextSchedule] Query result:', schedule ? {
+      id: schedule.id,
+      title: schedule.title,
+      scheduled_at: schedule.scheduled_at,
+      status: schedule.status,
+      countdown_enabled: schedule.countdown_enabled
+    } : 'No schedule found');
+
+    const responseData = schedule ? addWIBField(schedule) : null;
+    console.log('[getNextSchedule] Response data:', responseData ? {
+      id: responseData.id,
+      title: responseData.title,
+      scheduled_at: responseData.scheduled_at,
+      scheduled_at_wib: responseData.scheduled_at_wib,
+      status: responseData.status
+    } : null);
+
     return res.status(200).json({
       success: true,
-      data: schedule ? addWIBField(schedule) : null,
+      data: responseData,
       message: schedule ? 'Jadwal berikutnya berhasil diambil.' : 'Tidak ada jadwal mendatang.'
     });
   } catch (error) {

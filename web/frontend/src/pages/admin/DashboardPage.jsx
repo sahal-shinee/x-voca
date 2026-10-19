@@ -30,10 +30,21 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Safely parse date string to Date object
+ * Returns null if invalid
+ */
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 /** Format relative time for audit log entries */
 const formatTimeAgo = (dateString) => {
   if (!dateString) return '-';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '-';
   const now = new Date();
   const diff = Math.floor((now - date) / 1000);
 
@@ -47,7 +58,8 @@ const formatTimeAgo = (dateString) => {
 /** Format schedule date display */
 const formatScheduleDate = (dateString) => {
   if (!dateString) return '-';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '-';
   return date.toLocaleDateString('id-ID', {
     weekday: 'short',
     day: 'numeric',
@@ -58,23 +70,37 @@ const formatScheduleDate = (dateString) => {
 /** Format schedule time */
 const formatScheduleTime = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = safeParseDate(dateString);
+  if (!date) return '';
   return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
 /** Map action code to badge display */
 const getActionBadge = (action) => {
+  // Backend uses action_type, frontend uses action
+  const actionType = action?.action_type || action || '';
+
   const map = {
     VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
+    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
     JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
     REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
+    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
     CONTENT_ARCHIVE: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
+    asset_archived: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
+    period_reset: { label: 'Reset Periode', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    content_added: { label: 'Konten Ditambah', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
+    status_changed: { label: 'Status Diubah', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
     LOGIN: { label: 'Login', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
     LOGOUT: { label: 'Logout', bg: 'bg-bg-surface', text: 'text-text-secondary' },
     BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/10', text: 'text-status-live' },
     COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
   };
-  return map[action] || { label: action, bg: 'bg-bg-surface', text: 'text-text-secondary' };
+
+  const found = map[actionType] || map[actionType.toUpperCase()] || map[actionType.toLowerCase()];
+  return found || { label: actionType || '-', bg: 'bg-bg-surface', text: 'text-text-secondary' };
 };
 
 /** Filter options for audit log */
@@ -181,26 +207,49 @@ function DashboardPage() {
     setStatsLoading(true);
     try {
       const response = await getStats();
-      if (response?.data) {
+      // Backend returns: { data: { stats: {...}, recentActivity: [...] } }
+      if (response?.data?.data?.stats) {
+        const backendStats = response.data.data.stats;
         setStats({
-          totalVotes: response.data.totalVotes || 0,
-          upcomingSchedules: response.data.upcomingSchedules || 0,
-          pendingTodos: response.data.pendingTodos || 0,
-          activeContent: response.data.activeContent || 0,
-          votesGrowth: response.data.votesGrowth || 0,
-          urgentTodos: response.data.urgentTodos || 0,
+          totalVotes: backendStats.votes?.total || 0,
+          upcomingSchedules: backendStats.schedules?.upcoming || 0,
+          pendingTodos: backendStats.todos?.pending || 0,
+          activeContent: backendStats.content?.visible || 0,
+          votesGrowth: backendStats.votes?.change_percent || 0,
+          urgentTodos: backendStats.todos?.urgent || 0,
+        });
+      } else if (response?.data?.stats) {
+        // Alternative format
+        const backendStats = response.data.stats;
+        setStats({
+          totalVotes: backendStats.votes?.total || 0,
+          upcomingSchedules: backendStats.schedules?.upcoming || 0,
+          pendingTodos: backendStats.todos?.pending || 0,
+          activeContent: backendStats.content?.visible || 0,
+          votesGrowth: backendStats.votes?.change_percent || 0,
+          urgentTodos: backendStats.todos?.urgent || 0,
+        });
+      } else {
+        // Fallback if format doesn't match
+        setStats({
+          totalVotes: response?.data?.totalVotes || 0,
+          upcomingSchedules: response?.data?.upcomingSchedules || 0,
+          pendingTodos: response?.data?.pendingTodos || 0,
+          activeContent: response?.data?.activeContent || 0,
+          votesGrowth: response?.data?.votesGrowth || 0,
+          urgentTodos: response?.data?.urgentTodos || 0,
         });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Fallback mock data
+      // Clear stats on error instead of mock data
       setStats({
-        totalVotes: 1247,
-        upcomingSchedules: 3,
-        pendingTodos: 5,
-        activeContent: 18,
-        votesGrowth: 12,
-        urgentTodos: 2,
+        totalVotes: 0,
+        upcomingSchedules: 0,
+        pendingTodos: 0,
+        activeContent: 0,
+        votesGrowth: 0,
+        urgentTodos: 0,
       });
     } finally {
       setStatsLoading(false);
@@ -212,21 +261,41 @@ function DashboardPage() {
     setAuditLogsLoading(true);
     try {
       const response = await getAuditLogs({ limit: auditLogsLimit, page });
+      // Backend returns: { success: true, data: [...logs], meta: { total } }
+      // Or: { success: true, data: { logs: [...], total: N } }
+      let logs = [];
+      let total = 0;
+
       if (response?.data) {
-        setAuditLogs(response.data.logs || response.data || []);
-        setAuditLogsTotal(response.data.total || 0);
-        setAuditLogsPage(page);
+        // Case 1: Direct array in data
+        if (Array.isArray(response.data)) {
+          logs = response.data;
+          total = logs.length;
+        }
+        // Case 2: Wrapped in data.data or data.logs
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          logs = response.data.data;
+          total = response.data.meta?.total || logs.length;
+        }
+        else if (response.data.logs && Array.isArray(response.data.logs)) {
+          logs = response.data.logs;
+          total = response.data.total || response.data.meta?.total || logs.length;
+        }
+        // Case 3: Direct with meta
+        else if (response.data.logs !== undefined) {
+          logs = Array.isArray(response.data.logs) ? response.data.logs : [];
+          total = response.data.meta?.total || response.data.total || logs.length;
+        }
       }
+
+      setAuditLogs(logs);
+      setAuditLogsTotal(total);
+      setAuditLogsPage(page);
     } catch (error) {
       console.error('Error fetching logs:', error);
-      setAuditLogs([
-        { id: 1, action: 'VOTE_MASUK', details: 'New vote for Elden Ring', time: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
-        { id: 2, action: 'JADWAL_UPDATE', details: 'Schedule updated: Cyberpunk 2077', time: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-        { id: 3, action: 'REQUEST_GAME', details: 'New request: Signalis', time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-        { id: 4, action: 'CONTENT_ARCHIVE', details: 'Content archived: Minecraft Ep.42', time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-        { id: 5, action: 'BROADCASTING_TOGGLE', details: 'Broadcasting set to READY', time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-      ]);
-      setAuditLogsTotal(42);
+      // Clear logs on error instead of mock data
+      setAuditLogs([]);
+      setAuditLogsTotal(0);
       setAuditLogsPage(page);
     } finally {
       setAuditLogsLoading(false);
@@ -588,14 +657,22 @@ function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  auditLogs.map((log) => {
-                    const badge = getActionBadge(log.action);
+                  auditLogs.map((log, idx) => {
+                    // Normalize field names (backend uses action_type, detail, time_ago)
+                    const normalizedLog = {
+                      id: log.id || idx,
+                      action: log.action_type || log.action || '-',
+                      detail: log.detail || log.details || '-',
+                      sub_detail: log.sub_detail || '',
+                      time: log.time_ago || log.time || '-',
+                    };
+                    const badge = getActionBadge(normalizedLog.action);
                     return (
-                      <tr key={log.id} className="border-t border-border-subtle hover:bg-bg-surface/50 transition-colors">
+                      <tr key={normalizedLog.id} className="border-t border-border-subtle hover:bg-bg-surface/50 transition-colors">
                         <td className="px-5 py-4">
                           <span className="text-sm text-text-secondary flex items-center gap-2 whitespace-nowrap">
                             <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-                            {formatTimeAgo(log.time)}
+                            {normalizedLog.time}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -604,7 +681,12 @@ function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-sm text-text-primary">{log.details}</p>
+                          <p className="text-sm text-text-primary">
+                            {normalizedLog.detail}
+                            {normalizedLog.sub_detail && (
+                              <span className="text-text-muted"> - {normalizedLog.sub_detail}</span>
+                            )}
+                          </p>
                         </td>
                       </tr>
                     );

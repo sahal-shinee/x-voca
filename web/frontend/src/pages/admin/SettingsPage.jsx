@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Lock, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { authAPI } from '../../services/api';
+import { safeFormatDate } from '../../utils/dateUtils';
 
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -148,7 +149,7 @@ function SettingsPage() {
                 </span>
                 {accountInfo.created_at && (
                   <span className="text-xs text-text-muted">
-                    Bergabung {new Date(accountInfo.created_at).toLocaleDateString('id-ID', {
+                    Bergabung {safeFormatDate(accountInfo.created_at, {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric'

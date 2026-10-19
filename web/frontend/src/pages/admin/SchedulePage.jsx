@@ -3,6 +3,7 @@ import { getStats } from '../../services/dashboardService';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from '../../services/scheduleService';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
 import Modal from '../../components/common/Modal';
+import { safeParseDate, safeFormatDate, safeFormatTime } from '../../utils/dateUtils';
 import {
   Radio,
   Calendar,
@@ -20,6 +21,30 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
+
+// YouTube Icon Component
+const YouTubeIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#ef4444" aria-hidden="true">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+    <path fill="#fff" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+// Normalize schedule data from backend to frontend expected format
+const normalizeSchedule = (schedule) => ({
+  id: schedule.id,
+  title: schedule.title || '-',
+  game_category: schedule.game_category || schedule.game || '-',
+  scheduled_at: schedule.scheduled_at || schedule.scheduled_at || null,
+  description: schedule.description || '',
+  collab_guest: schedule.collab_guest || null,
+  collab_social: schedule.collab_social || null,
+  youtube_url: schedule.youtube_url || null,
+  thumbnail_url: schedule.thumbnail_url || null,
+  stream_platform: schedule.stream_platform || 'YouTube',
+  countdown_enabled: schedule.countdown_enabled !== false,
+  status: schedule.status || 'upcoming',
+});
 
 // Tab filter options
 const FILTER_TABS = [
@@ -46,8 +71,9 @@ function SchedulePage() {
     scheduledSlots: 0,
     syncStatus: 'Tersambung',
     syncLatency: '0.4s',
-    selectedGame: null,
-    selectedGamePercent: 0,
+    topVotedGame: null,
+    topGameVotes: 0,
+    topGamePercent: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -66,30 +92,42 @@ function SchedulePage() {
   const [deleteModal, setDeleteModal] = useState({ open: false, schedule: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Preview modal state
+  const [previewModal, setPreviewModal] = useState({ open: false, schedule: null });
+
+  // Preview handler
+  const handlePreview = (schedule) => {
+    setPreviewModal({ open: true, schedule });
+  };
+
   // Fetch summary stats
   const fetchSummaryStats = useCallback(async () => {
     setStatsLoading(true);
     try {
       const response = await getStats();
-      if (response?.data) {
+      if (response?.data?.stats) {
+        // Extract from nested structure: response.data.stats
+        const stats = response.data.stats;
         setSummaryStats({
-          activeBroadcast: response.data.activeBroadcast || null,
-          scheduledSlots: response.data.upcomingSchedules || 0,
+          activeBroadcast: stats.activeBroadcast || null,
+          scheduledSlots: stats.schedules?.upcoming || 0,
           syncStatus: 'Tersambung',
           syncLatency: '0.4s',
-          selectedGame: response.data.selectedGame || null,
-          selectedGamePercent: response.data.selectedGamePercent || 0,
+          topVotedGame: stats.topVotedGame?.title || null,
+          topGameVotes: stats.topVotedGame?.vote_count || 0,
+          topGamePercent: stats.topVotedGame?.percentage || 0,
         });
       }
     } catch (error) {
       console.error('Error fetching summary stats:', error);
       setSummaryStats({
         activeBroadcast: null,
-        scheduledSlots: 4,
+        scheduledSlots: 0,
         syncStatus: 'Tersambung',
         syncLatency: '0.4s',
-        selectedGame: 'Outer Wilds',
-        selectedGamePercent: 64,
+        topVotedGame: null,
+        topGameVotes: 0,
+        topGamePercent: 0,
       });
     } finally {
       setStatsLoading(false);
@@ -101,19 +139,23 @@ function SchedulePage() {
     setSchedulesLoading(true);
     try {
       const response = await getSchedules({ status: status === 'all' ? undefined : status });
+      // Handle multiple response formats
+      let rawData = [];
       if (response?.data) {
-        setSchedules(Array.isArray(response.data) ? response.data : response.data.schedules || []);
-      } else {
-        setSchedules([]);
+        if (Array.isArray(response.data)) {
+          rawData = response.data;
+        } else if (response.data.schedules) {
+          rawData = response.data.schedules;
+        } else if (response.data.data) {
+          rawData = Array.isArray(response.data.data) ? response.data.data : [];
+        }
       }
+      // Normalize all schedules
+      const normalized = rawData.map(normalizeSchedule);
+      setSchedules(normalized);
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      setSchedules([
-        { id: 1, title: 'Elden Ring Rush', category: 'ACTION RPG', datetime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), status: 'upcoming', description: 'Exploring the Lands Between' },
-        { id: 2, title: 'Signalis: Solitary Resonance', category: 'SURVIVAL HORROR', datetime: new Date(Date.now() - 60 * 60 * 1000).toISOString(), status: 'live', description: 'Survival horror streaming session' },
-        { id: 3, title: 'Stardew Valley Chill', category: 'SIMULATION', datetime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), status: 'upcoming', description: 'Relaxing farming session' },
-        { id: 4, title: 'Minecraft Building Stream', category: 'SURVIVAL', datetime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'archived', description: 'Building a castle' },
-      ]);
+      setSchedules([]); // Clear on error instead of mock data
     } finally {
       setSchedulesLoading(false);
     }
@@ -191,32 +233,34 @@ function SchedulePage() {
   // Filter schedules by search
   const filteredSchedules = schedules.filter(schedule =>
     schedule.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    schedule.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    schedule.game_category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Format date time
+  // Format date time (safe version)
   const formatDateTime = (datetime) => {
-    if (!datetime) return '-';
-    const date = new Date(datetime);
-    return date.toLocaleDateString('id-ID', {
+    const date = safeParseDate(datetime);
+    if (!date) return '-';
+    const dateStr = safeFormatDate(datetime, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }) + ', ' + date.toLocaleTimeString('id-ID', {
+    }, '-');
+    const timeStr = safeFormatTime(datetime, {
       hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Jakarta',
-    }) + ' WIB';
+    }, '');
+    return dateStr + (timeStr ? ', ' + timeStr + ' WIB' : '');
   };
 
-  // Get status badge for schedule
+  // Get status badge for schedule (safe version)
   const getScheduleStatus = (schedule) => {
-    if (!schedule.datetime) return 'upcoming';
+    if (!schedule.scheduled_at) return 'upcoming';
     const now = new Date();
-    const scheduleDate = new Date(schedule.datetime);
+    const scheduleDate = safeParseDate(schedule.scheduled_at);
 
     if (schedule.status === 'archived') return 'archived';
-    if (schedule.status === 'live' || (scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
+    if (schedule.status === 'live' || (scheduleDate && scheduleDate <= now && scheduleDate > new Date(now - 60 * 60 * 1000))) return 'live';
     return 'upcoming';
   };
 
@@ -309,14 +353,19 @@ function SchedulePage() {
             <div className="w-10 h-10 rounded-lg bg-accent-gold/10 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-accent-gold" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-text-muted">Voting Terpilih</p>
-              {summaryStats.selectedGame ? (
-                <p className="text-sm font-semibold text-accent-gold">
-                  {summaryStats.selectedGame} ({summaryStats.selectedGamePercent}%)
-                </p>
+              {summaryStats.topVotedGame ? (
+                <>
+                  <p className="text-sm font-semibold text-accent-gold truncate">
+                    {summaryStats.topVotedGame}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {summaryStats.topGameVotes} votes ({summaryStats.topGamePercent}%)
+                  </p>
+                </>
               ) : (
-                <p className="text-sm text-text-muted">Belum ada</p>
+                <p className="text-sm text-text-muted">Belum ada voting</p>
               )}
             </div>
           </div>
@@ -448,14 +497,14 @@ function SchedulePage() {
                           inline-flex px-3 py-1 text-xs font-medium rounded-full
                           ${isLive ? 'bg-status-live/20 text-status-live' : 'bg-bg-input text-text-secondary'}
                         `}>
-                          {schedule.category || 'LAINNYA'}
+                          {schedule.game_category || 'LAINNYA'}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-text-muted" />
                           <span className="text-sm text-text-secondary">
-                            {formatDateTime(schedule.datetime)}
+                            {formatDateTime(schedule.scheduled_at)}
                           </span>
                         </div>
                       </td>
@@ -469,6 +518,7 @@ function SchedulePage() {
                         <div className="flex items-center gap-1">
                           {/* Preview */}
                           <button
+                            onClick={() => handlePreview(schedule)}
                             className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
                             title="Preview"
                           >
@@ -519,6 +569,76 @@ function SchedulePage() {
         schedule={editingSchedule}
         loading={formLoading}
       />
+
+      {/* ========== PREVIEW MODAL ========== */}
+      <Modal
+        isOpen={previewModal.open}
+        onClose={() => setPreviewModal({ open: false, schedule: null })}
+        title="Detail Jadwal"
+      >
+        {previewModal.schedule && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Judul Stream</label>
+              <p className="text-text-primary font-semibold">{previewModal.schedule.title}</p>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Kategori</label>
+              <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-bg-input text-text-secondary">
+                {previewModal.schedule.game_category || 'LAINNYA'}
+              </span>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Waktu</label>
+              <p className="text-text-primary">{formatDateTime(previewModal.schedule.scheduled_at)}</p>
+            </div>
+            <div>
+              <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Status</label>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadge(previewModal.schedule.status).class}`}>
+                {(() => {
+                  const StatusIcon = getStatusBadge(previewModal.schedule.status).icon;
+                  return <StatusIcon className="w-3 h-3" />;
+                })()}
+                {getStatusBadge(previewModal.schedule.status).label}
+              </span>
+            </div>
+            {previewModal.schedule.description && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Deskripsi</label>
+                <p className="text-text-secondary text-sm">{previewModal.schedule.description}</p>
+              </div>
+            )}
+            {previewModal.schedule.collab_guest && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">Collab Guest</label>
+                <p className="text-text-primary">@{previewModal.schedule.collab_guest}</p>
+              </div>
+            )}
+            {previewModal.schedule.youtube_url && (
+              <div>
+                <label className="text-xs font-mono text-text-muted uppercase tracking-wider block mb-1">YouTube</label>
+                <a
+                  href={previewModal.schedule.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+                >
+                  <Youtube size={16} />
+                  <span className="text-sm underline">{previewModal.schedule.youtube_url}</span>
+                </a>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
+              <span className={`text-xs ${previewModal.schedule.countdown_enabled ? 'text-status-upcoming' : 'text-text-muted'}`}>
+                Countdown: {previewModal.schedule.countdown_enabled ? 'Aktif' : 'Nonaktif'}
+              </span>
+              <span className="text-xs text-text-muted">
+                Created: {previewModal.schedule.created_at ? new Date(previewModal.schedule.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-'}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* ========== DELETE CONFIRMATION MODAL ========== */}
       <Modal

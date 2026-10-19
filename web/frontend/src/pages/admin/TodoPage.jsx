@@ -9,6 +9,21 @@ const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', color: 'bg-status-live' },
 ];
 
+/**
+ * Safely format a date string to localized date
+ * Returns empty string if date is invalid
+ */
+const safeFormatDate = (dateString, options = {}) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('id-ID', options);
+  } catch {
+    return '';
+  }
+};
+
 function TodoPage() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,11 +43,19 @@ function TodoPage() {
   const fetchTodos = async () => {
     try {
       const response = await todoService.getAll();
-      if (response?.data) {
-        setTodos(Array.isArray(response.data) ? response.data : []);
+      console.log('[TodoPage] Response:', response);
+
+      // Backend returns: { success, data: { todos: [...], meta: {...} } }
+      if (response?.data?.data?.todos) {
+        setTodos(response.data.data.todos);
+      } else if (response?.data?.todos) {
+        setTodos(response.data.todos);
+      } else if (Array.isArray(response?.data)) {
+        setTodos(response.data);
       } else if (Array.isArray(response)) {
         setTodos(response);
       } else {
+        console.warn('[TodoPage] Unexpected response format:', response);
         setTodos([]);
       }
     } catch (error) {
@@ -47,18 +70,18 @@ function TodoPage() {
     fetchTodos().finally(() => setLoading(false));
   }, []);
 
-  // Filter todos
+  // Filter todos - backend uses 'status' field
   const filteredTodos = todos.filter(todo => {
-    if (filter === 'pending') return !todo.is_completed;
-    if (filter === 'completed') return todo.is_completed;
+    if (filter === 'pending') return todo.status !== 'completed';
+    if (filter === 'completed') return todo.status === 'completed';
     return true;
   });
 
-  // Count stats
+  // Count stats - backend uses 'status' field
   const stats = {
     total: todos.length,
-    pending: todos.filter(t => !t.is_completed).length,
-    completed: todos.filter(t => t.is_completed).length,
+    pending: todos.filter(t => t.status !== 'completed').length,
+    completed: todos.filter(t => t.status === 'completed').length,
   };
 
   // CRUD handlers
@@ -267,7 +290,7 @@ function TodoPage() {
                       {todo.deadline && (
                         <span className="text-xs text-text-muted flex items-center gap-1.5 bg-bg-surface px-2.5 py-1 rounded-lg">
                           <Clock className="w-3.5 h-3.5" />
-                          {new Date(todo.deadline).toLocaleDateString('id-ID', {
+                          {safeFormatDate(todo.deadline, {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
@@ -275,10 +298,10 @@ function TodoPage() {
                         </span>
                       )}
                       <span className="text-xs text-text-muted">
-                        {todo.created_at ? new Date(todo.created_at).toLocaleDateString('id-ID', {
+                        {safeFormatDate(todo.created_at, {
                           day: 'numeric',
                           month: 'short'
-                        }) : ''}
+                        })}
                       </span>
                     </div>
                   </div>

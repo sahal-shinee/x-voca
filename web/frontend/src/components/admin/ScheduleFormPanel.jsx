@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Play, Calendar, Clock, AlignLeft, Users } from 'lucide-react';
+import { ChevronDown, Play, Calendar, Clock, AlignLeft, Users, ExternalLink } from 'lucide-react';
 import { youtubeAPI } from '../../services/api';
+import { getGames } from '../../services/gameService';
 import Toggle from '../common/Toggle';
 
 /**
@@ -26,6 +27,7 @@ function ScheduleFormPanel({
     description: '',
     collab_guest: '',
     collab_social: '',
+    youtube_url: '',
     countdown_enabled: true,
   });
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -33,6 +35,10 @@ function ScheduleFormPanel({
   const [youtubeError, setYoutubeError] = useState('');
   const [errors, setErrors] = useState({});
   const [showCollab, setShowCollab] = useState(false);
+
+  // Accepted games from voting system
+  const [acceptedGames, setAcceptedGames] = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
 
   // Initialize form data when schedule changes
   useEffect(() => {
@@ -48,8 +54,10 @@ function ScheduleFormPanel({
         description: schedule.description || '',
         collab_guest: schedule.collab_guest || '',
         collab_social: schedule.collab_social || '',
+        youtube_url: schedule.youtube_url || '',
         countdown_enabled: schedule.countdown_enabled ?? true,
       });
+      setYoutubeUrl(schedule.youtube_url || '');
       setShowCollab(hasCollab);
     } else {
       // Reset form for new schedule
@@ -61,6 +69,7 @@ function ScheduleFormPanel({
         description: '',
         collab_guest: '',
         collab_social: '',
+        youtube_url: '',
         countdown_enabled: true,
       });
       setYoutubeUrl('');
@@ -69,6 +78,30 @@ function ScheduleFormPanel({
     setErrors({});
     setYoutubeError('');
   }, [schedule, isOpen]);
+
+  // Fetch accepted games from voting system
+  useEffect(() => {
+    const fetchAcceptedGames = async () => {
+      if (!isOpen) return;
+
+      setGamesLoading(true);
+      try {
+        const response = await getGames({ status: 'accepted' });
+        if (response?.data && Array.isArray(response.data)) {
+          setAcceptedGames(response.data);
+        } else if (response?.success && Array.isArray(response)) {
+          setAcceptedGames(response);
+        }
+      } catch (err) {
+        console.error('Error fetching accepted games:', err);
+        setAcceptedGames([]);
+      } finally {
+        setGamesLoading(false);
+      }
+    };
+
+    fetchAcceptedGames();
+  }, [isOpen]);
 
   // Handle input change
   const handleChange = (e) => {
@@ -142,6 +175,7 @@ function ScheduleFormPanel({
       game_category: formData.game_category,
       scheduled_at,
       description: formData.description,
+      youtube_url: formData.youtube_url || undefined,
       collab_guest: formData.collab_guest || undefined,
       collab_social: formData.collab_social || undefined,
       countdown_enabled: formData.countdown_enabled,
@@ -285,7 +319,7 @@ function ScheduleFormPanel({
                 )}
               </div>
 
-              {/* Kategori Game */}
+              {/* Kategori Game - dari Voting System */}
               <div>
                 <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
                   Kategori Game
@@ -295,21 +329,37 @@ function ScheduleFormPanel({
                     name="game_category"
                     value={formData.game_category}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary appearance-none focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors duration-150"
+                    disabled={gamesLoading}
+                    className="w-full px-4 py-3 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary appearance-none focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors duration-150 disabled:opacity-50"
                   >
-                    <option value="">Pilih kategori...</option>
-                    <option value="SURVIVAL HORROR">Survival Horror</option>
-                    <option value="ACTION RPG">Action RPG</option>
-                    <option value="ADVENTURE">Adventure</option>
-                    <option value="SIMULATION">Simulation</option>
-                    <option value="STRATEGY">Strategy</option>
-                    <option value="INDIE">Indie</option>
-                    <option value="RETRO">Retro</option>
-                    <option value="MULTIPLAYER">Multiplayer</option>
-                    <option value="OTHER">Lainnya</option>
+                    <option value="">Pilih game dari voting...</option>
+                    {acceptedGames.length > 0 ? (
+                      acceptedGames.map(game => (
+                        <option key={game.id} value={game.title}>
+                          {game.title} ({game.vote_count} votes)
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="SURVIVAL HORROR">Survival Horror</option>
+                        <option value="ACTION RPG">Action RPG</option>
+                        <option value="ADVENTURE">Adventure</option>
+                        <option value="SIMULATION">Simulation</option>
+                        <option value="STRATEGY">Strategy</option>
+                        <option value="INDIE">Indie</option>
+                        <option value="RETRO">Retro</option>
+                        <option value="MULTIPLAYER">Multiplayer</option>
+                        <option value="OTHER">Lainnya</option>
+                      </>
+                    )}
                   </select>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none text-xs">▼</span>
                 </div>
+                {acceptedGames.length > 0 && (
+                  <p className="text-[10px] text-text-muted mt-1">
+                    Game diambil dari voting yang sudah di-accept
+                  </p>
+                )}
               </div>
             </div>
 
@@ -434,6 +484,46 @@ function ScheduleFormPanel({
                     Info collab akan tampil otomatis di viewer portal.
                   </p>
                 </div>
+              )}
+            </div>
+
+            {/* ── Section: YouTube Link ───────────────────────────────── */}
+            <div className="bg-bg-card border border-border-subtle rounded-lg p-5 space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-border-subtle">
+                <Play className="w-5 h-5 text-red-500" />
+                <h3 className="text-sm font-semibold text-text-primary">Link YouTube</h3>
+              </div>
+
+              <div>
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
+                  URL Stream / Video
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    name="youtube_url"
+                    value={formData.youtube_url || ''}
+                    onChange={handleChange}
+                    placeholder="https://youtube.com/live/... atau https://youtu.be/..."
+                    className="w-full px-4 py-3 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 transition-colors duration-150"
+                  />
+                  <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                </div>
+                <p className="text-xs text-text-muted mt-2">
+                  Link YouTube untuk redirect viewer ke stream langsung atau video arsip
+                </p>
+              </div>
+
+              {formData.youtube_url && (
+                <a
+                  href={formData.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors text-sm"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Test link</span>
+                </a>
               )}
             </div>
 

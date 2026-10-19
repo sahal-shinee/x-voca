@@ -233,28 +233,43 @@ const useDragScroll = (containerRef) => {
 
 // ========== HELPER FUNCTIONS ==========
 
-// Format tanggal ke format Indonesia (WIB)
-const formatTanggalWIB = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const options = {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-    timeZoneName: 'short'
-  };
-  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
-  // Convert "00.00 WIB" format
-  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 };
 
-// Hitung countdown dan return string
+// Format tanggal ke format Indonesia (WIB) - safe version
+const formatTanggalWIB = (dateString) => {
+  const date = safeParseDate(dateString);
+  if (!date) return '';
+  try {
+    const options = {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+      timeZoneName: 'short'
+    };
+    const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+    // Convert "00.00 WIB" format
+    return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+  } catch {
+    return '';
+  }
+};
+
+// Hitung countdown dan return string - safe version
 const hitungCountdownString = (targetDateString) => {
-  if (!targetDateString) return null;
-  const target = new Date(targetDateString);
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
   const now = new Date();
   const diff = target - now;
 
@@ -296,8 +311,13 @@ const getIconFromCategory = (category) => {
 const transformScheduleData = (data) => {
   if (!data || !data.id) return null;
 
-  const scheduledAt = data.scheduled_at_wib || data.scheduled_at;
-  const countdownString = hitungCountdownString(scheduledAt);
+  // Use scheduled_at (ISO format) for countdown calculations
+  // Use scheduled_at_wib for display only
+  const scheduledAtISO = data.scheduled_at; // ISO format for countdown
+  const scheduledAtWIB = data.scheduled_at_wib || data.scheduled_at; // For display
+
+  // Calculate countdown using ISO date
+  const countdownString = hitungCountdownString(scheduledAtISO);
 
   return {
     id: data.id,
@@ -305,7 +325,8 @@ const transformScheduleData = (data) => {
     title: data.title || 'Untitled Stream',
     subtitle: data.description ? data.description.substring(0, 50) : '',
     tag: data.game_category || 'GENERAL',
-    time: scheduledAt ? formatTanggalWIB(scheduledAt) : 'TBD',
+    time: scheduledAtWIB ? formatTanggalWIB(scheduledAtWIB) : 'TBD',
+    scheduled_at: scheduledAtISO, // Store ISO date for reference
     countdown: countdownString,
     estimated_duration: data.estimated_duration || '±2-3 Jam',
     platform: data.stream_platform || 'YouTube',
@@ -406,24 +427,42 @@ const ScheduleSection = () => {
         setLoading(true);
         setError(null);
 
+        console.log('[ScheduleSection] Fetching schedules...');
+
         // Fetch all schedules (live, upcoming, done)
-        const [liveData, upcomingData, doneData] = await Promise.all([
-          getSchedules({ status: 'live', limit: 5 }).catch(() => []),
-          getSchedules({ status: 'upcoming', limit: 10 }).catch(() => []),
-          getSchedules({ status: 'done', limit: 5 }).catch(() => []),
+        const [liveResult, upcomingResult, doneResult] = await Promise.all([
+          getSchedules({ status: 'live', limit: 5 }).catch(() => ({ data: [] })),
+          getSchedules({ status: 'upcoming', limit: 10 }).catch(() => ({ data: [] })),
+          getSchedules({ status: 'done', limit: 5 }).catch(() => ({ data: [] })),
         ]);
+
+        console.log('[ScheduleSection] liveResult:', liveResult);
+        console.log('[ScheduleSection] upcomingResult:', upcomingResult);
+        console.log('[ScheduleSection] doneResult:', doneResult);
+
+        // Extract data arrays from response (service returns { success, data: [...] })
+        const liveSchedules = Array.isArray(liveResult) ? liveResult : (liveResult?.data || []);
+        const upcomingSchedules = Array.isArray(upcomingResult) ? upcomingResult : (upcomingResult?.data || []);
+        const doneSchedules = Array.isArray(doneResult) ? doneResult : (doneResult?.data || []);
+
+        console.log('[ScheduleSection] Extracted liveSchedules:', liveSchedules.length);
+        console.log('[ScheduleSection] Extracted upcomingSchedules:', upcomingSchedules.length);
+        console.log('[ScheduleSection] Extracted doneSchedules:', doneSchedules.length);
 
         // Combine dan transform data
         const allSchedules = [
-          ...(Array.isArray(liveData) ? liveData : liveData.data || []),
-          ...(Array.isArray(upcomingData) ? upcomingData : upcomingData.data || []),
-          ...(Array.isArray(doneData) ? doneData : doneData.data || []),
+          ...liveSchedules,
+          ...upcomingSchedules,
+          ...doneSchedules,
         ].map(transformScheduleData).filter(Boolean);
 
-        // Sort by scheduled_at (terdekat dulu)
+        console.log('[ScheduleSection] Final allSchedules count:', allSchedules.length);
+        console.log('[ScheduleSection] allSchedules:', allSchedules);
+
+        // Sort by scheduled_at (terdekat dulu) - safe version
         allSchedules.sort((a, b) => {
-          const dateA = a.time ? new Date(a.time).getTime() : 0;
-          const dateB = b.time ? new Date(b.time).getTime() : 0;
+          const dateA = safeParseDate(a.scheduled_at)?.getTime() || 0;
+          const dateB = safeParseDate(b.scheduled_at)?.getTime() || 0;
           return dateA - dateB;
         });
 
@@ -920,24 +959,64 @@ const ScheduleSection = () => {
 
                   {/* CTA footer */}
                   <div className="mt-auto pt-6 border-t border-[rgba(61,53,96,0.5)]">
-                    <Link
-                      to={schedule.youtube_url || '#'}
-                      target={schedule.youtube_url ? '_blank' : '_self'}
-                      rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                      className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'pointer-events-none opacity-50' : ''}`}
-                      onClick={(e) => {
-                        if (!schedule.youtube_url) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <span className={`text-[13px] ${schedule.status === 'live' ? 'font-bold' : 'font-semibold'} font-body group-hover/link:underline underline-offset-2 transition-all tracking-wide`}>
-                        {schedule.cta}
-                      </span>
-                      <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
-                        {schedule.status === 'done' ? <ExternalArrowIcon /> : <ArrowRightIcon />}
-                      </span>
-                    </Link>
+                    {/* Live streams - always show YouTube link */}
+                    {schedule.status === 'live' ? (
+                      <a
+                        href={schedule.youtube_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-bold font-body flex items-center gap-2">
+                          <YouTubeIcon size={14} className="text-red-500" />
+                          Tonton di YouTube
+                        </span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ExternalArrowIcon />
+                        </span>
+                      </a>
+                    ) : schedule.status === 'done' ? (
+                      <a
+                        href={schedule.youtube_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-semibold font-body">Buka Arsip</span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ExternalArrowIcon />
+                        </span>
+                      </a>
+                    ) : (
+                      <Link
+                        to={schedule.youtube_url || '#'}
+                        target={schedule.youtube_url ? '_blank' : '_self'}
+                        rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
+                        className={`flex items-center justify-between group/link ${getCtaColorClass(schedule.status)} ${!schedule.youtube_url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (!schedule.youtube_url) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        <span className="text-[13px] font-semibold font-body group-hover/link:underline underline-offset-2">
+                          {schedule.youtube_url ? 'Reserve Stream' : 'Link Belum Ada'}
+                        </span>
+                        <span className="transition-transform duration-300 group-hover/link:translate-x-1.5 bg-white/5 p-1.5 rounded-full">
+                          <ArrowRightIcon />
+                        </span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

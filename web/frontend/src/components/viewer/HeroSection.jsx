@@ -727,28 +727,43 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 
 // ========== HELPER FUNCTIONS ==========
 
-// Format tanggal ke format Indonesia
-const formatTanggalWIB = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const options = {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-    timeZoneName: 'short'
-  };
-  const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
-  // Convert "00.00 WIB" format
-  return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+// Safe parse date
+const safeParseDate = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 };
 
-// Hitung countdown dari target date
+// Format tanggal ke format Indonesia (safe version)
+const formatTanggalWIB = (dateString) => {
+  const date = safeParseDate(dateString);
+  if (!date) return '';
+  try {
+    const options = {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+      timeZoneName: 'short'
+    };
+    const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+    // Convert "00.00 WIB" format
+    return formatted.replace(/\.\d{2}\s/, ':').replace(/\sWIB$/, ' WIB');
+  } catch {
+    return '';
+  }
+};
+
+// Hitung countdown dari target date (safe version)
 const hitungCountdown = (targetDateString) => {
-  if (!targetDateString) return null;
-  const target = new Date(targetDateString);
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
   const now = new Date();
   const diff = target - now;
 
@@ -808,11 +823,24 @@ function HeroSection({ onRequestCollab }) {
         setLoading(true);
         // getNextSchedule returns: { success, data: scheduleObject || null }
         const result = await getNextSchedule();
+        console.log("[HeroSection] Full API response:", JSON.stringify(result, null, 2));
+        console.log("[HeroSection] result.data:", result?.data);
+        console.log("[HeroSection] result.data type:", typeof result?.data);
+        console.log("[HeroSection] result.data?.id:", result?.data?.id);
 
-        if (result?.success && result?.data?.id) {
-          // Extract schedule data from response
-          setNextSchedule(result.data);
+        if (result?.success && result?.data) {
+          // Handle both direct schedule object and nested { data: schedule }
+          const scheduleData = result.data.data || result.data;
+
+          if (scheduleData?.id) {
+            console.log("[HeroSection] Schedule found:", scheduleData.title, "at", scheduleData.scheduled_at);
+            setNextSchedule(scheduleData);
+          } else {
+            console.log("[HeroSection] Schedule data has no ID:", scheduleData);
+            setNextSchedule(null);
+          }
         } else {
+          console.log("[HeroSection] No schedule found - result:", result);
           setNextSchedule(null);
         }
       } catch (err) {
@@ -826,17 +854,45 @@ function HeroSection({ onRequestCollab }) {
     fetchNextSchedule();
   }, []);
 
-  // Countdown timer
+  // Countdown timer - use scheduled_at (ISO format) not scheduled_at_wib (Indonesian format)
   useEffect(() => {
-    if (!nextSchedule?.scheduled_at_wib && !nextSchedule?.scheduled_at) {
+    console.log("[HeroSection] Countdown effect triggered. nextSchedule:", nextSchedule?.id, nextSchedule?.title);
+
+    // ALWAYS use scheduled_at (ISO format) for countdown calculation
+    // scheduled_at_wib is for display only, not for calculations
+    const targetDateStr = nextSchedule?.scheduled_at;
+    console.log("[HeroSection] Using scheduled_at for countdown:", targetDateStr);
+
+    if (!targetDateStr) {
+      console.log("[HeroSection] No scheduled_at, setting empty countdown");
       setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
       return;
     }
 
     const updateCountdown = () => {
-      const targetDate = nextSchedule.scheduled_at_wib || nextSchedule.scheduled_at;
-      const countdownData = hitungCountdown(targetDate);
-      setCountdown(formatCountdownDisplay(countdownData));
+      const target = safeParseDate(targetDateStr);
+      console.log("[HeroSection] Parsed target date:", target);
+
+      if (!target || isNaN(target.getTime())) {
+        console.log("[HeroSection] Invalid date, setting empty countdown");
+        setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: false, isEmpty: true });
+        return;
+      }
+
+      const now = new Date();
+      const diff = target - now;
+      console.log("[HeroSection] Time diff (ms):", diff);
+
+      if (diff <= 0) {
+        console.log("[HeroSection] Stream is live or past");
+        setCountdown({ hours: '00', minutes: '00', seconds: '00', isLive: true, isEmpty: false });
+        return;
+      }
+
+      const countdownData = { diff, days: 0, hours: 0, minutes: 0 };
+      const countdownResult = formatCountdownDisplay(countdownData);
+      console.log("[HeroSection] Countdown result:", countdownResult);
+      setCountdown(countdownResult);
     };
 
     // Initial update

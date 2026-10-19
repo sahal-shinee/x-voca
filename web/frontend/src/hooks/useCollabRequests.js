@@ -42,14 +42,35 @@ export function useCollabRequests(initialParams = {}) {
     currentParamsRef.current = mergedParams;
 
     try {
+      // Build clean params (remove undefined values)
+      const cleanParams = Object.fromEntries(
+        Object.entries(mergedParams).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      );
+
       // Fetch requests list and stats in parallel
+      // For stats, only pass period if it's not 'all' or undefined
+      const statsParams = cleanParams.period && cleanParams.period !== 'all'
+        ? { period: cleanParams.period }
+        : {};
+
       const [listRes, statsRes] = await Promise.all([
-        collabRequestService.getCollabRequests(mergedParams),
-        collabRequestService.getCollabRequestStats(mergedParams.period ? { period: mergedParams.period } : {})
+        collabRequestService.getCollabRequests(cleanParams),
+        collabRequestService.getCollabRequestStats(statsParams)
       ]);
 
+      console.log('[useCollabRequests] List response:', listRes?.data);
+      console.log('[useCollabRequests] Stats response:', statsRes?.data);
+
       if (listRes.data?.success) {
-        setRequests(listRes.data.data || []);
+        // Handle both array and wrapped response formats
+        const data = listRes.data.data;
+        if (Array.isArray(data)) {
+          setRequests(data);
+        } else if (data?.requests) {
+          setRequests(data.requests);
+        } else {
+          setRequests([]);
+        }
         if (listRes.data.meta) {
           setPagination(listRes.data.meta);
         }

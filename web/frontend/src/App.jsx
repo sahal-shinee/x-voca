@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/common/Toast';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Admin Components
 import AdminLayout from './components/admin/AdminLayout';
@@ -91,9 +92,11 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <ToastProvider>
-            <BrowserRouter>
-              <AppRouter />
-            </BrowserRouter>
+            <ErrorBoundary>
+              <BrowserRouter>
+                <AppRouter />
+              </BrowserRouter>
+            </ErrorBoundary>
           </ToastProvider>
         </NotificationProvider>
       </AuthProvider>

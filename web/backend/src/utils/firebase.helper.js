@@ -10,25 +10,45 @@
  * - FIREBASE_DATABASE_URL: Firebase Realtime Database URL
  */
 
-const admin = require('firebase-admin');
+const adminModule = require('firebase-admin');
+const admin = adminModule.default || adminModule;
 const path = require('path');
 const fs = require('fs');
 
+// Debug Firebase admin module loading
+console.log('[Firebase] Module loaded:', !!adminModule);
+console.log('[Firebase] Admin module keys:', adminModule ? Object.keys(adminModule).slice(0, 10) : 'none');
+console.log('[Firebase] Has apps:', admin?.apps !== undefined);
+console.log('[Firebase] Apps type:', typeof admin?.apps);
+
 // Lazy initialization untuk Firebase Admin SDK
 let firebaseAdmin = null;
+let initializationAttempted = false;
 
 const getFirebaseAdmin = () => {
+  // Return cached instance if available
   if (firebaseAdmin) return firebaseAdmin;
 
+  // Prevent multiple initialization attempts
+  if (initializationAttempted) {
+    return null;
+  }
+  initializationAttempted = true;
+
+  console.log('[Firebase] Starting initialization...');
+  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT env set:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
+
   // Safety check - pastikan firebase-admin loaded dengan benar
-  if (!admin || !admin.apps) {
-    console.warn('⚠️ Firebase Admin SDK not properly loaded');
+  if (!admin) {
+    console.error('⚠️ Firebase Admin SDK not available');
     return null;
   }
 
   // Jika sudah ada app instance, reuse
-  if (admin.apps.length > 0) {
+  if (admin.apps && admin.apps.length > 0) {
     firebaseAdmin = admin;
+    console.log('✅ Firebase Admin reused existing app instance');
     return firebaseAdmin;
   }
 
@@ -38,15 +58,25 @@ const getFirebaseAdmin = () => {
     // 1. Opsi Utama (Production/Railway): Membaca teks JSON dari environment variable
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       try {
-        serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
-          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-          : process.env.FIREBASE_SERVICE_ACCOUNT;
-        console.log('📡 Firebase: Loading service account from FIREBASE_SERVICE_ACCOUNT env var');
+        const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+        // Handle escaped newlines in Railway environment variables
+        let cleanValue = envValue;
+        if (typeof envValue === 'string' && envValue.includes('\\n')) {
+          cleanValue = envValue.replace(/\\n/g, '\n');
+          console.log('[Firebase] Detected escaped newlines, cleaned for Railway');
+        }
+
+        serviceAccount = JSON.parse(cleanValue);
+        console.log('[Firebase] Service account parsed from env var:', !!serviceAccount);
+        console.log('[Firebase] Has private_key:', !!(serviceAccount?.private_key));
+        console.log('[Firebase] Project ID:', serviceAccount?.project_id);
       } catch (err) {
         console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
+        console.error('[Firebase] Env value preview:', process.env.FIREBASE_SERVICE_ACCOUNT?.substring(0, 100) + '...');
       }
     }
-    // 2. Opsi Kedua: Membaca file dari path variabel env (Development)
+    // 2. Development: Path ke file service account JSON
     else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       const resolvedPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
       if (fs.existsSync(resolvedPath)) {
@@ -56,9 +86,9 @@ const getFirebaseAdmin = () => {
         console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
       }
     }
-    // 3. Opsi Ketiga: Fallback file lokal untuk development
+    // 3. Default: cari di root project
     else {
-      const defaultPath = path.resolve(process.cwd(), 'firebase-service-account.json');
+      const defaultPath = path.resolve(__dirname, '../../firebase-service-account.json');
       if (fs.existsSync(defaultPath)) {
         serviceAccount = require(defaultPath);
         console.log(`📡 Firebase: Loading service account from default file: ${defaultPath}`);
@@ -68,7 +98,7 @@ const getFirebaseAdmin = () => {
     }
 
     // Initialize jika service account berhasil dimuat
-    if (serviceAccount) {
+    if (serviceAccount && serviceAccount.private_key) {
       const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
 
       admin.initializeApp({
@@ -79,27 +109,23 @@ const getFirebaseAdmin = () => {
       firebaseAdmin = admin;
       console.log('✅ Firebase Admin SDK initialized successfully');
       console.log(`📍 Database URL: ${databaseURL}`);
+      return firebaseAdmin;
     } else {
-      console.warn('⚠️ Firebase service account not configured. Real-time features will be limited.');
+      console.warn('⚠️ Firebase: Service account invalid or missing. Real-time features will be limited.');
+      console.warn('[Firebase] serviceAccount:', !!serviceAccount);
+      console.warn('[Firebase] private_key:', !!(serviceAccount?.private_key));
+      return null;
     }
-
-    return firebaseAdmin;
   } catch (error) {
     console.error('❌ Firebase Admin initialization error:', error.message);
+    console.error('[Firebase] Error stack:', error.stack);
     return null;
   }
 };
 
 /**
  * Update next schedule di Firebase
- * Called setelah: schedule baru dibuat atau diupdate
- *
- * @param {Object} scheduleData - Data jadwal stream
- * @param {number} scheduleData.id - Schedule ID
- * @param {string} scheduleData.title - Judul stream
- * @param {string} scheduleData.game_category - Kategori game
- * @param {Date|string} scheduleData.scheduled_at - Waktu stream
- * @param {boolean} scheduleData.countdown_enabled - Apakah countdown enabled
+ * @param {Object} scheduleData Data jadwal stream
  * @returns {Promise<boolean>} Success status
  */
 const updateNextSchedule = async (scheduleData) => {
@@ -131,12 +157,10 @@ const updateNextSchedule = async (scheduleData) => {
 
 /**
  * Update vote count untuk game di Firebase
- * Called setelah: viewer vote atau vote direset
- *
- * @param {number} gameId - Game ID
- * @param {number} voteCount - Total vote count
- * @param {number} percentage - Persentase vote (0-100)
- * @param {number} totalVotes - Total semua vote di periode ini
+ * @param {number} gameId Game ID
+ * @param {number} voteCount Total vote count
+ * @param {number} percentage Persentase vote (0-100)
+ * @param {number} totalVotes Total semua vote di periode ini
  * @returns {Promise<boolean>} Success status
  */
 const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
@@ -151,14 +175,12 @@ const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
     const gameRef = db.ref(`/votes/games/${gameId}`);
     const totalRef = db.ref('/votes/totalVotes');
 
-    // Update game vote count
     await gameRef.set({
       voteCount: voteCount,
       percentage: percentage,
       updatedAt: new Date().toISOString()
     });
 
-    // Also update totalVotes at root level for frontend useVotes hook
     if (totalVotes !== undefined) {
       await totalRef.set(totalVotes);
     }
@@ -173,9 +195,7 @@ const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
 
 /**
  * Update broadcasting status di Firebase
- * Called setelah: Creator toggle broadcasting status
- *
- * @param {boolean} isReady - Apakah sedang broadcasting/live
+ * @param {boolean} isReady Apakah sedang broadcasting/live
  * @returns {Promise<boolean>} Success status
  */
 const updateBroadcastingStatus = async (isReady) => {
@@ -186,8 +206,6 @@ const updateBroadcastingStatus = async (isReady) => {
   }
 
   try {
-    // Note: Frontend useBroadcastingStatus listens to /broadcasting
-    // and expects isReady property at root level
     const ref = fb.database().ref('/broadcasting');
 
     await ref.set({
@@ -205,9 +223,7 @@ const updateBroadcastingStatus = async (isReady) => {
 
 /**
  * Reset seluruh voting period di Firebase
- * Called setelah: Creator reset voting period
- *
- * @param {string} periodKey - Period key baru (format: YYYY-MM)
+ * @param {string} periodKey Period key baru (format: YYYY-MM)
  * @returns {Promise<boolean>} Success status
  */
 const resetVotingPeriod = async (periodKey) => {
@@ -220,7 +236,6 @@ const resetVotingPeriod = async (periodKey) => {
   try {
     const ref = fb.database().ref('/votes');
 
-    // Reset seluruh node votes dengan struktur baru
     await ref.set({
       period: periodKey,
       games: {},
@@ -238,10 +253,8 @@ const resetVotingPeriod = async (periodKey) => {
 
 /**
  * Bulk update semua games vote di Firebase
- * Called setelah: Reset period atau fetch games ranking
- *
- * @param {Array} games - Array of game objects
- * @param {string} periodKey - Period key saat ini
+ * @param {Array} games Array of game objects
+ * @param {string} periodKey Period key saat ini
  * @returns {Promise<boolean>} Success status
  */
 const updateAllGamesVotes = async (games, periodKey) => {
@@ -254,14 +267,12 @@ const updateAllGamesVotes = async (games, periodKey) => {
   try {
     const db = fb.database();
 
-    // Hitung total votes untuk persentase
     const totalVotes = games.reduce((sum, g) => sum + (g.vote_count || 0), 0);
 
-    // Build games object
     const gamesData = {};
     games.forEach((game) => {
       const percentage = totalVotes > 0
-        ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10
+        ? Math.round((game.vote_count / totalVotes) * 1000) / 10
         : 0;
 
       gamesData[game.id] = {
@@ -272,7 +283,6 @@ const updateAllGamesVotes = async (games, periodKey) => {
       };
     });
 
-    // Update entire votes node at once for consistency
     await db.ref('/votes').set({
       period: periodKey,
       games: gamesData,
