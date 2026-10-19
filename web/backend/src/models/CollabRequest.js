@@ -31,7 +31,7 @@ const CollabRequest = sequelize.define('CollabRequest', {
     allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected', 'expired'),
+    type: DataTypes.ENUM('pending', 'approved', 'rejected', 'expired', 'scheduled'),
     defaultValue: 'pending'
   },
   reviewed_by: {

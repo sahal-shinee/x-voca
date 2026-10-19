@@ -73,6 +73,13 @@ const syncDatabase = async (options = {}) => {
     } catch (colErr) {
       // Column might already be modified or non-fatal
     }
+
+    // Ensure collab_requests.status supports scheduled status
+    try {
+      await sequelize.query("ALTER TABLE collab_requests MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'expired', 'scheduled') DEFAULT 'pending';");
+    } catch (colErr) {
+      // Column might already be modified or non-fatal
+    }
   } catch (error) {
     console.error('❌ Database synchronization error:', error.message);
     throw error;

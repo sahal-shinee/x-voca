@@ -22,12 +22,29 @@ export const collabRequestService = {
     api.get(`/api/collab-requests/${id}`),
 
   /**
-   * Review collab request (approve/reject with optional notes)
+   * Review collab request (approve/reject/schedule/pending with optional notes)
    * @param {number|string} id
-   * @param {Object} data - { action: 'approve'|'reject', notes?: string }
+   * @param {Object} data - { action?: string, status?: string, notes?: string }
    */
   reviewCollabRequest: (id, data) =>
     api.patch(`/api/collab-requests/${id}/review`, data),
+
+  /**
+   * Quick update notes for a collab request
+   * @param {number|string} id
+   * @param {string} notes
+   */
+  updateNotes: (id, notes) =>
+    api.patch(`/api/collab-requests/${id}/review`, { action: 'update_note', notes }),
+
+  /**
+   * Update status of collab request
+   * @param {number|string} id
+   * @param {string} status - 'pending'|'approved'|'scheduled'|'rejected'
+   * @param {string} notes - optional
+   */
+  updateStatus: (id, status, notes) =>
+    api.patch(`/api/collab-requests/${id}/review`, { status, notes }),
 
   /**
    * Delete collab request

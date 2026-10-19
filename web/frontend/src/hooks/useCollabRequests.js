@@ -165,6 +165,92 @@ export function useCollabRequests(initialParams = {}) {
   }, []);
 
   /**
+   * Quick update notes for a collab request
+   * Compatible with both new backend and legacy Railway backend
+   * @param {number|string} id
+   * @param {string} notes
+   */
+  const updateNotes = useCallback(async (id, notes) => {
+    try {
+      let res;
+      try {
+        res = await collabRequestService.updateNotes(id, notes);
+      } catch (firstErr) {
+        // Fallback for legacy Railway backend that only accepts action: 'approve' or 'reject'
+        const currentItem = requests.find((r) => r.id === id);
+        const fallbackAction = currentItem?.status === 'rejected' ? 'reject' : 'approve';
+        res = await collabRequestService.reviewCollabRequest(id, { action: fallbackAction, notes });
+      }
+
+      if (res.data?.success) {
+        const updated = res.data.data;
+        setRequests((prev) =>
+          prev.map((item) => (item.id === id ? updated : item))
+        );
+        return { success: true, data: updated, message: res.data.message };
+      }
+      return { success: false, message: res.data?.message || 'Gagal memperbarui catatan.' };
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || 'Terjadi kesalahan saat menyimpan catatan.';
+      return { success: false, message: errMsg };
+    }
+  }, [requests]);
+
+  /**
+   * Update status of collab request
+   * Compatible with both new backend and legacy Railway backend
+   * @param {number|string} id
+   * @param {string} status - 'pending'|'approved'|'scheduled'|'rejected'
+   * @param {string} notes - optional
+   */
+  const updateStatus = useCallback(async (id, status, notes) => {
+    try {
+      let res;
+      try {
+        // First try standard workflow payload
+        res = await collabRequestService.updateStatus(id, status, notes);
+      } catch (firstErr) {
+        // Fallback for legacy Railway backend
+        let fallbackAction = 'approve';
+        let fallbackNotes = notes;
+        if (status === 'rejected') {
+          fallbackAction = 'reject';
+        } else if (status === 'approved') {
+          fallbackAction = 'approve';
+        } else if (status === 'scheduled') {
+          fallbackAction = 'approve';
+          fallbackNotes = notes ? `${notes} (Dijadwalkan)` : '(Dijadwalkan)';
+        } else if (status === 'pending') {
+          fallbackAction = 'approve';
+        }
+        res = await collabRequestService.reviewCollabRequest(id, { action: fallbackAction, notes: fallbackNotes });
+      }
+
+      if (res.data?.success) {
+        const updated = res.data.data;
+        // Optimistically update list
+        setRequests((prev) =>
+          prev.map((item) => (item.id === id ? updated : item))
+        );
+        // Refresh stats
+        collabRequestService.getCollabRequestStats(
+          currentParamsRef.current.period ? { period: currentParamsRef.current.period } : {}
+        ).then((statsRes) => {
+          if (statsRes.data?.success) {
+            setStats(statsRes.data.data);
+          }
+        }).catch(() => {});
+
+        return { success: true, data: updated, message: res.data.message };
+      }
+      return { success: false, message: res.data?.message || 'Gagal mengubah status usulan.' };
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || 'Terjadi kesalahan saat mengubah status.';
+      return { success: false, message: errMsg };
+    }
+  }, []);
+
+  /**
    * Refetch current view
    */
   const refetch = useCallback(() => {
@@ -179,6 +265,8 @@ export function useCollabRequests(initialParams = {}) {
     error,
     fetchRequests,
     reviewRequest,
+    updateStatus,
+    updateNotes,
     deleteRequest,
     refetch
   };

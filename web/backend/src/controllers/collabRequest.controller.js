@@ -214,31 +214,13 @@ const getCollabRequestById = async (req, res) => {
 };
 
 /**
- * Review collab request (approve/reject) (Protected - Admin)
+ * Review collab request (approve/reject/schedule/note) (Protected - Admin)
  * PATCH /api/collab-requests/:id/review
  */
 const reviewCollabRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { action, status, notes, review_notes } = req.body;
-
-    // Determine target status
-    let newStatus = null;
-    if (action === 'approve' || status === 'approved') {
-      newStatus = 'approved';
-    } else if (action === 'reject' || status === 'rejected') {
-      newStatus = 'rejected';
-    } else if (action === 'expire' || status === 'expired') {
-      newStatus = 'expired';
-    }
-
-    if (!newStatus) {
-      return res.status(400).json({
-        success: false,
-        data: null,
-        message: 'Action review tidak valid. Gunakan "approve" atau "reject".'
-      });
-    }
 
     const collabRequest = await CollabRequest.findByPk(id);
 
@@ -250,24 +232,69 @@ const reviewCollabRequest = async (req, res) => {
       });
     }
 
+    // Determine target status
+    let newStatus = collabRequest.status;
+    if (action === 'approve' || action === 'shortlist' || status === 'approved') {
+      newStatus = 'approved';
+    } else if (action === 'reject' || action === 'archive' || status === 'rejected') {
+      newStatus = 'rejected';
+    } else if (action === 'scheduled' || status === 'scheduled') {
+      newStatus = 'scheduled';
+    } else if (action === 'pending' || action === 'reset' || status === 'pending') {
+      newStatus = 'pending';
+    } else if (action === 'expire' || status === 'expired') {
+      newStatus = 'expired';
+    } else if (action === 'update_note' || action === 'note' || (!action && !status && (notes !== undefined || review_notes !== undefined))) {
+      // Keep existing newStatus
+    } else {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'Aksi review tidak valid.'
+      });
+    }
+
     // Update fields
     const reviewerId = req.userId || req.user?.id || null;
-    const reviewNotes = notes !== undefined ? notes : (review_notes !== undefined ? review_notes : collabRequest.review_notes);
+    const resolvedNotes = notes !== undefined ? notes : (review_notes !== undefined ? review_notes : collabRequest.review_notes);
 
-    await collabRequest.update({
-      status: newStatus,
-      reviewed_by: reviewerId,
-      reviewed_at: new Date(),
-      review_notes: reviewNotes
-    });
+    try {
+      await collabRequest.update({
+        status: newStatus,
+        reviewed_by: reviewerId,
+        reviewed_at: new Date(),
+        review_notes: resolvedNotes
+      });
+    } catch (updateErr) {
+      // Fallback in case DB enum does not yet have 'scheduled'
+      if (newStatus === 'scheduled') {
+        await collabRequest.update({
+          status: 'approved',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          review_notes: resolvedNotes ? `${resolvedNotes} (Dijadwalkan)` : '(Dijadwalkan)'
+        });
+      } else {
+        throw updateErr;
+      }
+    }
 
     // Create audit log
     try {
+      const statusLabels = {
+        approved: 'disimpan (shortlist)',
+        rejected: 'diarsipkan',
+        scheduled: 'dijadwalkan stream',
+        pending: 'dikembalikan ke usulan baru',
+        expired: 'kedaluwarsa'
+      };
+
+      const isNoteOnly = (action === 'update_note' || action === 'note' || (!action && !status && notes !== undefined));
       await AuditLog.create({
         action_type: 'status_changed',
-        detail: newStatus === 'approved'
-          ? 'Request collab disetujui oleh admin'
-          : 'Request collab ditolak oleh admin',
+        detail: isNoteOnly
+          ? 'Catatan collab request diperbarui oleh admin'
+          : `Status collab diubah menjadi ${statusLabels[newStatus] || newStatus} oleh admin`,
         sub_detail: collabRequest.requested_streamer_name
       });
     } catch (logErr) {
@@ -361,10 +388,11 @@ const getCollabRequestStats = async (req, res) => {
       where.period_key = targetPeriod;
     }
 
-    const [total, pending, approved, rejected, expired] = await Promise.all([
+    const [total, pending, approved, scheduled, rejected, expired] = await Promise.all([
       CollabRequest.count({ where }),
       CollabRequest.count({ where: { ...where, status: 'pending' } }),
       CollabRequest.count({ where: { ...where, status: 'approved' } }),
+      CollabRequest.count({ where: { ...where, status: 'scheduled' } }).catch(() => 0),
       CollabRequest.count({ where: { ...where, status: 'rejected' } }),
       CollabRequest.count({ where: { ...where, status: 'expired' } })
     ]);
@@ -375,6 +403,7 @@ const getCollabRequestStats = async (req, res) => {
         total,
         pending,
         approved,
+        scheduled: scheduled || 0,
         rejected,
         expired
       }
