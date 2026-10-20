@@ -235,6 +235,8 @@ const getContents = async (req, res) => {
         id: c.id,
         title: c.title,
         subtitle: `Stream oleh ${c.user?.name || 'X-VOCA'}`,
+        streamer: c.user?.name || 'Admin',
+        user: c.user ? { id: c.user.id, name: c.user.name, avatar_url: c.user.avatar_url } : null,
         videoCount: videoCount,
         video_count: videoCount,
         duration: c.total_duration || formatDuration(videoCount * 60),

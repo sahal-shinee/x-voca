@@ -55,6 +55,23 @@ const ClockIcon = () => (
     <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
+const CopyIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const CheckIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const UserIcon = ({ size = 11 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 const TrendingIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -111,6 +128,7 @@ function ContentGuidePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [copied, setCopied] = useState(false);
 
   // Section visibility
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -149,11 +167,12 @@ function ContentGuidePage() {
         setFeatured({
           id: fc.id,
           title: fc.title,
-          subtitle: fc.subtitle || `Stream oleh ${fc.user?.name || 'X-VOCA'}`,
-          viewCount: fc.viewCount,
+          subtitle: fc.subtitle || `Stream oleh ${fc.streamer || fc.user?.name || 'X-VOCA'}`,
+          streamer: fc.streamer || fc.user?.name || 'Admin',
+          videoCount: fc.videoCount || fc.video_count || 1,
           duration: fc.duration || fc.total_duration,
-          category: fc.category || fc.game_tag?.toUpperCase(),
-          categoryColor: fc.categoryColor,
+          category: fc.category || fc.game_tag?.toUpperCase() || 'STREAM',
+          categoryColor: fc.categoryColor || '#7ee0d2',
           date: fc.date,
           youtubeUrl: fc.youtubeUrl || fc.youtube_url,
           thumbnailUrl: fc.thumbnailUrl || fc.thumbnail_url || fc.thumbnail
@@ -312,6 +331,36 @@ function ContentGuidePage() {
     }
   };
 
+  const handleCopyLink = (e, url) => {
+    e.stopPropagation();
+    if (!url) return;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setCopied(true);
+          toast.success('Link stream berhasil disalin ke clipboard');
+          setTimeout(() => setCopied(false), 2200);
+        })
+        .catch(() => {
+          toast.error('Gagal menyalin link');
+        });
+    } else {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        toast.success('Link stream berhasil disalin ke clipboard');
+        setTimeout(() => setCopied(false), 2200);
+      } catch {
+        toast.error('Gagal menyalin link');
+      }
+    }
+  };
+
   // Calculate total content from categories
   const totalContent = categories.reduce((s, c) => s + (c.count || 0), 0);
 
@@ -434,101 +483,187 @@ function ContentGuidePage() {
         >
           <div className="max-w-[1280px] mx-auto">
             {/* Section label */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 rounded-full bg-[#7ee0d2]" />
-              <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Featured Stream</span>
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-[#7ee0d2]" />
+                <span className="text-[#7ee0d2] text-[11px] font-bold tracking-widest uppercase">Featured Stream</span>
+              </div>
+              <span className="text-[11px] text-[#7c7898] font-medium hidden sm:inline">Sorotan Utama Komunitas</span>
             </div>
 
             {/* Featured Card */}
             <div
-              className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
-              style={{ background: 'rgba(18,15,35,0.95)', border: '1px solid rgba(42,38,69,0.8)' }}
+              className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_12px_44px_rgba(0,0,0,0.55)]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(22,18,44,0.92) 0%, rgba(14,11,28,0.96) 100%)',
+                border: '1px solid rgba(126,224,210,0.22)',
+              }}
               onClick={() => handleWatch(featured)}
             >
-              {/* Subtle top accent line */}
-              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.4), rgba(192,132,252,0.3), transparent)' }} />
+              {/* Top accent gradient line */}
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.6), rgba(192,132,252,0.4), transparent)' }} />
 
-              <div className="relative flex flex-col lg:flex-row gap-0">
-                {/* Thumbnail */}
-                <div className="lg:w-[320px] flex-shrink-0">
-                  <div className="relative aspect-video lg:aspect-auto lg:h-full min-h-[160px] overflow-hidden" style={{ background: 'rgba(13,11,26,0.95)' }}>
+              {/* Ambient radial glow matching category color */}
+              <div
+                className="absolute -right-16 -bottom-16 w-72 h-72 rounded-full pointer-events-none opacity-20 blur-3xl transition-opacity duration-500 group-hover:opacity-30"
+                style={{ background: featured.categoryColor || '#7ee0d2' }}
+              />
+
+              <div className="relative p-3.5 sm:p-4 lg:p-5 flex flex-col md:flex-row items-stretch gap-4 lg:gap-6">
+                {/* Thumbnail Container (Strict 16:9 widescreen ratio, never bloats vertically) */}
+                <div className="w-full md:w-[320px] lg:w-[380px] flex-shrink-0">
+                  <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-[#0d0b1a] shadow-inner">
                     {featured.thumbnailUrl ? (
                       <img
                         src={featured.thumbnailUrl}
                         alt={featured.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
-                    ) : null}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#151226] text-[#5c5480]">
+                        <YouTubeIcon />
+                      </div>
+                    )}
 
-                    {/* Dark gradient overlay with subtle category glow */}
-                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(15,10,34,0.45) 0%, rgba(26,20,50,0.65) 100%)' }} />
-                    <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ background: `radial-gradient(ellipse at top right, ${featured.categoryColor || '#c084fc'}, transparent 60%)` }} />
+                    {/* Gradient overlay for contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25 pointer-events-none" />
 
-                    {/* Play button center */}
+                    {/* Glowing Play button center */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="relative">
-                        <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-                          style={{ background: 'rgba(126,224,210,0.12)', border: '1px solid rgba(126,224,210,0.25)' }}>
-                          <div className="w-11 h-11 rounded-full flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}>
-                            <span className="text-[#0f0a22] ml-0.5"><PlayIcon size={18} /></span>
+                        <div
+                          className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-lg"
+                          style={{ background: 'rgba(15,10,34,0.65)', backdropFilter: 'blur(8px)', border: '1px solid rgba(126,224,210,0.4)' }}
+                        >
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center shadow"
+                            style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}
+                          >
+                            <span className="text-[#0f0a22] ml-0.5"><PlayIcon size={16} /></span>
                           </div>
                         </div>
-                        {/* Ping ring */}
-                        <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'rgba(126,224,210,0.3)' }} />
+                        <div className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ background: 'rgba(126,224,210,0.4)' }} />
                       </div>
                     </div>
 
-                    {/* Duration badge */}
-                    <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono text-white" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-                      <ClockIcon />
-                      {featured.duration}
-                    </div>
-
-                    {/* LIVE badge */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.9)', boxShadow: '0 0 12px rgba(239,68,68,0.4)' }}>
+                    {/* LIVE / FEATURED badge */}
+                    <div
+                      className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider text-white"
+                      style={{ background: 'rgba(239,68,68,0.85)', backdropFilter: 'blur(6px)', boxShadow: '0 2px 10px rgba(239,68,68,0.4)' }}
+                    >
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span className="text-white text-[10px] font-bold tracking-wider">FEATURED</span>
+                      FEATURED
                     </div>
 
-                    {/* Category badge */}
-                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide" style={{ background: 'rgba(192,132,252,0.15)', border: '1px solid rgba(192,132,252,0.3)', color: '#c084fc' }}>
-                      {featured.category}
-                    </div>
+                    {/* Duration badge */}
+                    {featured.duration && (
+                      <div
+                        className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono text-white/95"
+                        style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+                      >
+                        <ClockIcon />
+                        {featured.duration}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Info */}
-                <div className="flex-1 flex flex-col justify-center p-4 lg:p-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-[#5c5480]">{featured.date}</span>
-                    <span className="w-1 h-1 rounded-full bg-[#3d3560]" />
-                    <span className="flex items-center gap-1 text-xs text-[#7c7898]">
+                {/* Info & Actions */}
+                <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+                  {/* Top Meta Row */}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {/* Category pill */}
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+                      style={{
+                        background: `${featured.categoryColor || '#c084fc'}18`,
+                        border: `1px solid ${featured.categoryColor || '#c084fc'}40`,
+                        color: featured.categoryColor || '#c084fc'
+                      }}
+                    >
+                      {featured.category}
+                    </span>
+
+                    {/* Streamer pill */}
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#c4bcdc]"
+                      style={{ background: 'rgba(42,38,69,0.5)', border: '1px solid rgba(61,53,96,0.6)' }}
+                    >
+                      <UserIcon size={11} />
+                      {featured.streamer || 'Admin'}
+                    </span>
+
+                    {/* Date */}
+                    <span className="text-xs text-[#7c7898] flex items-center gap-1">
+                      <span>•</span>
+                      {featured.date}
+                    </span>
+
+                    {/* Video count */}
+                    <span className="text-xs text-[#7c7898] flex items-center gap-1">
+                      <span>•</span>
                       <EyeIcon size={12} />
-                      {featured.videoCount} video
+                      {featured.videoCount || 1} video
                     </span>
                   </div>
 
-                  <h2 className="text-lg lg:text-xl font-bold text-white mb-2 leading-snug">
-                    {featured.title}
-                  </h2>
-                  <p className="text-sm text-[#7c7898] mb-4 leading-relaxed max-w-md">
-                    {featured.subtitle}
-                  </p>
+                  {/* Middle Content */}
+                  <div className="my-auto py-1">
+                    <h2 className="text-lg sm:text-xl font-bold text-white group-hover:text-[#7ee0d2] transition-colors leading-snug line-clamp-2 mb-1.5">
+                      {featured.title}
+                    </h2>
+                    {featured.subtitle && (
+                      <p className="text-xs sm:text-sm text-[#948db5] line-clamp-2 leading-relaxed">
+                        {featured.subtitle}
+                      </p>
+                    )}
+                  </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  {/* Bottom Actions Row */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-2.5 border-t border-[rgba(42,38,69,0.5)] mt-2">
                     <a
                       href={featured.youtubeUrl || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0f0a22] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)', boxShadow: '0 4px 16px rgba(126,224,210,0.25)' }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#0f0a22] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-[#7ee0d2]/20 hover:shadow-[#7ee0d2]/35"
+                      style={{ background: 'linear-gradient(135deg, #7ee0d2, #5bc4b8)' }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <YouTubeIcon />
                       Tonton Sekarang
                     </a>
+
+                    {featured.youtubeUrl && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95"
+                        style={{
+                          background: copied ? 'rgba(126,224,210,0.15)' : 'rgba(42,38,69,0.6)',
+                          border: copied ? '1px solid rgba(126,224,210,0.5)' : '1px solid rgba(61,53,96,0.7)',
+                          color: copied ? '#7ee0d2' : '#c4bcdc'
+                        }}
+                        onClick={(e) => handleCopyLink(e, featured.youtubeUrl)}
+                        title="Salin link stream YouTube"
+                      >
+                        {copied ? (
+                          <>
+                            <CheckIcon size={13} />
+                            <span>Tersalin!</span>
+                          </>
+                        ) : (
+                          <>
+                            <CopyIcon size={13} />
+                            <span>Salin Link</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-[#5c5480] ml-auto">
+                      Klik kartu untuk memutar
+                      <ExternalIcon />
+                    </span>
                   </div>
                 </div>
               </div>
