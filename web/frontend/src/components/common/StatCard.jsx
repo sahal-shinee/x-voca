@@ -20,36 +20,40 @@ export function StatCard({
 
   const variantStyles = {
     default: {
-      card: 'border-border-subtle hover:border-border-active',
-      iconBg: 'bg-bg-surface',
+      card: 'border-border-subtle hover:border-border-active bg-bg-card/95',
+      iconBg: 'bg-bg-surface text-text-secondary border border-border-subtle',
       iconColor: 'text-text-secondary',
       valueColor: 'text-text-primary',
-      trendPos: 'bg-accent-cyan/10 text-accent-cyan',
-      trendNeg: 'bg-status-live/10 text-status-live',
+      trendPos: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      trendNeg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+      topLine: 'bg-border-subtle/50',
     },
     highlight: {
-      card: 'border-accent-cyan/30 hover:border-accent-cyan/50 bg-gradient-to-br from-accent-cyan/5 to-transparent',
-      iconBg: 'bg-accent-cyan/15',
+      card: 'border-accent-cyan/25 hover:border-accent-cyan/50 bg-bg-card/95 shadow-sm',
+      iconBg: 'bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/25',
       iconColor: 'text-accent-cyan',
       valueColor: 'text-accent-cyan',
-      trendPos: 'bg-accent-cyan/10 text-accent-cyan',
-      trendNeg: 'bg-status-live/10 text-status-live',
+      trendPos: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      trendNeg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+      topLine: 'bg-accent-cyan',
     },
     purple: {
-      card: 'border-accent-purple/30 hover:border-accent-purple/50 bg-gradient-to-br from-accent-purple/5 to-transparent',
-      iconBg: 'bg-accent-purple/15',
+      card: 'border-accent-purple/25 hover:border-accent-purple/50 bg-bg-card/95 shadow-sm',
+      iconBg: 'bg-accent-purple/10 text-accent-purple border border-accent-purple/25',
       iconColor: 'text-accent-purple',
       valueColor: 'text-accent-purple',
-      trendPos: 'bg-accent-purple/10 text-accent-purple',
-      trendNeg: 'bg-status-live/10 text-status-live',
+      trendPos: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      trendNeg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+      topLine: 'bg-accent-purple',
     },
     gold: {
-      card: 'border-accent-gold/30 hover:border-accent-gold/50 bg-gradient-to-br from-accent-gold/5 to-transparent',
-      iconBg: 'bg-accent-gold/15',
+      card: 'border-accent-gold/25 hover:border-accent-gold/50 bg-bg-card/95 shadow-sm',
+      iconBg: 'bg-accent-gold/10 text-accent-gold border border-accent-gold/25',
       iconColor: 'text-accent-gold',
       valueColor: 'text-accent-gold',
-      trendPos: 'bg-accent-gold/10 text-accent-gold',
-      trendNeg: 'bg-status-live/10 text-status-live',
+      trendPos: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      trendNeg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+      topLine: 'bg-accent-gold',
     },
   };
 
@@ -58,13 +62,16 @@ export function StatCard({
   return (
     <div
       className={`
-        bg-bg-card rounded-xl p-5
+        relative rounded-xl p-5 overflow-hidden
         border transition-all duration-200
-        hover:bg-bg-card-hover hover:shadow-md hover:-translate-y-px
+        hover:bg-bg-card-hover hover:shadow-lg hover:-translate-y-0.5
         ${styles.card}
         ${className}
       `}
     >
+      {/* Top accent line */}
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${styles.topLine}`} />
+
       <div className="flex items-start justify-between mb-3">
         {/* Icon */}
         <div className={`
@@ -81,10 +88,10 @@ export function StatCard({
         {/* Trend Badge */}
         {trend && !loading && (
           <div className={`
-            flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono
+            flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-medium
             ${isPositive ? styles.trendPos : styles.trendNeg}
           `}>
-            <TrendIcon className="w-3.5 h-3.5" />
+            <TrendIcon className="w-3 h-3" />
             {Math.abs(trend.value)}%
           </div>
         )}
@@ -99,12 +106,12 @@ export function StatCard({
         </div>
       ) : (
         <>
-          <p className={`text-2xl font-bold font-mono ${styles.valueColor}`}>
+          <p className={`text-2xl font-bold font-mono tracking-tight ${styles.valueColor}`}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
-          <p className="text-sm text-text-secondary mt-1">{label}</p>
+          <p className="text-sm font-medium text-text-secondary mt-1">{label}</p>
           {subtitle && (
-            <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+            <p className="text-xs text-text-muted mt-0.5 truncate">{subtitle}</p>
           )}
         </>
       )}

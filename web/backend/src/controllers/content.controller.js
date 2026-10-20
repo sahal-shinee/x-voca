@@ -457,7 +457,7 @@ const updateContent = async (req, res) => {
     // Create audit log
     try {
       await AuditLog.create({
-        action_type: 'content_added',
+        action_type: 'content_updated',
         detail: 'Konten diperbarui',
         sub_detail: content.title
       });

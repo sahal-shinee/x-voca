@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 import { getStats, getAuditLogs } from '../../services/dashboardService';
@@ -26,14 +26,17 @@ import {
   Gamepad2,
   ArrowRight,
   AlertCircle,
+  Trophy,
+  Flame,
+  CheckCircle2,
+  Sparkles,
+  ExternalLink,
+  ShieldAlert
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Safely parse date string to Date object
- * Returns null if invalid
- */
+/** Safely parse date string to Date object */
 const safeParseDate = (dateString) => {
   if (!dateString) return null;
   const date = new Date(dateString);
@@ -77,26 +80,29 @@ const formatScheduleTime = (dateString) => {
 
 /** Map action code to badge display */
 const getActionBadge = (action) => {
-  // Backend uses action_type, frontend uses action
   const actionType = action?.action_type || action || '';
 
   const map = {
-    VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
-    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
-    JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
-    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
-    REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
-    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
+    VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
+    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
+    JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    schedule_created: { label: 'Jadwal Dibuat', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
+    REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
+    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
     CONTENT_ARCHIVE: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
     asset_archived: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
-    period_reset: { label: 'Reset Periode', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
-    content_added: { label: 'Konten Ditambah', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
-    status_changed: { label: 'Status Diubah', bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
-    LOGIN: { label: 'Login', bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
+    period_reset: { label: 'Reset Periode', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    content_added: { label: 'Konten Ditambah', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
+    content_updated: { label: 'Konten Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    status_changed: { label: 'Status Diubah', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
+    LOGIN: { label: 'Login', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
     LOGOUT: { label: 'Logout', bg: 'bg-bg-surface', text: 'text-text-secondary' },
-    BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/10', text: 'text-status-live' },
-    COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
-    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+    BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/15', text: 'text-status-live' },
+    COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
+    todo_created: { label: 'Todo Dibuat', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
+    todo_completed: { label: 'Todo Selesai', bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
   };
 
   const found = map[actionType] || map[actionType.toUpperCase()] || map[actionType.toLowerCase()];
@@ -110,11 +116,9 @@ const LOG_FILTERS = [
   { value: 'week', label: 'Minggu Ini' },
 ];
 
-// ─── Skeleton sub-components ─────────────────────────────────────────────────
-
 function UpcomingStreamSkeleton() {
   return (
-    <div className="bg-bg-surface rounded-lg p-4 border border-border-subtle">
+    <div className="bg-bg-surface rounded-lg p-3.5 border border-border-subtle">
       <div className="h-4 w-3/4 bg-bg-card rounded animate-pulse mb-2" />
       <div className="h-3 w-1/2 bg-bg-card rounded animate-pulse" />
     </div>
@@ -125,11 +129,10 @@ function UpcomingStreamSkeleton() {
 
 function DashboardPage() {
   const navigate = useNavigate();
-
   const { isReady: fbIsReady } = useBroadcastingStatus();
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [userName, setUserName] = useState('Xion');
+  const [userName, setUserName] = useState('Admin');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [loadingBroadcasting, setLoadingBroadcasting] = useState(false);
 
@@ -140,6 +143,11 @@ function DashboardPage() {
     activeContent: 0,
     votesGrowth: 0,
     urgentTodos: 0,
+    pendingCollabs: 0,
+    pendingGames: 0,
+    topVotedGame: null,
+    activeBroadcast: null,
+    activePeriod: '',
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -147,7 +155,7 @@ function DashboardPage() {
   const [auditLogsLoading, setAuditLogsLoading] = useState(true);
   const [auditLogsPage, setAuditLogsPage] = useState(1);
   const [auditLogsTotal, setAuditLogsTotal] = useState(0);
-  const [auditLogsLimit] = useState(5);
+  const [auditLogsLimit] = useState(6);
   const [auditLogFilter, setAuditLogFilter] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
@@ -157,9 +165,7 @@ function DashboardPage() {
   // Live clock updated every second
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
-  // ── Sync broadcasting ──────────────────────────────────────────────────────
-  // setTimeout defers the setState call out of the effect body, satisfying
-  // the react-hooks/set-state-in-effect rule while keeping identical behavior.
+  // ── Sync broadcasting status from Firebase ─────────────────────────────────
   useEffect(() => {
     if (!loadingBroadcasting) {
       const id = setTimeout(() => setIsBroadcasting(fbIsReady || false), 0);
@@ -175,16 +181,13 @@ function DashboardPage() {
 
   // ── Fetch user data ────────────────────────────────────────────────────────
   const fetchUserData = useCallback(async () => {
-    setLoadingBroadcasting(true);
     try {
       const response = await authAPI.getMe();
       if (response.data?.data) {
-        setUserName(response.data.data.name || 'Xion');
+        setUserName(response.data.data.name || 'Admin');
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-    } finally {
-      setLoadingBroadcasting(false);
     }
   }, []);
 
@@ -207,42 +210,23 @@ function DashboardPage() {
     setStatsLoading(true);
     try {
       const response = await getStats();
-      // Backend returns: { data: { stats: {...}, recentActivity: [...] } }
-      if (response?.data?.data?.stats) {
-        const backendStats = response.data.data.stats;
-        setStats({
-          totalVotes: backendStats.votes?.total || 0,
-          upcomingSchedules: backendStats.schedules?.upcoming || 0,
-          pendingTodos: backendStats.todos?.pending || 0,
-          activeContent: backendStats.content?.visible || 0,
-          votesGrowth: backendStats.votes?.change_percent || 0,
-          urgentTodos: backendStats.todos?.urgent || 0,
-        });
-      } else if (response?.data?.stats) {
-        // Alternative format
-        const backendStats = response.data.stats;
-        setStats({
-          totalVotes: backendStats.votes?.total || 0,
-          upcomingSchedules: backendStats.schedules?.upcoming || 0,
-          pendingTodos: backendStats.todos?.pending || 0,
-          activeContent: backendStats.content?.visible || 0,
-          votesGrowth: backendStats.votes?.change_percent || 0,
-          urgentTodos: backendStats.todos?.urgent || 0,
-        });
-      } else {
-        // Fallback if format doesn't match
-        setStats({
-          totalVotes: response?.data?.totalVotes || 0,
-          upcomingSchedules: response?.data?.upcomingSchedules || 0,
-          pendingTodos: response?.data?.pendingTodos || 0,
-          activeContent: response?.data?.activeContent || 0,
-          votesGrowth: response?.data?.votesGrowth || 0,
-          urgentTodos: response?.data?.urgentTodos || 0,
-        });
-      }
+      const b = response?.data?.data?.stats || response?.data?.stats || response?.data || {};
+
+      setStats({
+        totalVotes: b.votes?.total || 0,
+        upcomingSchedules: b.schedules?.upcoming || 0,
+        pendingTodos: b.todos?.pending || 0,
+        activeContent: b.content?.visible || 0,
+        votesGrowth: b.votes?.change_percent || 0,
+        urgentTodos: b.todos?.urgent || 0,
+        pendingCollabs: b.collabs?.pending || 0,
+        pendingGames: b.games?.requested || 0,
+        topVotedGame: b.topVotedGame || null,
+        activeBroadcast: b.activeBroadcast || null,
+        activePeriod: b.active_period || '',
+      });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Clear stats on error instead of mock data
       setStats({
         totalVotes: 0,
         upcomingSchedules: 0,
@@ -250,6 +234,11 @@ function DashboardPage() {
         activeContent: 0,
         votesGrowth: 0,
         urgentTodos: 0,
+        pendingCollabs: 0,
+        pendingGames: 0,
+        topVotedGame: null,
+        activeBroadcast: null,
+        activePeriod: '',
       });
     } finally {
       setStatsLoading(false);
@@ -261,30 +250,19 @@ function DashboardPage() {
     setAuditLogsLoading(true);
     try {
       const response = await getAuditLogs({ limit: auditLogsLimit, page });
-      // Backend returns: { success: true, data: [...logs], meta: { total } }
-      // Or: { success: true, data: { logs: [...], total: N } }
       let logs = [];
       let total = 0;
 
       if (response?.data) {
-        // Case 1: Direct array in data
         if (Array.isArray(response.data)) {
           logs = response.data;
           total = logs.length;
-        }
-        // Case 2: Wrapped in data.data or data.logs
-        else if (response.data.data && Array.isArray(response.data.data)) {
+        } else if (response.data.data && Array.isArray(response.data.data)) {
           logs = response.data.data;
           total = response.data.meta?.total || logs.length;
-        }
-        else if (response.data.logs && Array.isArray(response.data.logs)) {
+        } else if (response.data.logs && Array.isArray(response.data.logs)) {
           logs = response.data.logs;
-          total = response.data.total || response.data.meta?.total || logs.length;
-        }
-        // Case 3: Direct with meta
-        else if (response.data.logs !== undefined) {
-          logs = Array.isArray(response.data.logs) ? response.data.logs : [];
-          total = response.data.meta?.total || response.data.total || logs.length;
+          total = response.data.pagination?.total || response.data.total || logs.length;
         }
       }
 
@@ -293,7 +271,6 @@ function DashboardPage() {
       setAuditLogsPage(page);
     } catch (error) {
       console.error('Error fetching logs:', error);
-      // Clear logs on error instead of mock data
       setAuditLogs([]);
       setAuditLogsTotal(0);
       setAuditLogsPage(page);
@@ -306,21 +283,13 @@ function DashboardPage() {
   const fetchUpcomingStreams = useCallback(async () => {
     setUpcomingLoading(true);
     try {
-      const response = await getSchedules({ status: 'upcoming', limit: 3 });
+      const response = await getSchedules({ status: 'upcoming', limit: 4 });
       const data = response?.data || response || [];
-      // Handle array or object with .schedules / .data
-      const list = Array.isArray(data)
-        ? data
-        : data.schedules || data.rows || [];
-      setUpcomingStreams(list.slice(0, 3));
+      const list = Array.isArray(data) ? data : data.schedules || data.rows || [];
+      setUpcomingStreams(list.slice(0, 4));
     } catch (error) {
       console.error('Error fetching upcoming streams:', error);
-      // Fallback mock
-      setUpcomingStreams([
-        { id: 1, title: 'Elden Ring - Boss Rush', scheduled_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), status: 'upcoming' },
-        { id: 2, title: 'Cyberpunk 2077 - Phantom Liberty', scheduled_at: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString(), status: 'upcoming' },
-        { id: 3, title: 'Hollow Knight - All Bosses', scheduled_at: new Date(Date.now() + 50 * 60 * 60 * 1000).toISOString(), status: 'upcoming' },
-      ]);
+      setUpcomingStreams([]);
     } finally {
       setUpcomingLoading(false);
     }
@@ -328,8 +297,6 @@ function DashboardPage() {
 
   // ── Initialize ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Defer fetch calls so any synchronous state updates inside the async
-    // functions don't happen within the effect body itself.
     const id = setTimeout(() => {
       fetchUserData();
       fetchStats();
@@ -350,6 +317,21 @@ function DashboardPage() {
   const handleRefreshAuditLogs = () => fetchAuditLogs(auditLogsPage);
   const totalPages = Math.ceil(auditLogsTotal / auditLogsLimit);
 
+  // Filter audit logs by date in memory
+  const displayedLogs = useMemo(() => {
+    if (auditLogFilter === 'all') return auditLogs;
+    const now = new Date();
+    const thresholdMs = auditLogFilter === '24h'
+      ? 24 * 60 * 60 * 1000
+      : 7 * 24 * 60 * 60 * 1000;
+
+    return auditLogs.filter(log => {
+      if (!log.created_at) return true;
+      const diff = now - new Date(log.created_at);
+      return diff <= thresholdMs;
+    });
+  }, [auditLogs, auditLogFilter]);
+
   // Format live clock
   const formattedDate = currentDateTime.toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -365,69 +347,141 @@ function DashboardPage() {
 
   const activeFilterLabel = LOG_FILTERS.find((f) => f.value === auditLogFilter)?.label || 'Semua';
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // Check if any items need urgent attention
+  const hasPendingItems = stats.pendingCollabs > 0 || stats.pendingGames > 0 || stats.urgentTodos > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
 
-      {/* ── 6.1 Header Card ─────────────────────────────────────────────── */}
-      <div className="bg-bg-card rounded-xl border border-border-subtle p-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* ── 1. Welcome & Command Center Header ───────────────────────────── */}
+      <div className="relative rounded-2xl border border-border-subtle bg-bg-card/95 p-5 sm:p-6 overflow-hidden shadow-lg">
+        {/* Subtle accent glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-cyan via-accent-purple to-transparent" />
 
-          {/* Left: Avatar + Welcome */}
+        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          {/* Left: Avatar + Welcome Text */}
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center border border-border-subtle flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center border border-accent-cyan/30 flex-shrink-0 shadow-inner">
               <span className="text-2xl font-bold text-accent-cyan">
                 {userName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Activity className="w-3.5 h-3.5 text-accent-cyan" />
-                <span className="text-xs font-mono text-accent-cyan tracking-widest">TELEMETRY NODE 01</span>
+                <span className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse" />
+                <span className="text-[11px] font-mono text-accent-cyan font-bold tracking-widest uppercase">
+                  Telemetry Node 01
+                </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Selamat datang, <span className="text-accent-cyan">{userName}</span>
               </h1>
-              <p className="text-sm text-text-secondary flex items-center gap-2 mt-1">
-                <Clock className="w-3.5 h-3.5 text-text-muted" />
-                {formattedDate}
-                <span className="font-mono text-text-muted">{formattedTime} WIB</span>
+              <p className="text-xs sm:text-sm text-text-secondary flex items-center gap-2 mt-1">
+                <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                <span>{formattedDate}</span>
+                <span className="font-mono text-text-primary font-medium">{formattedTime} WIB</span>
               </p>
             </div>
           </div>
 
-          {/* Right: Broadcasting toggle */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-bg-surface rounded-xl border border-border-subtle">
-            <div className={`
-              w-8 h-8 rounded-lg flex items-center justify-center
-              ${isBroadcasting ? 'bg-status-live/15' : 'bg-bg-card'}
-            `}>
-              <Radio className={`w-4 h-4 ${isBroadcasting ? 'text-status-live' : 'text-text-muted'}`} />
+          {/* Right: Broadcasting Status Toggle */}
+          <div className="flex items-center gap-3.5 px-4 py-3 bg-bg-surface/90 rounded-xl border border-border-subtle backdrop-blur-sm self-stretch md:self-auto justify-between md:justify-start">
+            <div className="flex items-center gap-3">
+              <div className={`
+                w-9 h-9 rounded-xl flex items-center justify-center transition-colors
+                ${isBroadcasting ? 'bg-status-live/15 border border-status-live/30' : 'bg-bg-card border border-border-subtle'}
+              `}>
+                <Radio className={`w-4 h-4 ${isBroadcasting ? 'text-status-live animate-pulse' : 'text-text-muted'}`} />
+              </div>
+              <div>
+                <p className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Broadcasting</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isBroadcasting ? 'bg-status-live animate-ping' : 'bg-text-muted'}`} />
+                  <p className={`text-xs font-bold font-mono tracking-wider ${isBroadcasting ? 'text-status-live' : 'text-text-secondary'}`}>
+                    {isBroadcasting ? 'READY (LIVE)' : 'OFFLINE'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-mono text-text-muted leading-none mb-0.5">BROADCASTING</p>
-              <p className={`text-sm font-semibold leading-none ${isBroadcasting ? 'text-status-live' : 'text-text-secondary'}`}>
-                {isBroadcasting ? 'READY' : 'OFFLINE'}
-              </p>
-            </div>
+
             <Toggle
               checked={isBroadcasting}
               onChange={handleToggleBroadcasting}
               disabled={loadingBroadcasting}
               aria-label="Toggle Broadcasting"
-              className="ml-2"
+              className="ml-3"
             />
           </div>
         </div>
       </div>
 
-      {/* ── 6.2 Stats Cards ─────────────────────────────────────────────── */}
+      {/* ── 2. Action Alert Strip (Perlu Perhatian Admin) ────────────────── */}
+      {hasPendingItems ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-bg-card/90 border border-amber-500/30 rounded-xl shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-text-primary">Perlu Perhatian Admin</div>
+              <div className="text-[11px] text-text-muted">Terdapat tugas dan pengajuan yang menunggu tindakan Anda</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {stats.pendingCollabs > 0 && (
+              <button
+                onClick={() => navigate('/admin/collab-requests')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 rounded-lg text-xs font-medium text-accent-purple transition-all"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>{stats.pendingCollabs} Collab Request</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+
+            {stats.pendingGames > 0 && (
+              <button
+                onClick={() => navigate('/admin/voting')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/30 rounded-lg text-xs font-medium text-accent-cyan transition-all"
+              >
+                <Gamepad2 className="w-3.5 h-3.5" />
+                <span>{stats.pendingGames} Request Game</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+
+            {stats.urgentTodos > 0 && (
+              <button
+                onClick={() => navigate('/admin/todos')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-lg text-xs font-medium text-rose-400 transition-all"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>{stats.urgentTodos} Todo Urgent</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between p-3 bg-bg-card/60 border border-border-subtle rounded-xl text-xs text-text-muted">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>Semua antrean operasional bersih & normal. Tidak ada pengajuan tertunda.</span>
+          </div>
+          <span className="font-mono text-[11px] text-text-muted hidden sm:inline">Status: Optimal</span>
+        </div>
+      )}
+
+      {/* ── 3. High-Contrast Stat Cards ──────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={BarChart3}
           label="Total Vote Bulan Ini"
           value={stats.totalVotes}
           trend={{ value: stats.votesGrowth }}
+          subtitle={stats.activePeriod ? `Periode: ${stats.activePeriod}` : 'Voting komunitas'}
           loading={statsLoading}
           variant="highlight"
         />
@@ -435,7 +489,7 @@ function DashboardPage() {
           icon={Calendar}
           label="Jadwal Upcoming"
           value={String(stats.upcomingSchedules).padStart(2, '0')}
-          subtitle="Stream terverifikasi"
+          subtitle="Siaran 7 hari ke depan"
           loading={statsLoading}
           variant="purple"
         />
@@ -443,7 +497,7 @@ function DashboardPage() {
           icon={CheckSquare}
           label="Tugas Pending"
           value={String(stats.pendingTodos).padStart(2, '0')}
-          subtitle={stats.urgentTodos > 0 ? `${stats.urgentTodos} prioritas urgent` : 'Tidak ada urgent'}
+          subtitle={stats.urgentTodos > 0 ? `${stats.urgentTodos} prioritas urgent` : 'Semua prioritas aman'}
           loading={statsLoading}
           variant="gold"
         />
@@ -453,12 +507,58 @@ function DashboardPage() {
           value={stats.activeContent}
           subtitle="Visible di publik"
           loading={statsLoading}
+          variant="default"
         />
       </div>
 
-      {/* ── 6.3 Quick Actions ───────────────────────────────────────────── */}
+      {/* ── 4. Community Spotlight: Top Voted Game ───────────────────────── */}
+      {stats.topVotedGame && (
+        <div className="relative rounded-2xl border border-accent-gold/30 bg-gradient-to-r from-accent-gold/10 via-bg-card to-bg-card p-4 sm:p-5 overflow-hidden shadow-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-accent-gold/15 border border-accent-gold/30 flex items-center justify-center text-accent-gold flex-shrink-0 shadow-sm">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[11px] font-mono text-accent-gold font-bold uppercase tracking-wider">
+                    Game Favorit Komunitas Bulan Ini
+                  </span>
+                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/30">
+                    TOP VOTE
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  {stats.topVotedGame.title}
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Mendapatkan <span className="text-accent-gold font-semibold font-mono">{stats.topVotedGame.vote_count} suara</span> ({stats.topVotedGame.percentage}% dari total suara pemilih)
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate(`/admin/schedules?action=create&game=${encodeURIComponent(stats.topVotedGame.title)}`)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-gold/20 hover:bg-accent-gold/30 border border-accent-gold/40 text-accent-gold rounded-xl font-semibold text-xs transition-all active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Jadwalkan Stream Game Ini</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. Quick Actions ─────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-xs font-mono text-text-muted uppercase tracking-widest mb-3">Quick Actions</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-mono text-text-muted uppercase tracking-widest flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
+            Quick Actions
+          </h2>
+          <span className="text-[11px] text-text-muted hidden sm:inline">Pintas Cepat Manajemen</span>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           <ActionCard
             icon={Plus}
@@ -472,6 +572,7 @@ function DashboardPage() {
             title="Moderasi Voting"
             description="Approve & reject game request"
             accentColor="cyan"
+            badge={stats.pendingGames > 0 ? stats.pendingGames : null}
             onClick={() => navigate('/admin/voting')}
           />
           <ActionCard
@@ -484,9 +585,9 @@ function DashboardPage() {
           <ActionCard
             icon={Users}
             title="Collab Requests"
-            description="Tinjau request kolaborasi viewer"
+            description="Tinjau request kolaborasi streamer"
             accentColor="purple"
-            badge={stats.pendingCollabs || null}
+            badge={stats.pendingCollabs > 0 ? stats.pendingCollabs : null}
             onClick={() => navigate('/admin/collab-requests')}
           />
           <ActionCard
@@ -494,30 +595,31 @@ function DashboardPage() {
             title="Todo Baru"
             description="Tambah tugas ke daftar kerja"
             accentColor="gold"
+            badge={stats.urgentTodos > 0 ? 'Urgent' : null}
             onClick={() => navigate('/admin/todos')}
           />
         </div>
       </div>
 
-      {/* ── 6.4 Upcoming Streams + 6.5 Activity Log ─────────────────────── */}
+      {/* ── 6. Upcoming Streams + Activity Log ───────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── 6.4 Upcoming Streams ──────────────────────────────────────── */}
-        <div className="bg-bg-card rounded-xl border border-border-subtle overflow-hidden">
+        {/* ── 6.1 Upcoming Streams ────────────────────────────────────────── */}
+        <div className="bg-bg-card rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between bg-bg-surface/30">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-purple/10 flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-accent-purple" />
+              <div className="w-9 h-9 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+                <Calendar className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-text-primary">Upcoming Streams</h3>
+                <h3 className="text-sm font-bold text-text-primary">Upcoming Streams</h3>
                 <p className="text-xs text-text-muted">Jadwal siaran berikutnya</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/admin/schedules')}
-              className="flex items-center gap-1 text-xs text-accent-purple hover:text-accent-cyan transition-colors"
+              className="flex items-center gap-1 text-xs font-semibold text-accent-purple hover:text-accent-cyan transition-colors"
             >
               Lihat Semua
               <ArrowRight className="w-3 h-3" />
@@ -525,42 +627,61 @@ function DashboardPage() {
           </div>
 
           {/* List */}
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-center">
             {upcomingLoading ? (
-              <>
+              <div className="space-y-2.5">
                 <UpcomingStreamSkeleton />
                 <UpcomingStreamSkeleton />
                 <UpcomingStreamSkeleton />
-              </>
+              </div>
             ) : upcomingStreams.length === 0 ? (
-              <div className="py-8 flex flex-col items-center gap-2 text-center">
-                <AlertCircle className="w-8 h-8 text-text-muted opacity-40" />
-                <p className="text-sm text-text-muted">Tidak ada jadwal upcoming</p>
+              <div className="py-10 flex flex-col items-center justify-center text-center px-4">
+                <div className="w-12 h-12 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-center text-text-muted mb-3">
+                  <Calendar className="w-6 h-6 opacity-40" />
+                </div>
+                <p className="text-sm font-semibold text-text-primary">Belum ada jadwal upcoming</p>
+                <p className="text-xs text-text-muted mt-1 max-w-xs mb-4">
+                  Sinkronisasi sesi streaming berikutnya agar tampil di halaman publik.
+                </p>
+                <button
+                  onClick={() => navigate('/admin/schedules?action=create')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 text-accent-purple rounded-xl text-xs font-semibold transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Jadwalkan Stream Baru</span>
+                </button>
               </div>
             ) : (
               upcomingStreams.map((stream, idx) => (
                 <button
                   key={stream.id}
                   onClick={() => navigate('/admin/schedules')}
-                  className="w-full text-left bg-bg-surface rounded-lg p-3.5 border border-border-subtle hover:border-accent-purple/30 hover:bg-bg-card transition-all duration-150 group"
+                  className="w-full text-left bg-bg-surface/80 rounded-xl p-3 border border-border-subtle hover:border-accent-purple/40 hover:bg-bg-surface transition-all duration-150 group"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-md bg-accent-purple/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-7 h-7 rounded-lg bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-mono font-bold text-accent-purple">
                         {String(idx + 1).padStart(2, '0')}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate group-hover:text-white transition-colors">
+                      <p className="text-xs sm:text-sm font-semibold text-text-primary truncate group-hover:text-accent-purple transition-colors">
                         {stream.title}
                       </p>
-                      <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatScheduleDate(stream.scheduled_at)}
-                        {stream.scheduled_at && (
-                          <span className="font-mono">{formatScheduleTime(stream.scheduled_at)}</span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[11px] text-text-muted flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-text-muted" />
+                          {formatScheduleDate(stream.scheduled_at)}
+                          {stream.scheduled_at && (
+                            <span className="font-mono text-text-primary"> {formatScheduleTime(stream.scheduled_at)}</span>
+                          )}
+                        </span>
+                        {stream.game_category && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-bg-card border border-border-subtle text-text-muted">
+                            {stream.game_category}
+                          </span>
                         )}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -569,33 +690,33 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* ── 6.5 Activity Log ──────────────────────────────────────────── */}
-        <div className="lg:col-span-2 bg-bg-card rounded-xl border border-border-subtle overflow-hidden">
+        {/* ── 6.2 Activity Log (Audit Log) ─────────────────────────────────── */}
+        <div className="lg:col-span-2 bg-bg-card rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="px-5 py-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-bg-surface/30">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-accent-cyan" />
+              <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+                <Activity className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-text-primary">Aktivitas Terkini</h3>
-                <p className="text-xs text-text-muted">Log interaksi dan perubahan data</p>
+                <h3 className="text-sm font-bold text-text-primary">Aktivitas Terkini</h3>
+                <p className="text-xs text-text-muted">Log interaksi dan perubahan data sistem</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
               {/* Filter dropdown */}
               <div className="relative">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowFilterDropdown((v) => !v); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  {activeFilterLabel}
+                  <span>{activeFilterLabel}</span>
                 </button>
                 {showFilterDropdown && (
                   <div
-                    className="absolute right-0 top-full mt-1 w-40 bg-bg-card border border-border-subtle rounded-lg shadow-xl z-10 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 w-40 bg-bg-card border border-border-subtle rounded-xl shadow-xl z-20 overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {LOG_FILTERS.map((f) => (
@@ -605,7 +726,7 @@ function DashboardPage() {
                         className={`
                           w-full text-left px-3 py-2 text-xs transition-colors
                           ${auditLogFilter === f.value
-                            ? 'bg-accent-cyan/10 text-accent-cyan font-medium'
+                            ? 'bg-accent-cyan/15 text-accent-cyan font-semibold'
                             : 'text-text-secondary hover:bg-bg-surface'}
                         `}
                       >
@@ -620,71 +741,72 @@ function DashboardPage() {
               <button
                 onClick={handleRefreshAuditLogs}
                 disabled={auditLogsLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${auditLogsLoading ? 'animate-spin' : ''}`} />
-                Refresh
+                <span>Refresh</span>
               </button>
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto flex-1">
             <table className="w-full">
               <thead>
-                <tr className="bg-bg-surface/50">
-                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">WAKTU</th>
-                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">AKSI</th>
-                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">DETAIL</th>
+                <tr className="bg-bg-surface/50 border-b border-border-subtle/60">
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">Waktu</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">Aksi</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">Detail Aktivitas</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border-subtle/50">
                 {auditLogsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-t border-border-subtle">
-                      <td className="px-5 py-4"><div className="h-4 w-20 bg-bg-surface rounded animate-pulse" /></td>
-                      <td className="px-5 py-4"><div className="h-6 w-24 bg-bg-surface rounded animate-pulse" /></td>
-                      <td className="px-5 py-4"><div className="h-4 w-40 bg-bg-surface rounded animate-pulse" /></td>
+                    <tr key={i}>
+                      <td className="px-5 py-3.5"><div className="h-4 w-20 bg-bg-surface rounded animate-pulse" /></td>
+                      <td className="px-5 py-3.5"><div className="h-5 w-24 bg-bg-surface rounded animate-pulse" /></td>
+                      <td className="px-5 py-3.5"><div className="h-4 w-40 bg-bg-surface rounded animate-pulse" /></td>
                     </tr>
                   ))
-                ) : auditLogs.length === 0 ? (
+                ) : displayedLogs.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-5 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <AlertCircle className="w-8 h-8 text-text-muted opacity-40" />
-                        <p className="text-sm text-text-muted">Tidak ada aktivitas terkini</p>
+                        <p className="text-sm font-semibold text-text-primary">Tidak ada aktivitas pada rentang ini</p>
+                        <p className="text-xs text-text-muted">Aktivitas sistem akan dicatat otomatis secara real-time.</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  auditLogs.map((log, idx) => {
-                    // Normalize field names (backend uses action_type, detail, time_ago)
+                  displayedLogs.map((log, idx) => {
                     const normalizedLog = {
                       id: log.id || idx,
                       action: log.action_type || log.action || '-',
                       detail: log.detail || log.details || '-',
                       sub_detail: log.sub_detail || '',
-                      time: log.time_ago || log.time || '-',
+                      time: log.time_ago || (log.created_at ? formatTimeAgo(log.created_at) : '-'),
                     };
                     const badge = getActionBadge(normalizedLog.action);
+
                     return (
-                      <tr key={normalizedLog.id} className="border-t border-border-subtle hover:bg-bg-surface/50 transition-colors">
-                        <td className="px-5 py-4">
-                          <span className="text-sm text-text-secondary flex items-center gap-2 whitespace-nowrap">
+                      <tr key={normalizedLog.id} className="hover:bg-bg-surface/40 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <span className="text-xs text-text-secondary flex items-center gap-1.5 whitespace-nowrap">
                             <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
                             {normalizedLog.time}
                           </span>
                         </td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap ${badge.bg} ${badge.text}`}>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex px-2.5 py-0.5 text-[11px] font-medium rounded-md whitespace-nowrap border border-border-subtle/40 ${badge.bg} ${badge.text}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="px-5 py-4">
-                          <p className="text-sm text-text-primary">
+                        <td className="px-5 py-3.5">
+                          <p className="text-xs sm:text-sm text-text-primary">
                             {normalizedLog.detail}
                             {normalizedLog.sub_detail && (
-                              <span className="text-text-muted"> - {normalizedLog.sub_detail}</span>
+                              <span className="text-text-muted font-normal"> - {normalizedLog.sub_detail}</span>
                             )}
                           </p>
                         </td>
@@ -697,28 +819,28 @@ function DashboardPage() {
           </div>
 
           {/* Pagination */}
-          <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between">
+          <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between bg-bg-surface/20">
             <span className="text-xs text-text-muted">
-              {Math.min(auditLogsLimit, auditLogs.length)} dari {auditLogsTotal} entri
+              Menampilkan {displayedLogs.length} dari {auditLogsTotal} log aktivitas
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => { const p = Math.max(1, auditLogsPage - 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
-                disabled={auditLogsPage <= 1}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={auditLogsPage <= 1 || auditLogsLoading}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                Prev
+                <span>Prev</span>
               </button>
               <span className="text-xs font-mono text-text-primary px-2">
-                {auditLogsPage}/{totalPages || 1}
+                {auditLogsPage} / {totalPages || 1}
               </span>
               <button
                 onClick={() => { const p = Math.min(totalPages, auditLogsPage + 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
-                disabled={auditLogsPage >= totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={auditLogsPage >= totalPages || auditLogsLoading}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>

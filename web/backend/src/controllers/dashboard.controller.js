@@ -1,4 +1,4 @@
-const { Game, Schedule, Todo, ContentGuide, AuditLog, User, Vote } = require('../models');
+const { Game, Schedule, Todo, ContentGuide, AuditLog, User, Vote, CollabRequest } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 
 /**
@@ -127,6 +127,18 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
+    // Get pending collab requests count
+    let pendingCollabs = 0;
+    try {
+      if (CollabRequest) {
+        pendingCollabs = await CollabRequest.count({
+          where: { status: 'pending' }
+        });
+      }
+    } catch (e) {
+      console.warn('CollabRequest count skipped:', e.message);
+    }
+
     // Get recent audit logs
     const recentActivity = await AuditLog.findAll({
       order: [['created_at', 'DESC']],
@@ -164,6 +176,9 @@ const getDashboardStats = async (req, res) => {
       },
       games: {
         requested: requestedGames
+      },
+      collabs: {
+        pending: pendingCollabs
       },
       active_period: currentPeriod,
       // NEW: Active broadcast info
