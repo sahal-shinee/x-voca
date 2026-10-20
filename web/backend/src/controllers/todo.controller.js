@@ -202,17 +202,19 @@ const updateTodo = async (req, res) => {
 
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
-        if (field === 'deadline' && updates[field]) {
-          todo[field] = new Date(updates[field]);
+        if (field === 'deadline') {
+          todo[field] = updates[field] ? new Date(updates[field]) : null;
         } else {
           todo[field] = updates[field];
         }
       }
     });
 
-    // Set completed_at if marking as completed
+    // Set or reset completed_at based on status
     if (updates.status === 'completed' && todo.status !== 'completed') {
       todo.completed_at = new Date();
+    } else if (updates.status && updates.status !== 'completed') {
+      todo.completed_at = null;
     }
 
     await todo.save();

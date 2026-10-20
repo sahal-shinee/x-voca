@@ -40,6 +40,23 @@ export const todoService = {
   },
 
   /**
+   * Toggle todo completion
+   */
+  toggleComplete: async (id, isCompleted) => {
+    const status = isCompleted ? 'completed' : 'pending';
+    const response = await api.patch(`/api/todos/${id}`, { status });
+    return response.data;
+  },
+
+  /**
+   * Update todo status directly ('pending' | 'in_progress' | 'completed')
+   */
+  updateStatus: async (id, status) => {
+    const response = await api.patch(`/api/todos/${id}`, { status });
+    return response.data;
+  },
+
+  /**
    * Delete todo by ID
    */
   delete: async (id) => {
