@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
@@ -37,13 +38,67 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     super.dispose();
   }
 
-  // Helper Dialog Konfirmasi Universal
+  // Floating SnackBar / Toast Helper yang modern, rounded, dan taktil
+  void _showFloatingToast(
+    BuildContext context, {
+    required String message,
+    required bool isSuccess,
+    IconData? icon,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        elevation: 6,
+        backgroundColor: bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isSuccess
+                ? AppColors.accentEmerald.withValues(alpha: 0.6)
+                : AppColors.accentRed.withValues(alpha: 0.6),
+            width: 1.2,
+          ),
+        ),
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        duration: const Duration(seconds: 3),
+        content: Row(
+          children: [
+            Icon(
+              icon ?? (isSuccess ? LucideIcons.circle_check : LucideIcons.circle_alert),
+              color: isSuccess ? AppColors.accentEmerald : AppColors.accentRed,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper Dialog Konfirmasi Universal Taktil
   Future<bool> _showConfirmDialog({
     required BuildContext context,
     required String title,
     required String content,
     required String confirmText,
     Color confirmColor = AppColors.accentCyan,
+    IconData icon = LucideIcons.triangle_alert,
   }) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
@@ -52,6 +107,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
+    HapticFeedback.lightImpact();
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -60,24 +116,36 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: borderSubtle),
         ),
-        title: Text(
-          title,
-          style: GoogleFonts.spaceGrotesk(
-            color: textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+        title: Row(
+          children: [
+            Icon(icon, color: confirmColor, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.spaceGrotesk(
+                  color: textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
         ),
         content: Text(
           content,
-          style: GoogleFonts.spaceMono(
+          style: GoogleFonts.spaceGrotesk(
             color: textSecondary,
-            fontSize: 12,
+            fontSize: 13,
+            height: 1.4,
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(ctx, false);
+            },
             child: Text(
               'Batal',
               style: GoogleFonts.spaceMono(color: textMuted),
@@ -89,14 +157,16 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(ctx, true);
+            },
             child: Text(
               confirmText,
               style: GoogleFonts.spaceMono(
-                color: confirmColor == AppColors.accentRed
-                    ? Colors.white
-                    : Colors.black,
+                color: confirmColor == AppColors.accentRed ? Colors.white : Colors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -107,8 +177,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     return result ?? false;
   }
 
-  // Modal Tambah Usulan Game Kandidat
-  void _showAddGameModal(BuildContext context) {
+  // Modal Tambah Usulan Game Kandidat Baru
+  void _showAddGameModal() {
+    HapticFeedback.lightImpact();
     final titleController = TextEditingController();
     final genreController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -117,6 +188,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
         final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
@@ -129,10 +201,14 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         return StatefulBuilder(
           builder: (modalContext, setModalState) {
             return Container(
-              color: bgSurface,
+              decoration: BoxDecoration(
+                color: bgSurface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border(top: BorderSide(color: borderSubtle, width: 1.2)),
+              ),
               padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
+                left: 20,
+                right: 20,
                 top: 20,
                 bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
               ),
@@ -147,9 +223,16 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(LucideIcons.gamepad_2,
-                                color: AppColors.accentCyan, size: 20),
-                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyan.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(LucideIcons.gamepad_2,
+                                  color: AppColors.primary(isDark), size: 20),
+                            ),
+                            const SizedBox(width: 10),
                             Text(
                               'Tambah Game Usulan Baru',
                               style: GoogleFonts.spaceGrotesk(
@@ -160,31 +243,50 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                             ),
                           ],
                         ),
-                        IconButton(
-                          icon: Icon(LucideIcons.x, color: textMuted, size: 20),
-                          onPressed: () => Navigator.pop(modalContext),
+                        SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: IconButton(
+                            icon: Icon(LucideIcons.x, color: textMuted, size: 20),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.pop(modalContext);
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Text(
-                      'Nama / Judul Game',
+                      'Nama / Judul Game *',
                       style: GoogleFonts.spaceMono(
-                          fontSize: 12, color: textSecondary),
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: titleController,
-                      style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Contoh: Resident Evil 4 Remake',
                         hintStyle: GoogleFonts.spaceGrotesk(
                             color: textMuted, fontSize: 13),
                         filled: true,
                         fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
                         ),
                       ),
                       validator: (val) {
@@ -198,25 +300,37 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                     Text(
                       'Genre / Kategori (Opsional)',
                       style: GoogleFonts.spaceMono(
-                          fontSize: 12, color: textSecondary),
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: genreController,
-                      style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Contoh: Horror / Action / Survival',
                         hintStyle: GoogleFonts.spaceGrotesk(
                             color: textMuted, fontSize: 13),
                         filled: true,
                         fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(color: borderSubtle),
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -230,6 +344,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                             ? null
                             : () async {
                                 if (!formKey.currentState!.validate()) return;
+                                HapticFeedback.lightImpact();
                                 setModalState(() => isSubmitting = true);
 
                                 try {
@@ -238,46 +353,39 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                         genre: genreController.text.trim(),
                                       );
 
-                                  if (context.mounted) {
+                                  if (modalContext.mounted) {
                                     Navigator.pop(modalContext);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: bgSurface,
-                                        content: Text(
-                                          'Game kandidat berhasil ditambahkan!',
-                                          style: GoogleFonts.spaceGrotesk(
-                                              color: AppColors.accentCyan),
-                                        ),
-                                      ),
+                                  }
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Game kandidat berhasil ditambahkan ke polling!',
+                                      isSuccess: true,
+                                      icon: LucideIcons.gamepad_2,
                                     );
                                   }
                                 } catch (e) {
                                   setModalState(() => isSubmitting = false);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: bgSurface,
-                                        content: Text(
-                                          'Gagal menambah game: $e',
-                                          style: GoogleFonts.spaceGrotesk(
-                                              color: AppColors.accentRed),
-                                        ),
-                                      ),
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Gagal menambah game: $e',
+                                      isSuccess: false,
                                     );
                                   }
                                 }
                               },
                         child: isSubmitting
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.black),
                               )
                             : Text(
                                 'Simpan Game',
                                 style: GoogleFonts.spaceGrotesk(
-                                  color: Colors.black,
+                                  color: isDark ? Colors.black : Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
@@ -302,6 +410,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     return DefaultTabController(
       length: 2,
@@ -310,6 +419,53 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         appBar: AppBar(
           backgroundColor: bgNav,
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(49),
+            child: Column(
+              children: [
+                TabBar(
+                  onTap: (_) => HapticFeedback.selectionClick(),
+                  indicatorColor: AppColors.primary(isDark),
+                  indicatorWeight: 2.5,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: AppColors.primary(isDark),
+                  unselectedLabelColor: textMuted,
+                  labelStyle: GoogleFonts.spaceGrotesk(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  unselectedLabelStyle: GoogleFonts.spaceGrotesk(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                  tabs: const [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(LucideIcons.vote, size: 16),
+                          SizedBox(width: 8),
+                          Text('Game Voting'),
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(LucideIcons.users, size: 16),
+                          SizedBox(width: 8),
+                          Text('Collab Requests'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Container(color: borderSubtle, height: 1),
+              ],
+            ),
+          ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -318,7 +474,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 style: GoogleFonts.spaceMono(
                   fontSize: 9,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.accentCyan,
+                  color: AppColors.primary(isDark),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -333,30 +489,42 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             ],
           ),
           actions: [
-            IconButton(
-              icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
-              onPressed: () {
-                ref.read(gameProvider.notifier).loadAllData();
-                ref.read(collabProvider.notifier).fetchCollabRequests();
-              },
+            // Touch Target 44x44 dp: Refresh Data
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButton(
+                tooltip: 'Segarkan Data',
+                icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(gameProvider.notifier).loadAllData();
+                  ref.read(collabProvider.notifier).fetchCollabRequests();
+                  _showFloatingToast(
+                    context,
+                    message: 'Data polling & collab berhasil diperbarui',
+                    isSuccess: true,
+                    icon: LucideIcons.refresh_cw,
+                  );
+                },
+              ),
             ),
-            IconButton(
-              icon: const Icon(LucideIcons.plus, color: AppColors.accentCyan),
-              onPressed: () => _showAddGameModal(context),
+            // Touch Target 44x44 dp: Tambah Game Usulan
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButton(
+                tooltip: 'Tambah Game Usulan',
+                icon: Icon(
+                  LucideIcons.plus,
+                  color: AppColors.primary(isDark),
+                  size: 20,
+                ),
+                onPressed: _showAddGameModal,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
           ],
-          bottom: TabBar(
-            indicatorColor: AppColors.accentCyan,
-            labelColor: AppColors.accentCyan,
-            unselectedLabelColor: textMuted,
-            labelStyle: GoogleFonts.spaceGrotesk(
-                fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [
-              Tab(text: 'Game Voting'),
-              Tab(text: 'Collab Requests'),
-            ],
-          ),
         ),
         body: TabBarView(
           children: [
@@ -391,29 +559,48 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final doneCount = games.where((g) => g.status == 'done').length;
 
     if (gameState.isLoading && games.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.accentCyan));
+      return Center(
+          child: CircularProgressIndicator(color: AppColors.primary(isDark)));
     }
 
     if (gameState.error != null && games.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.accentRed, size: 40),
-            const SizedBox(height: 8),
-            Text('Gagal mengambil data polling',
-                style: GoogleFonts.spaceGrotesk(color: textPrimary)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentCyan),
-              onPressed: () => ref.read(gameProvider.notifier).loadAllData(),
-              child: Text('Coba Lagi',
-                  style: GoogleFonts.spaceGrotesk(color: Colors.black)),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(LucideIcons.circle_alert,
+                  color: AppColors.accentRed, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                'Gagal mengambil data polling',
+                style: GoogleFonts.spaceGrotesk(
+                  color: textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary(isDark),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: Icon(LucideIcons.refresh_cw, size: 16, color: isDark ? Colors.black : Colors.white),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(gameProvider.notifier).loadAllData();
+                },
+                label: Text('Coba Lagi',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: isDark ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    )),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -428,14 +615,25 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     }).toList();
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(gameProvider.notifier).loadAllData(),
-      color: AppColors.accentCyan,
+      onRefresh: () async {
+        HapticFeedback.lightImpact();
+        await ref.read(gameProvider.notifier).loadAllData();
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Polling game disinkronkan',
+            isSuccess: true,
+            icon: LucideIcons.check_check,
+          );
+        }
+      },
+      color: AppColors.primary(isDark),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Header Mini Summary
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: bgNav,
               borderRadius: BorderRadius.circular(12),
@@ -445,7 +643,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               children: [
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Review',
+                    title: 'REVIEW',
                     value: '$requestedCount',
                     color: AppColors.accentGold,
                     isDark: isDark,
@@ -454,25 +652,25 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Diterima',
+                    title: 'DITERIMA',
                     value: '$acceptedCount',
-                    color: AppColors.accentCyan,
+                    color: AppColors.primary(isDark),
                     isDark: isDark,
                   ),
                 ),
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Dimainkan',
+                    title: 'DIMAINKAN',
                     value: '$playingCount',
-                    color: Colors.greenAccent,
+                    color: AppColors.accentEmerald,
                     isDark: isDark,
                   ),
                 ),
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Selesai',
+                    title: 'SELESAI',
                     value: '$doneCount',
                     color: textMuted,
                     isDark: isDark,
@@ -483,7 +681,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Search Field Game
+          // Search Field Game (Dengan Clear Text X Min 44x44 dp)
           Container(
             decoration: BoxDecoration(
               color: bgInput,
@@ -499,26 +697,34 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 hintStyle: GoogleFonts.spaceGrotesk(fontSize: 12, color: textMuted),
                 prefixIcon: Icon(LucideIcons.search, size: 16, color: textMuted),
                 suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(LucideIcons.x, size: 16, color: textMuted),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
+                    ? SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          icon: Icon(LucideIcons.x, size: 16, color: textMuted),
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
                       )
                     : null,
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               ),
             ),
           ),
           const SizedBox(height: 12),
 
+          // Filter Chips Game
           _buildFilterChips(games, isDark),
           const SizedBox(height: 14),
 
+          // Main Poll Card
           _buildMainPollCard(filteredGames, totalVotes, isDark),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -568,18 +774,21 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.black : textSecondary,
+                  color: isSelected ? (isDark ? Colors.black : Colors.white) : textSecondary,
                 ),
               ),
               backgroundColor: bgSurface,
-              selectedColor: AppColors.accentCyan,
+              selectedColor: AppColors.primary(isDark),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: isSelected ? AppColors.accentCyan : borderSubtle,
+                  color: isSelected
+                      ? AppColors.primary(isDark)
+                      : borderSubtle,
                 ),
               ),
               onSelected: (_) {
+                HapticFeedback.selectionClick();
                 setState(() {
                   _selectedFilter = f['key'] as String;
                 });
@@ -624,15 +833,15 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                   style: GoogleFonts.spaceMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.accentCyan,
+                    color: AppColors.primary(isDark),
                   ),
                 ),
               ),
               Row(
                 children: [
-                  const Icon(LucideIcons.clock,
+                  const Icon(LucideIcons.radio,
                       size: 13, color: AppColors.accentGold),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 5),
                   Text(
                     'LIVE VOTING',
                     style: GoogleFonts.spaceMono(
@@ -647,18 +856,27 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Pilih game yang ingin kamu tonton. Suara kamu menentukan sesi live stream dan playthrough berikutnya.',
+            'Pilih game yang ingin kamu tonton. Suara kamu menentukan sesi siaran dan playthrough berikutnya.',
             style: GoogleFonts.spaceGrotesk(
-                fontSize: 12, color: textSecondary),
+              fontSize: 12,
+              color: textSecondary,
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 16),
           if (filteredGames.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.symmetric(vertical: 28),
               child: Center(
-                child: Text(
-                  'Tidak ada game dalam filter atau pencarian ini.',
-                  style: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
+                child: Column(
+                  children: [
+                    Icon(LucideIcons.gamepad, size: 36, color: textMuted),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Tidak ada game dalam filter atau pencarian ini.',
+                      style: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -670,328 +888,432 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
 
               Color statusBadgeColor = AppColors.accentGold;
               String statusText = 'REQUESTED';
+              IconData statusIcon = LucideIcons.clock;
+
               if (game.status == 'accepted') {
                 statusBadgeColor = AppColors.accentCyan;
                 statusText = 'ACCEPTED';
+                statusIcon = LucideIcons.circle_check;
               } else if (game.status == 'playing') {
-                statusBadgeColor = Colors.greenAccent;
+                statusBadgeColor = AppColors.accentEmerald;
                 statusText = 'PLAYING';
+                statusIcon = LucideIcons.play;
               } else if (game.status == 'done') {
                 statusBadgeColor = textMuted;
                 statusText = 'DONE';
+                statusIcon = LucideIcons.check_check;
               }
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: bgInput,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: borderSubtle),
                 ),
                 child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final confirmVote = await _showConfirmDialog(
-                          context: context,
-                          title: 'Konfirmasi Vote Game',
-                          content:
-                              'Apakah Anda yakin ingin memberikan suara untuk pilihan ini?\n\n"${game.title}"',
-                          confirmText: 'Ya, Vote',
-                          confirmColor: AppColors.accentCyan,
-                        );
+                    // Area Vote Taktil Beranimasi Halus
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          final confirmVote = await _showConfirmDialog(
+                            context: context,
+                            title: 'Konfirmasi Vote Game',
+                            content:
+                                'Apakah Anda yakin ingin memberikan suara untuk pilihan ini?\n\n"${game.title}"',
+                            confirmText: 'Ya, Berikan Vote',
+                            confirmColor: AppColors.accentCyan,
+                            icon: LucideIcons.vote,
+                          );
 
-                        if (!confirmVote) return;
+                          if (!confirmVote) return;
 
-                        try {
-                          await ref
-                              .read(gameProvider.notifier)
-                              .submitVote(game.id, _deviceFingerprint);
+                          try {
+                            await ref
+                                .read(gameProvider.notifier)
+                                .submitVote(game.id, _deviceFingerprint);
 
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: bgSurface,
-                                content: Text(
-                                  'Berhasil memberikan vote untuk ${game.title}!',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.accentCyan),
-                                ),
-                              ),
-                            );
+                            if (mounted) {
+                              _showFloatingToast(
+                                context,
+                                message: 'Berhasil memberikan vote untuk ${game.title}!',
+                                isSuccess: true,
+                                icon: LucideIcons.vote,
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              _showFloatingToast(
+                                context,
+                                message: 'Gagal kirim vote: $e',
+                                isSuccess: false,
+                              );
+                            }
                           }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: bgSurface,
-                                content: Text(
-                                  'Gagal kirim vote: $e',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.accentRed),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: percentage,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentCyan
-                                      .withValues(alpha: 0.18),
-                                  borderRadius: BorderRadius.circular(8),
+                        },
+                        child: Stack(
+                          children: [
+                            // Animated Progress Bar Gliding Smoothly (Curves.easeOutCubic)
+                            Positioned.fill(
+                              child: AnimatedFractionallySizedBox(
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeOutCubic,
+                                alignment: Alignment.centerLeft,
+                                widthFactor: percentage.clamp(0.0, 1.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentCyan.withValues(alpha: 0.16),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      LucideIcons.gamepad_2,
-                                      size: 16,
-                                      color: AppColors.accentCyan,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            game.title,
-                                            style: GoogleFonts.spaceGrotesk(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: textPrimary,
-                                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.accentCyan.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          const SizedBox(height: 2),
-                                          Row(
+                                          child: Icon(
+                                            LucideIcons.gamepad_2,
+                                            size: 16,
+                                            color: AppColors.primary(isDark),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 5,
-                                                        vertical: 1),
-                                                decoration: BoxDecoration(
-                                                  color: statusBadgeColor
-                                                      .withValues(alpha: 0.15),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  statusText,
-                                                  style: GoogleFonts.spaceMono(
-                                                    fontSize: 8,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: statusBadgeColor,
-                                                  ),
+                                              Text(
+                                                game.title,
+                                                style: GoogleFonts.spaceGrotesk(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textPrimary,
                                                 ),
                                               ),
-                                              if (game.genre?.isNotEmpty == true) ...[
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  '• ${game.genre}',
-                                                  style: GoogleFonts.spaceMono(
-                                                    fontSize: 9,
-                                                    color: textMuted,
+                                              const SizedBox(height: 3),
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: statusBadgeColor
+                                                          .withValues(alpha: 0.15),
+                                                      borderRadius:
+                                                          BorderRadius.circular(4),
+                                                      border: Border.all(
+                                                        color: statusBadgeColor
+                                                            .withValues(alpha: 0.3),
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(statusIcon,
+                                                            size: 9,
+                                                            color: statusBadgeColor),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          statusText,
+                                                          style: GoogleFonts.spaceMono(
+                                                            fontSize: 8.5,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: statusBadgeColor,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                  if (game.genre?.isNotEmpty == true) ...[
+                                                    const SizedBox(width: 6),
+                                                    Expanded(
+                                                      child: Text(
+                                                        '• ${game.genre}',
+                                                        style: GoogleFonts.spaceMono(
+                                                          fontSize: 9,
+                                                          color: textMuted,
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${(percentage * 100).toStringAsFixed(0)}%',
+                                        style: GoogleFonts.spaceMono(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary(isDark),
+                                        ),
+                                      ),
+                                      Text(
+                                        '$gameVotes suara',
+                                        style: GoogleFonts.spaceMono(
+                                          fontSize: 9,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              Text(
-                                '${(percentage * 100).toStringAsFixed(0)}% ($gameVotes)',
-                                style: GoogleFonts.spaceMono(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.accentCyan,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
+                    // Moderasi Bar Aksi untuk Game Status Non-Done
                     if (game.status != 'done') ...[
-                      const SizedBox(height: 8),
                       Divider(color: borderSubtle, height: 1),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (game.status == 'requested')
-                            InkWell(
-                              onTap: () async {
-                                final confirm = await _showConfirmDialog(
-                                  context: context,
-                                  title: 'Hapus Usulan Game?',
-                                  content:
-                                      'Game "${game.title}" akan dihapus permanen dari daftar usulan.',
-                                  confirmText: 'Tolak & Hapus',
-                                  confirmColor: AppColors.accentRed,
-                                );
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (game.status == 'requested') ...[
+                              // Touch Target Minimum 44x44 dp: Tolak Game
+                              InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () async {
+                                  HapticFeedback.lightImpact();
+                                  final confirm = await _showConfirmDialog(
+                                    context: context,
+                                    title: 'Hapus Usulan Game?',
+                                    content:
+                                        'Game "${game.title}" akan ditolak dan dihapus permanen dari daftar usulan.',
+                                    confirmText: 'Tolak & Hapus',
+                                    confirmColor: AppColors.accentRed,
+                                    icon: LucideIcons.trash,
+                                  );
 
-                                if (confirm) {
-                                  await ref
-                                      .read(gameProvider.notifier)
-                                      .deleteGame(game.id);
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Row(
-                                  children: [
-                                    const Icon(LucideIcons.trash,
-                                        size: 13, color: AppColors.accentRed),
-                                    const SizedBox(width: 4),
-                                    Text('Tolak',
-                                        style: GoogleFonts.spaceMono(
-                                            fontSize: 11,
-                                            color: AppColors.accentRed)),
-                                  ],
+                                  if (confirm) {
+                                    await ref
+                                        .read(gameProvider.notifier)
+                                        .deleteGame(game.id);
+                                    if (mounted) {
+                                      _showFloatingToast(
+                                        context,
+                                        message: 'Usulan game "${game.title}" ditolak',
+                                        isSuccess: true,
+                                        icon: LucideIcons.trash,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(LucideIcons.trash,
+                                          size: 13, color: AppColors.accentRed),
+                                      const SizedBox(width: 5),
+                                      Text('Tolak',
+                                          style: GoogleFonts.spaceMono(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.accentRed)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
 
-                          const SizedBox(width: 12),
+                              // Touch Target Minimum 44x44 dp: Terima Game
+                              InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () async {
+                                  HapticFeedback.lightImpact();
+                                  final confirm = await _showConfirmDialog(
+                                    context: context,
+                                    title: 'Terima Usulan Game?',
+                                    content:
+                                        'Game "${game.title}" akan disetujui dan masuk ke daftar polling resmi.',
+                                    confirmText: 'Ya, Terima',
+                                    confirmColor: AppColors.accentCyan,
+                                    icon: LucideIcons.circle_check,
+                                  );
 
-                          if (game.status == 'requested')
-                            InkWell(
-                              onTap: () async {
-                                final confirm = await _showConfirmDialog(
-                                  context: context,
-                                  title: 'Terima Usulan Game?',
-                                  content:
-                                      'Game "${game.title}" akan disetujui dan masuk ke daftar voting resmi.',
-                                  confirmText: 'Ya, Terima',
-                                  confirmColor: AppColors.accentCyan,
-                                );
-
-                                if (confirm) {
-                                  await ref
-                                      .read(gameProvider.notifier)
-                                      .updateGameStatus(game.id, 'accepted');
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Row(
-                                  children: [
-                                    const Icon(LucideIcons.circle_check,
-                                        size: 13, color: AppColors.accentCyan),
-                                    const SizedBox(width: 4),
-                                    Text('Terima',
-                                        style: GoogleFonts.spaceMono(
-                                            fontSize: 11,
-                                            color: AppColors.accentCyan,
-                                            fontWeight: FontWeight.bold)),
-                                  ],
+                                  if (confirm) {
+                                    await ref
+                                        .read(gameProvider.notifier)
+                                        .updateGameStatus(game.id, 'accepted');
+                                    if (mounted) {
+                                      _showFloatingToast(
+                                        context,
+                                        message: 'Game "${game.title}" disetujui untuk voting!',
+                                        isSuccess: true,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(LucideIcons.circle_check,
+                                          size: 13, color: AppColors.accentCyan),
+                                      const SizedBox(width: 5),
+                                      Text('Terima',
+                                          style: GoogleFonts.spaceMono(
+                                              fontSize: 11,
+                                              color: AppColors.primary(isDark),
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
 
-                          if (game.status == 'accepted')
-                            InkWell(
-                              onTap: () async {
-                                final confirm = await _showConfirmDialog(
-                                  context: context,
-                                  title: 'Mulai Mainkan Game?',
-                                  content:
-                                      'Status "${game.title}" akan diubah menjadi Sedang Dimainkan (Playing).',
-                                  confirmText: 'Ya, Mainkan',
-                                  confirmColor: Colors.greenAccent,
-                                );
+                            if (game.status == 'accepted')
+                              // Touch Target Minimum 44x44 dp: Mulai Mainkan
+                              InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () async {
+                                  HapticFeedback.lightImpact();
+                                  final confirm = await _showConfirmDialog(
+                                    context: context,
+                                    title: 'Mulai Mainkan Game?',
+                                    content:
+                                        'Status "${game.title}" akan diubah menjadi Sedang Dimainkan (Playing).',
+                                    confirmText: 'Ya, Mainkan',
+                                    confirmColor: AppColors.accentEmerald,
+                                    icon: LucideIcons.play,
+                                  );
 
-                                if (confirm) {
-                                  await ref
-                                      .read(gameProvider.notifier)
-                                      .updateGameStatus(game.id, 'playing');
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Row(
-                                  children: [
-                                    const Icon(LucideIcons.play,
-                                        size: 13, color: Colors.greenAccent),
-                                    const SizedBox(width: 4),
-                                    Text('Mulai Mainkan',
-                                        style: GoogleFonts.spaceMono(
-                                            fontSize: 11,
-                                            color: Colors.greenAccent,
-                                            fontWeight: FontWeight.bold)),
-                                  ],
+                                  if (confirm) {
+                                    await ref
+                                        .read(gameProvider.notifier)
+                                        .updateGameStatus(game.id, 'playing');
+                                    if (mounted) {
+                                      _showFloatingToast(
+                                        context,
+                                        message: 'Game "${game.title}" kini sedang dimainkan!',
+                                        isSuccess: true,
+                                        icon: LucideIcons.play,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(LucideIcons.play,
+                                          size: 13, color: AppColors.accentEmerald),
+                                      const SizedBox(width: 5),
+                                      Text('Mulai Mainkan',
+                                          style: GoogleFonts.spaceMono(
+                                              fontSize: 11,
+                                              color: AppColors.accentEmerald,
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
 
-                          if (game.status == 'playing')
-                            InkWell(
-                              onTap: () async {
-                                final confirm = await _showConfirmDialog(
-                                  context: context,
-                                  title: 'Selesaikan Game?',
-                                  content:
-                                      'Game "${game.title}" akan ditandai Tamat / Selesai (Done).',
-                                  confirmText: 'Ya, Selesai',
-                                  confirmColor: textMuted,
-                                );
+                            if (game.status == 'playing')
+                              // Touch Target Minimum 44x44 dp: Tandai Selesai
+                              InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () async {
+                                  HapticFeedback.lightImpact();
+                                  final confirm = await _showConfirmDialog(
+                                    context: context,
+                                    title: 'Selesaikan Game?',
+                                    content:
+                                        'Game "${game.title}" akan ditandai Tamat / Selesai (Done).',
+                                    confirmText: 'Ya, Selesai',
+                                    confirmColor: textMuted,
+                                    icon: LucideIcons.check_check,
+                                  );
 
-                                if (confirm) {
-                                  await ref
-                                      .read(gameProvider.notifier)
-                                      .updateGameStatus(game.id, 'done');
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Row(
-                                  children: [
-                                    Icon(LucideIcons.check_check,
-                                        size: 13, color: textMuted),
-                                    const SizedBox(width: 4),
-                                    Text('Tandai Selesai',
-                                        style: GoogleFonts.spaceMono(
-                                            fontSize: 11,
-                                            color: textMuted)),
-                                  ],
+                                  if (confirm) {
+                                    await ref
+                                        .read(gameProvider.notifier)
+                                        .updateGameStatus(game.id, 'done');
+                                    if (mounted) {
+                                      _showFloatingToast(
+                                        context,
+                                        message: 'Game "${game.title}" ditandai selesai',
+                                        isSuccess: true,
+                                        icon: LucideIcons.check_check,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(LucideIcons.check_check,
+                                          size: 13, color: textMuted),
+                                      const SizedBox(width: 5),
+                                      Text('Tandai Selesai',
+                                          style: GoogleFonts.spaceMono(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: textMuted)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ],
                 ),
               );
             }),
-          const SizedBox(height: 6),
-          Text(
-            'Total $totalVotes suara pada periode voting ini',
-            style: GoogleFonts.spaceMono(fontSize: 10, color: textMuted),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Total $totalVotes suara pada periode voting aktif ini',
+              style: GoogleFonts.spaceMono(fontSize: 10, color: textMuted),
+            ),
           ),
         ],
       ),
@@ -1003,7 +1325,6 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   // ==========================================
   Widget _buildCollabRequestsTab(bool isDark) {
     final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
-    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
@@ -1014,30 +1335,48 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final requests = collabState.requests;
 
     if (collabState.isLoading && requests.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.accentCyan));
+      return Center(
+          child: CircularProgressIndicator(color: AppColors.primary(isDark)));
     }
 
     if (collabState.error != null && requests.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.accentRed, size: 40),
-            const SizedBox(height: 8),
-            Text('Gagal mengambil data collab requests',
-                style: GoogleFonts.spaceGrotesk(color: textPrimary)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentCyan),
-              onPressed: () =>
-                  ref.read(collabProvider.notifier).fetchCollabRequests(),
-              child: Text('Coba Lagi',
-                  style: GoogleFonts.spaceGrotesk(color: Colors.black)),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(LucideIcons.circle_alert,
+                  color: AppColors.accentRed, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                'Gagal mengambil data collab requests',
+                style: GoogleFonts.spaceGrotesk(
+                  color: textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary(isDark),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: Icon(LucideIcons.refresh_cw, size: 16, color: isDark ? Colors.black : Colors.white),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(collabProvider.notifier).fetchCollabRequests();
+                },
+                label: Text('Coba Lagi',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: isDark ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    )),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -1074,14 +1413,25 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     }).toList();
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(collabProvider.notifier).fetchCollabRequests(),
-      color: AppColors.accentCyan,
+      onRefresh: () async {
+        HapticFeedback.lightImpact();
+        await ref.read(collabProvider.notifier).fetchCollabRequests();
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Daftar collab requests disinkronkan',
+            isSuccess: true,
+            icon: LucideIcons.check_check,
+          );
+        }
+      },
+      color: AppColors.primary(isDark),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Header Mini Stats Collab
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: bgNav,
               borderRadius: BorderRadius.circular(12),
@@ -1091,7 +1441,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               children: [
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Total Usulan',
+                    title: 'TOTAL USULAN',
                     value: '$totalCount',
                     color: textPrimary,
                     isDark: isDark,
@@ -1100,7 +1450,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Usulan Baru',
+                    title: 'USULAN BARU',
                     value: '$pendingCount',
                     color: AppColors.accentGold,
                     isDark: isDark,
@@ -1109,7 +1459,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Disimpan',
+                    title: 'DISIMPAN',
                     value: '$shortlistCount',
                     color: AppColors.accentPurple,
                     isDark: isDark,
@@ -1118,9 +1468,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'Dijadwalkan',
+                    title: 'DIJADWALKAN',
                     value: '$scheduledCount',
-                    color: const Color(0xFF10B981),
+                    color: AppColors.accentEmerald,
                     isDark: isDark,
                   ),
                 ),
@@ -1129,7 +1479,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Search Field Collab
+          // Search Field Collab (Dengan Clear Text X Min 44x44 dp)
           Container(
             decoration: BoxDecoration(
               color: bgInput,
@@ -1141,21 +1491,26 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               onChanged: (val) => setState(() => _collabSearchQuery = val.trim()),
               style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textPrimary),
               decoration: InputDecoration(
-                hintText: 'Cari streamer / pesan usulan...',
+                hintText: 'Cari streamer atau pesan usulan...',
                 hintStyle: GoogleFonts.spaceGrotesk(fontSize: 12, color: textMuted),
                 prefixIcon: Icon(LucideIcons.search, size: 16, color: textMuted),
                 suffixIcon: _collabSearchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(LucideIcons.x, size: 16, color: textMuted),
-                        onPressed: () {
-                          _collabSearchController.clear();
-                          setState(() => _collabSearchQuery = '');
-                        },
+                    ? SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          icon: Icon(LucideIcons.x, size: 16, color: textMuted),
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _collabSearchController.clear();
+                            setState(() => _collabSearchQuery = '');
+                          },
+                        ),
                       )
                     : null,
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               ),
             ),
           ),
@@ -1180,19 +1535,31 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           if (filteredRequests.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  Icon(LucideIcons.users, size: 40, color: textMuted),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Tidak ada request dalam filter ini',
-                    style: GoogleFonts.spaceGrotesk(fontSize: 14, color: textSecondary),
-                  ),
-                ],
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(LucideIcons.users, size: 40, color: textMuted),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Tidak ada usulan kolaborasi dalam filter ini',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pilih filter lain atau reset pencarian',
+                      style: GoogleFonts.spaceGrotesk(fontSize: 12, color: textMuted),
+                    ),
+                  ],
+                ),
               ),
             )
           else
             ...filteredRequests.map((collab) => _buildCollabCard(collab, isDark)),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -1215,16 +1582,23 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           style: GoogleFonts.spaceMono(
             fontSize: 10,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.black : textSecondary,
+            color: isSelected ? (isDark ? Colors.black : Colors.white) : textSecondary,
           ),
         ),
         backgroundColor: bgSurface,
-        selectedColor: AppColors.accentCyan,
+        selectedColor: AppColors.primary(isDark),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: isSelected ? AppColors.accentCyan : borderSubtle),
+          side: BorderSide(
+            color: isSelected
+                ? AppColors.primary(isDark)
+                : borderSubtle,
+          ),
         ),
-        onSelected: (_) => setState(() => _selectedCollabFilter = key),
+        onSelected: (_) {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedCollabFilter = key);
+        },
       ),
     );
   }
@@ -1249,7 +1623,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         statusLabel = 'DISIMPAN';
         break;
       case 'scheduled':
-        statusColor = const Color(0xFF10B981);
+        statusColor = AppColors.accentEmerald;
         statusLabel = 'DIJADWALKAN';
         break;
       case 'rejected':
@@ -1264,11 +1638,11 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: bgSurface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: borderSubtle),
       ),
       child: Column(
@@ -1281,20 +1655,20 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 14,
+                      radius: 16,
                       backgroundColor: AppColors.accentPurple.withValues(alpha: 0.2),
                       child: Text(
                         collab.requestedStreamerName.isNotEmpty
                             ? collab.requestedStreamerName[0].toUpperCase()
                             : '?',
                         style: GoogleFonts.spaceGrotesk(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: AppColors.accentPurple,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         collab.requestedStreamerName,
@@ -1310,22 +1684,53 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 ),
               ),
 
-              // Status Dropdown
+              // Status Dropdown dengan Touch Target Minimum 44x44 dp
               PopupMenuButton<String>(
+                tooltip: 'Ubah Status',
                 onSelected: (newStatus) async {
+                  HapticFeedback.selectionClick();
                   await ref.read(collabProvider.notifier).updateStatus(collab.id, newStatus);
+                  if (mounted) {
+                    _showFloatingToast(
+                      context,
+                      message: 'Status "${collab.requestedStreamerName}" diubah!',
+                      isSuccess: true,
+                    );
+                  }
                 },
                 itemBuilder: (ctx) => [
-                  PopupMenuItem(value: 'pending', child: Text('Baru (Pending)', style: GoogleFonts.spaceGrotesk(color: AppColors.accentGold))),
-                  PopupMenuItem(value: 'approved', child: Text('Disimpan (Shortlist)', style: GoogleFonts.spaceGrotesk(color: AppColors.accentPurple))),
-                  PopupMenuItem(value: 'scheduled', child: Text('Dijadwalkan', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF10B981)))),
-                  PopupMenuItem(value: 'rejected', child: Text('Arsipkan', style: GoogleFonts.spaceGrotesk(color: AppColors.accentRed))),
+                  PopupMenuItem(
+                    value: 'pending',
+                    child: Text('Baru (Pending)',
+                        style: GoogleFonts.spaceGrotesk(
+                            color: AppColors.accentGold, fontWeight: FontWeight.bold)),
+                  ),
+                  PopupMenuItem(
+                    value: 'approved',
+                    child: Text('Disimpan (Shortlist)',
+                        style: GoogleFonts.spaceGrotesk(
+                            color: AppColors.accentPurple, fontWeight: FontWeight.bold)),
+                  ),
+                  PopupMenuItem(
+                    value: 'scheduled',
+                    child: Text('Dijadwalkan',
+                        style: GoogleFonts.spaceGrotesk(
+                            color: AppColors.accentEmerald, fontWeight: FontWeight.bold)),
+                  ),
+                  PopupMenuItem(
+                    value: 'rejected',
+                    child: Text('Arsipkan',
+                        style: GoogleFonts.spaceGrotesk(
+                            color: AppColors.accentRed, fontWeight: FontWeight.bold)),
+                  ),
                 ],
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: statusColor.withValues(alpha: 0.4)),
                   ),
                   child: Row(
@@ -1334,85 +1739,136 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                       Text(
                         statusLabel,
                         style: GoogleFonts.spaceMono(
-                          fontSize: 9,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                           color: statusColor,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(LucideIcons.chevron_down, size: 11, color: statusColor),
+                      Icon(LucideIcons.chevron_down, size: 12, color: statusColor),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Link Sosmed
+          // Link Sosmed Interaktif (Tap URL Launch + Copy to Clipboard)
           if (collab.requestedStreamerSocial != null && collab.requestedStreamerSocial!.isNotEmpty) ...[
-            GestureDetector(
-              onTap: () async {
-                String rawUrl = collab.requestedStreamerSocial!.trim();
-                if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
-                  rawUrl = 'https://$rawUrl';
-                }
-                final uri = Uri.tryParse(rawUrl);
-                if (uri != null && await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: bgInput,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: borderSubtle),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(LucideIcons.link, size: 12, color: AppColors.accentCyan),
-                    const SizedBox(width: 6),
-                    Text(
-                      collab.requestedStreamerSocial!,
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 11,
-                        color: AppColors.accentCyan,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(LucideIcons.external_link, size: 10, color: AppColors.accentCyan),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          // Pesan Usulan Viewer
-          if (collab.message != null && collab.message!.isNotEmpty) ...[
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: bgInput,
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderSubtle),
               ),
-              child: Text(
-                '"${collab.message!}"',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  color: textSecondary,
-                ),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.link, size: 14, color: AppColors.accentCyan),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        String rawUrl = collab.requestedStreamerSocial!.trim();
+                        if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                          rawUrl = 'https://$rawUrl';
+                        }
+                        final uri = Uri.tryParse(rawUrl);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else if (mounted) {
+                          _showFloatingToast(
+                            context,
+                            message: 'Format URL tidak valid',
+                            isSuccess: false,
+                          );
+                        }
+                      },
+                      child: Text(
+                        collab.requestedStreamerSocial!,
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 11,
+                          color: AppColors.primary(isDark),
+                          decoration: TextDecoration.underline,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  // Touch Target 44x44 dp: Copy to Clipboard
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: IconButton(
+                      tooltip: 'Salin Tautan',
+                      icon: const Icon(LucideIcons.copy, size: 14, color: AppColors.accentCyan),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Clipboard.setData(
+                          ClipboardData(text: collab.requestedStreamerSocial!),
+                        );
+                        _showFloatingToast(
+                          context,
+                          message: 'Link sosmed disalin ke clipboard!',
+                          isSuccess: true,
+                          icon: LucideIcons.copy,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
           ],
 
-          // Catatan Admin
+          // Pesan Usulan Viewer (Modern Quotation Chat Styling)
+          if (collab.message != null && collab.message!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: bgInput,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+                border: const Border(
+                  left: BorderSide(color: AppColors.accentPurple, width: 3.5),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    LucideIcons.quote,
+                    size: 14,
+                    color: AppColors.accentPurple.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      collab.message!,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Catatan Admin Micro-Utility (Tap to Edit via Dialog Modal)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -1422,75 +1878,98 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             ),
             child: Row(
               children: [
-                const Icon(LucideIcons.notebook_pen, size: 13, color: AppColors.accentGold),
-                const SizedBox(width: 6),
+                const Icon(LucideIcons.notebook_pen, size: 14, color: AppColors.accentGold),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     collab.reviewNotes?.isNotEmpty == true
                         ? collab.reviewNotes!
-                        : 'Belum ada catatan admin',
+                        : 'Belum ada catatan internal admin',
                     style: GoogleFonts.spaceMono(
                       fontSize: 11,
                       color: collab.reviewNotes?.isNotEmpty == true ? textPrimary : textMuted,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(LucideIcons.pencil, size: 13, color: AppColors.accentCyan),
-                  onPressed: () => _showEditCollabNoteDialog(collab),
+                // Touch Target 44x44 dp: Edit Catatan Admin
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
+                    tooltip: 'Edit Catatan',
+                    icon: const Icon(LucideIcons.pencil, size: 14, color: AppColors.accentCyan),
+                    onPressed: () => _showEditCollabNoteDialog(collab),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 10),
 
-          // Bottom Action Row (Hapus & Jadwalkan)
+          // Bottom Action Row (Hapus & Jadwalkan Cepat)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-                icon: Icon(LucideIcons.trash, size: 16, color: textMuted),
-                onPressed: () async {
-                  final confirm = await _showConfirmDialog(
-                    context: context,
-                    title: 'Hapus Request Collab?',
-                    content: 'Usulan kolaborasi dari "${collab.requestedStreamerName}" akan dihapus permanen.',
-                    confirmText: 'Ya, Hapus',
-                    confirmColor: AppColors.accentRed,
-                  );
-                  if (confirm) {
-                    await ref.read(collabProvider.notifier).deleteRequest(collab.id);
-                  }
-                },
+              // Touch Target 44x44 dp: Hapus Request
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  tooltip: 'Hapus Request',
+                  icon: Icon(LucideIcons.trash, size: 16, color: textMuted),
+                  onPressed: () async {
+                    HapticFeedback.lightImpact();
+                    final confirm = await _showConfirmDialog(
+                      context: context,
+                      title: 'Hapus Request Collab?',
+                      content:
+                          'Usulan kolaborasi dari "${collab.requestedStreamerName}" akan dihapus permanen dari sistem.',
+                      confirmText: 'Ya, Hapus',
+                      confirmColor: AppColors.accentRed,
+                      icon: LucideIcons.trash,
+                    );
+                    if (confirm) {
+                      await ref.read(collabProvider.notifier).deleteRequest(collab.id);
+                      if (mounted) {
+                        _showFloatingToast(
+                          context,
+                          message: 'Usulan kolaborasi dihapus',
+                          isSuccess: true,
+                          icon: LucideIcons.trash,
+                        );
+                      }
+                    }
+                  },
+                ),
               ),
 
               if (statusLower != 'scheduled')
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    backgroundColor: AppColors.accentEmerald,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(LucideIcons.calendar, size: 13, color: Colors.black),
+                  icon: const Icon(LucideIcons.calendar, size: 14, color: Colors.black),
                   label: Text(
                     'Jadwalkan',
                     style: GoogleFonts.spaceMono(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: isDark ? Colors.black : Colors.white,
                     ),
                   ),
                   onPressed: () async {
+                    HapticFeedback.lightImpact();
                     await ref.read(collabProvider.notifier).updateStatus(collab.id, 'scheduled');
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Status "${collab.requestedStreamerName}" diubah ke DIJADWALKAN!'),
-                        ),
+                      _showFloatingToast(
+                        context,
+                        message: 'Status "${collab.requestedStreamerName}" diubah ke DIJADWALKAN!',
+                        isSuccess: true,
+                        icon: LucideIcons.calendar,
                       );
                     }
                   },
@@ -1502,10 +1981,10 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
-  // Dialog Edit Catatan Admin Collab
+  // Dialog Edit Catatan Admin Collab (Responsif terhadap Keyboard)
   void _showEditCollabNoteDialog(CollabModel collab) {
+    HapticFeedback.lightImpact();
     final noteController = TextEditingController(text: collab.reviewNotes ?? '');
-    final messenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
@@ -1514,6 +1993,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
         final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
         final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+        final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
         final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
         final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
@@ -1523,43 +2003,99 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: borderSubtle),
           ),
-          title: Text(
-            'Catatan Admin',
-            style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+          title: Row(
+            children: [
+              const Icon(LucideIcons.notebook_pen, color: AppColors.accentGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Catatan Internal Admin',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
+            ],
           ),
-          content: TextField(
-            controller: noteController,
-            maxLines: 3,
-            style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: 'Tulis rencana / catatan koordinasi streamer...',
-              hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
-              filled: true,
-              fillColor: bgInput,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Streamer: ${collab.requestedStreamerName}',
+                  style: GoogleFonts.spaceMono(fontSize: 11, color: textSecondary),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: noteController,
+                  maxLines: 4,
+                  autofocus: true,
+                  style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Tulis rencana, akun Discord, atau catatan koordinasi...',
+                    hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                    filled: true,
+                    fillColor: bgInput,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: borderSubtle),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(ctx);
+              },
               child: Text('Batal', style: GoogleFonts.spaceMono(color: textMuted)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentCyan,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               onPressed: () async {
+                HapticFeedback.selectionClick();
                 final notes = noteController.text.trim();
                 Navigator.pop(ctx);
                 try {
                   await ref.read(collabProvider.notifier).updateNotes(collab.id, notes);
-                  messenger.showSnackBar(const SnackBar(content: Text('Catatan admin berhasil disimpan!')));
+                  if (mounted) {
+                    _showFloatingToast(
+                      context,
+                      message: 'Catatan admin berhasil disimpan!',
+                      isSuccess: true,
+                      icon: LucideIcons.circle_check,
+                    );
+                  }
                 } catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text('Gagal menyimpan catatan: $e')));
+                  if (mounted) {
+                    _showFloatingToast(
+                      context,
+                      message: 'Gagal menyimpan catatan: $e',
+                      isSuccess: false,
+                    );
+                  }
                 }
               },
-              child: Text('Simpan', style: GoogleFonts.spaceMono(color: Colors.black, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Simpan Catatan',
+                style: GoogleFonts.spaceMono(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -1577,12 +2113,12 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     return Column(
       children: [
-        Text(title, style: GoogleFonts.spaceMono(fontSize: 8, color: textMuted)),
-        const SizedBox(height: 2),
+        Text(title, style: GoogleFonts.spaceMono(fontSize: 8.5, color: textMuted, letterSpacing: 0.5)),
+        const SizedBox(height: 3),
         Text(
           value,
           style: GoogleFonts.spaceGrotesk(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: color,
           ),

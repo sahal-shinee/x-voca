@@ -145,10 +145,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
-                          style: TextStyle(color: textPrimary),
+                          style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: 'creator@xvoca.id',
-                            hintStyle: TextStyle(color: textMuted),
+                            hintStyle: GoogleFonts.spaceGrotesk(color: textMuted),
                             prefixIcon: Icon(LucideIcons.mail, color: textSecondary, size: 20),
                             filled: true,
                             fillColor: bgInput,
@@ -177,10 +177,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: TextStyle(color: textPrimary),
+                          style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: '••••••••',
-                            hintStyle: TextStyle(color: textMuted),
+                            hintStyle: GoogleFonts.spaceGrotesk(color: textMuted),
                             prefixIcon: Icon(LucideIcons.lock, color: textSecondary, size: 20),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -213,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 24,
                               child: Checkbox(
                                 value: _keepSession,
-                                activeColor: AppColors.accentCyan,
+                                activeColor: AppColors.primary(isDark),
                                 checkColor: Colors.black,
                                 onChanged: (val) => setState(() => _keepSession = val ?? true),
                               ),
@@ -221,14 +221,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(width: 8),
                             Text(
                               'Keep session active',
-                              style: TextStyle(
+                              style: GoogleFonts.spaceGrotesk(
                                 color: textSecondary,
                                 fontSize: 13,
                               ),
                             ),
                             const Spacer(),
                             IconButton(
-                              icon: const Icon(LucideIcons.fingerprint_pattern, color: AppColors.accentCyan),
+                              icon: Icon(LucideIcons.fingerprint_pattern, color: AppColors.primary(isDark)),
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Biometric auth siap digunakan saat rilis.')),
@@ -244,8 +244,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           width: double.infinity,
                           height: 50,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.accentCyan, AppColors.accentPurple],
+                            gradient: LinearGradient(
+                              colors: AppColors.gradientCta(isDark),
                             ),
                             borderRadius: BorderRadius.circular(10),
                           ),
