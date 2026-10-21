@@ -10,6 +10,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import Badge from '../common/Badge';
+import CustomSelect from '../common/CustomSelect';
 import { safeFormatTimeAgo, safeFormatDate } from '../../utils/dateUtils';
 
 /**
@@ -206,40 +207,20 @@ export function CollabRequestRow({
 
       {/* 4. STATUS WORKFLOW (Interactive Pill / Dropdown) */}
       <td className="py-3.5 px-4 align-top">
-        <div className="relative inline-block">
-          <select
+        <div className="w-32">
+          <CustomSelect
             value={status}
             onChange={handleStatusChange}
             disabled={isUpdatingStatus}
+            options={[
+              { value: 'pending', label: 'BARU' },
+              { value: 'approved', label: 'DISIMPAN' },
+              { value: 'scheduled', label: 'DIJADWALKAN' },
+              { value: 'rejected', label: 'ARSIP' },
+            ]}
+            size="sm"
             aria-label="Ubah Status Usulan"
-            className={`
-              appearance-none cursor-pointer pl-2.5 pr-6 py-1 rounded-lg text-[11px] font-mono font-semibold uppercase
-              border transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-accent-cyan
-              ${
-                status === 'pending'
-                  ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan hover:bg-accent-cyan/20'
-                  : status === 'approved'
-                  ? 'bg-accent-gold/10 border-accent-gold/30 text-accent-gold hover:bg-accent-gold/20'
-                  : status === 'scheduled'
-                  ? 'bg-status-done/10 border-status-done/30 text-status-done hover:bg-status-done/20'
-                  : 'bg-border-subtle/40 border-border-subtle text-text-muted hover:text-text-secondary'
-              }
-            `}
-          >
-            <option value="pending" className="bg-bg-surface text-text-primary">
-              BARU
-            </option>
-            <option value="approved" className="bg-bg-surface text-text-primary">
-              DISIMPAN
-            </option>
-            <option value="scheduled" className="bg-bg-surface text-text-primary">
-              DIJADWALKAN
-            </option>
-            <option value="rejected" className="bg-bg-surface text-text-primary">
-              ARSIP
-            </option>
-          </select>
-          <ChevronDown className="w-3 h-3 text-current opacity-70 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
+          />
         </div>
       </td>
 

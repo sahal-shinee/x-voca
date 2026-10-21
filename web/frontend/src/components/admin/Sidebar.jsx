@@ -13,16 +13,8 @@ import {
   ChevronRight,
   CheckSquare,
 } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
-
-/**
- * Sidebar Component
- * Design: Minimalist Soft Dark / Clean Light, High Contrast, Border-based visual hierarchy
- * Dimensions: 260px expanded, 72px collapsed (per docs/PLANNING_DOCUMENT.md)
- */
 export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -104,7 +96,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
         className={`
           h-16 flex items-center px-4
           border-b border-border-subtle
-          ${collapsed ? 'justify-center' : 'justify-between'}
+          ${collapsed ? 'justify-center' : 'justify-start'}
         `}
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -125,11 +117,9 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
             </div>
           )}
         </div>
-
-        {!collapsed && <ThemeToggle />}
       </div>
 
-      {/* ── 2. USER SECTION ── */}
+      {/* ── 2. USER SECTION (Clean & Uncluttered) ── */}
       <div className="p-3 border-b border-border-subtle">
         <div
           className={`
@@ -159,54 +149,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               </div>
             </div>
           )}
-
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-lg transition-colors"
-              title="User Options"
-              aria-label="User menu"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
-
-        {/* Collapsed Theme Toggle fallback */}
-        {collapsed && (
-          <div className="mt-2.5 flex justify-center">
-            <ThemeToggle />
-          </div>
-        )}
-
-        {/* User dropdown popover */}
-        {!collapsed && isUserMenuOpen && (
-          <div className="mt-2 p-1.5 bg-bg-surface border border-border-subtle rounded-xl shadow-lg space-y-1 animate-scale-in">
-            <NavLink
-              to="/admin/settings"
-              onClick={() => {
-                setIsUserMenuOpen(false);
-                onCloseMobile?.();
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-card transition-colors"
-            >
-              <Settings className="w-3.5 h-3.5 text-text-muted" />
-              <span>Pengaturan Akun</span>
-            </NavLink>
-            <button
-              type="button"
-              onClick={() => {
-                setIsUserMenuOpen(false);
-                logout();
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-status-live hover:bg-status-live/10 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Keluar</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── 3. NAVIGATION MENU ── */}

@@ -8,6 +8,11 @@
    DARK MODE (DEFAULT)
    ============================================ */
 
+/* ============================================
+   DARK MODE (DEFAULT & ROOT)
+   ============================================ */
+
+#admin-root[data-theme="dark"],
 [data-theme="dark"],
 :root {
   /* === SOFT DARK PALETTE === */
@@ -25,11 +30,11 @@
   /* Text - High Contrast but Soft */
   --text-primary: #F8F9FC;
   --text-secondary: #B8B4C8;
-  --text-muted: #6B6880;
+  --text-muted: #8E8AA0;
   --text-accent: #6EE7B7;
   --text-on-cta: #0D0B14;
 
-  /* Accent - Less Blinding */
+  /* Accent - Harmonious & Balanced */
   --accent-cyan: #5EEAD4;
   --accent-cyan-hover: #14B8A6;
   --accent-purple: #A78BFA;
@@ -37,7 +42,7 @@
   --accent-gold: #FBBF24;
   --accent-gold-hover: #F59E0B;
 
-  /* Status - Softer */
+  /* Status - Soft & Clear */
   --status-live: #EF4444;
   --status-live-bg: rgba(239, 68, 68, 0.12);
   --status-upcoming: #A855F7;
@@ -67,37 +72,38 @@
 }
 
 /* ============================================
-   LIGHT MODE
+   LIGHT MODE (ADMIN ONLY SCOPE)
+   Soft, eye-friendly, comfortable contrast
    ============================================ */
 
-[data-theme="light"],
-:root[data-theme="light"] {
-  /* Background - Clean & Bright */
-  --bg-base: #FFFFFF;
-  --bg-surface: #F8FAFB;
-  --bg-card: #F1F5F9;
-  --bg-card-hover: #E8EBF3;
+#admin-root[data-theme="light"],
+[data-admin-theme="light"] {
+  /* Background - Soft & Comfortable (Not blinding white) */
+  --bg-base: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
   --bg-input: #FFFFFF;
   --bg-nav: #FFFFFF;
-  --bg-nav-active: #E8EBF3;
-  --bg-overlay: rgba(255, 255, 255, 0.85);
+  --bg-nav-active: #EEF2F6;
+  --bg-overlay: rgba(15, 23, 42, 0.5);
 
-  /* Text - Dark & Readable */
+  /* Text - High Legibility & WCAG Compliant */
   --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
   --text-accent: #0D9488;
   --text-on-cta: #FFFFFF;
 
-  /* Accent - Cyan & Purple */
+  /* Accent - Refined & Harmonious */
   --accent-cyan: #0D9488;
   --accent-cyan-hover: #0F766E;
   --accent-purple: #7C3AED;
   --accent-purple-hover: #6D28D9;
-  --accent-gold: #B45309;
-  --accent-gold-hover: #92400E;
+  --accent-gold: #D97706;
+  --accent-gold-hover: #B45309;
 
-  /* Status */
+  /* Status - Soft readable tones */
   --status-live: #DC2626;
   --status-live-bg: rgba(220, 38, 38, 0.08);
   --status-upcoming: #7C3AED;
@@ -106,23 +112,24 @@
   --status-done-bg: rgba(13, 148, 136, 0.08);
   --status-playing: #D97706;
   --status-playing-bg: rgba(217, 119, 6, 0.08);
-  --status-requested: #8B5CF6;
-  --status-requested-bg: rgba(139, 92, 246, 0.08);
+  --status-requested: #7C3AED;
+  --status-requested-bg: rgba(124, 58, 237, 0.08);
 
   /* Border */
-  --border-subtle: #E2E4EB;
-  --border-active: rgba(13, 148, 136, 0.3);
-  --border-input: #E2E4EB;
+  --border-subtle: #E2E8F0;
+  --border-active: rgba(13, 148, 136, 0.35);
+  --border-input: #CBD5E1;
   --border-input-focus: rgba(13, 148, 136, 0.5);
   --border-danger: rgba(220, 38, 38, 0.5);
 
   /* Gradients */
   --gradient-cta: linear-gradient(135deg, #0D9488 0%, #7C3AED 100%);
-  --gradient-sidebar: linear-gradient(180deg, #F1F5F9 0%, #FFFFFF 100%);
+  --gradient-sidebar: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
 }
 
 /* ============================================
    BASE STYLES
+   Viewer pages and document body are anchored dark
    ============================================ */
 
 * {
@@ -133,15 +140,29 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: #0D0B14;
 }
 
 body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
+  background-color: #0D0B14;
+  color: #F8F9FC;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+}
+
+/* Glass styling in light mode */
+#admin-root[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+}
+
+#admin-root[data-theme="light"] .glass-elevated {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
 }
 
 /* ============================================

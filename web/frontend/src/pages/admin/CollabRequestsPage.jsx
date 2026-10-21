@@ -23,6 +23,7 @@ import StatCard from '../../components/common/StatCard';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
+import CustomSelect from '../../components/common/CustomSelect';
 import { safeFormatTimeAgo, safeFormatDate } from '../../utils/dateUtils';
 import { createSchedule } from '../../services/scheduleService';
 
@@ -352,21 +353,18 @@ function CollabRequestsPage() {
             {/* Period Filter Dropdown */}
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-text-muted hidden sm:block" />
-              <select
-                value={selectedPeriod}
-                onChange={(e) => {
-                  setSelectedPeriod(e.target.value);
-                  setCurrentPage(1);
-                }}
-                aria-label="Filter berdasarkan Periode"
-                className="px-3 py-2 text-xs bg-bg-surface border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan cursor-pointer font-mono"
-              >
-                {periodOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="w-36">
+                <CustomSelect
+                  value={selectedPeriod}
+                  onChange={(e) => {
+                    setSelectedPeriod(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  options={periodOptions}
+                  size="sm"
+                  aria-label="Filter berdasarkan Periode"
+                />
+              </div>
             </div>
 
             {/* Search Input Form */}
@@ -487,18 +485,22 @@ function CollabRequestsPage() {
             </span>
             <div className="flex items-center gap-1.5 ml-2">
               <span>Per hal:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="px-2 py-1 bg-bg-surface border border-border-subtle rounded text-text-primary text-xs font-mono"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
+              <div className="w-16">
+                <CustomSelect
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: 10, label: '10' },
+                    { value: 20, label: '20' },
+                    { value: 50, label: '50' },
+                  ]}
+                  size="sm"
+                  aria-label="Jumlah item per halaman"
+                />
+              </div>
             </div>
           </div>
 

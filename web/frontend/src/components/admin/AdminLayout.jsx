@@ -3,6 +3,7 @@ import { useLocation, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SearchModal from './SearchModal';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * AdminLayout Component
@@ -11,6 +12,7 @@ import SearchModal from './SearchModal';
  */
 export function AdminLayout() {
   const location = useLocation();
+  const { theme } = useTheme();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -37,7 +39,11 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base flex text-text-primary antialiased">
+    <div
+      id="admin-root"
+      data-theme={theme}
+      className="min-h-screen bg-bg-base flex text-text-primary antialiased transition-colors duration-200"
+    >
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (
         <div

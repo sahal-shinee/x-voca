@@ -3,6 +3,7 @@ import { getContent, createContent, updateContent, deleteContent, toggleContentV
 import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
 import Modal from '../../components/common/Modal';
+import CustomSelect from '../../components/common/CustomSelect';
 import { useToast } from '../../components/common/Toast';
 import { ref, onValue, off } from 'firebase/database';
 import { getFirebaseDatabase, isFirebaseConfigured } from '../../utils/firebase';
@@ -451,26 +452,26 @@ function ContentManagementPage() {
             </div>
 
             {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary focus:border-accent-cyan focus:outline-none"
-            >
-              {FILTER_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <div className="w-36">
+              <CustomSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={FILTER_OPTIONS}
+                size="sm"
+                aria-label="Filter Status"
+              />
+            </div>
 
             {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary focus:border-accent-cyan focus:outline-none"
-            >
-              {SORT_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <div className="w-40">
+              <CustomSelect
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                options={SORT_OPTIONS}
+                size="sm"
+                aria-label="Urutkan"
+              />
+            </div>
           </div>
         </div>
       </div>

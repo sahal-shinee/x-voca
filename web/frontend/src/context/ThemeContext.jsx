@@ -19,11 +19,13 @@ export function ThemeProvider({ children }) {
     return 'dark';
   });
 
-  // Apply theme to document
+  // Persist theme to localStorage and keep documentElement dark for viewer pages
   useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
-    localStorage.setItem('xvoc-admin-theme', theme);
+    // Keep document root dark so viewer pages never turn white
+    document.documentElement.setAttribute('data-theme', 'dark');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('xvoc-admin-theme', theme);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
