@@ -331,8 +331,8 @@ const Footer = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-12">
             {/* Column 1: Brand & Identity */}
             <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-1">
-              <Link to="/" onClick={handleScrollTop} className="inline-flex items-center gap-2.5 group w-fit">
-                <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.3)] flex items-center justify-center p-0.5 group-hover:scale-105 group-hover:border-[#7ee0d2]/70 transition-all duration-200">
+              <Link to="/" onClick={handleScrollTop} className="inline-flex items-center gap-3 group w-fit">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.35)] flex items-center justify-center p-1 group-hover:scale-105 group-hover:border-[#7ee0d2] transition-all duration-200">
                   <img src={logoXion} alt="Xion Regalia" className="w-full h-full object-contain" />
                 </div>
                 <span className="font-bold text-white text-lg font-display tracking-wide group-hover:text-[#7ee0d2] transition-colors">

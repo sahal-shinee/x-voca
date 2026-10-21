@@ -166,14 +166,14 @@ const TopNav = () => {
           {/* Logo & Brand */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
+            className="flex items-center gap-3 sm:gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
             onClick={() => setIsMenuOpen(false)}
           >
-            <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.3)] flex items-center justify-center p-0.5 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(126,224,210,0.25)] group-hover:border-[#7ee0d2]/70 transition-all duration-300">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.35)] flex items-center justify-center p-1 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(126,224,210,0.35)] group-hover:border-[#7ee0d2] transition-all duration-300">
               <img src={logoXion} alt="Xion Regalia Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-lg sm:text-[21px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
+              <span className="font-bold text-white text-lg sm:text-[22px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
                 X-VOCA
               </span>
               <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-[#1b1536] border border-[#c084fc]/35 text-[#c084fc] font-mono text-[9px] font-semibold tracking-widest uppercase shadow-[0_0_10px_rgba(192,132,252,0.12)]">

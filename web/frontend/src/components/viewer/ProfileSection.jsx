@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import heroCharacter from '../../assets/hero-character.png';
+import { useNextSchedule, useBroadcastingStatus } from '../../hooks/useFirebase';
+import { getSchedules } from '../../services/scheduleService';
 
 // ========== ICONS ==========
 
@@ -165,15 +167,49 @@ const ProfileSection = () => {
   const [statsRef, statsVisible] = useScrollReveal({ threshold: 0.3 });
 
   const frameRef = useRef(null);
-  const glowRef = useRef(null);
   const rafRef = useRef(0);
+
+  // Real-time hooks from Firebase & Database
+  const { schedule: nextSchedule } = useNextSchedule();
+  const { isLive } = useBroadcastingStatus();
+  const [totalSessions, setTotalSessions] = useState(0);
+
+  useEffect(() => {
+    getSchedules({ limit: 50 })
+      .then((res) => {
+        const list = res?.data || res || [];
+        const arr = Array.isArray(list) ? list : list?.schedules || list?.data || [];
+        if (arr.length > 0) setTotalSessions(arr.length);
+      })
+      .catch(() => {});
+  }, []);
 
   // Dynamic real-time calculation of active days from Debut Date (8 Feb 2025)
   const totalActiveDays = Math.max(0, Math.floor((new Date() - DEBUT_DATE) / (1000 * 60 * 60 * 24)));
   const activeDaysCount = useCountUp(totalActiveDays, 1500, statsVisible);
-  const videoCount = useCountUp(703, 1500, statsVisible);
-  const subCount = useCountUp(4650, 2000, statsVisible);
-  const milestone = Math.min(100, Math.round((subCount / SUB_GOAL) * 100));
+  const sessionsCount = useCountUp(totalSessions || 12, 1200, statsVisible);
+
+  // Format real-time next stream time
+  const getStreamBadgeInfo = () => {
+    if (isLive || nextSchedule?.status === 'live') {
+      return { type: 'live', label: 'LIVE NOW' };
+    }
+    if (nextSchedule?.scheduled_at) {
+      try {
+        const d = new Date(nextSchedule.scheduled_at);
+        if (!isNaN(d.getTime())) {
+          const hours = String(d.getHours()).padStart(2, '0');
+          const mins = String(d.getMinutes()).padStart(2, '0');
+          return { type: 'upcoming', label: `NEXT ${hours}:${mins} WIB` };
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return { type: 'standby', label: 'STANDBY' };
+  };
+
+  const streamBadge = getStreamBadgeInfo();
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
@@ -196,20 +232,6 @@ const ProfileSection = () => {
     cancelAnimationFrame(rafRef.current);
     el.style.setProperty('--tx', '0');
     el.style.setProperty('--ty', '0');
-  };
-
-  // Glow border + sorot cahaya di dalam card mengikuti kursor
-  const handleCardMove = (e) => {
-    const el = glowRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    el.style.setProperty('--cx', `${e.clientX - r.left}px`);
-    el.style.setProperty('--cy', `${e.clientY - r.top}px`);
-    el.style.setProperty('--co', '1');
-  };
-
-  const handleCardLeave = () => {
-    glowRef.current?.style.setProperty('--co', '0');
   };
 
   return (
@@ -264,209 +286,179 @@ const ProfileSection = () => {
           The Solitary Voice in Deep Space
         </h2>
 
-        {/* Main Profile Bento Card */}
-        <div ref={cardRef} className={`transition-[opacity,transform] duration-700 delay-200 ${cardVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <div
-            ref={glowRef}
-            onMouseMove={handleCardMove}
-            onMouseLeave={handleCardLeave}
-            className="relative rounded-2xl p-px bg-[rgba(61,53,96,0.7)]"
-            style={{ '--cx': '50%', '--cy': '50%', '--co': 0 }}
-          >
-            {/* Border glow mengikuti kursor */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-500"
-              style={{
-                opacity: 'var(--co)',
-                background: 'radial-gradient(320px circle at var(--cx) var(--cy), rgba(126,224,210,0.7), rgba(192,132,252,0.35) 45%, transparent 75%)',
-              }}
-            />
-
-            <div className="relative bg-[#1d1830] rounded-[15px] p-5 lg:p-8 overflow-hidden">
-              {/* Sorot cahaya halus di dalam card */}
+        {/* Modern Modular Bento Grid Architecture */}
+        <div ref={cardRef} className={`grid grid-cols-1 lg:grid-cols-12 gap-5 transition-[opacity,transform] duration-700 delay-200 ${cardVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          
+          {/* Bento Card 1: Visual Presence, Character Stage & Community Dock (5 Cols) */}
+          <div className="lg:col-span-5 flex flex-col rounded-2xl p-px bg-[rgba(61,53,96,0.6)] relative overflow-hidden group">
+            <div className="relative bg-[#191432] rounded-[15px] p-6 flex flex-col items-center justify-between h-full overflow-hidden">
+              {/* Character Stage with 3D Tilt */}
               <div
-                aria-hidden="true"
-                className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-                style={{
-                  opacity: 'var(--co)',
-                  background: 'radial-gradient(420px circle at var(--cx) var(--cy), rgba(126,224,210,0.07), transparent 65%)',
-                }}
-              />
+                ref={frameRef}
+                className="group/frame relative w-[240px] sm:w-[260px] cursor-pointer my-auto"
+                onMouseMove={handleFrameMove}
+                onMouseLeave={handleFrameLeave}
+                style={{ '--tx': 0, '--ty': 0 }}
+              >
+                {/* Aura & HUD Brackets */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-[8%] rounded-full pointer-events-none"
+                  style={{ background: 'radial-gradient(circle, rgba(126,224,210,0.18) 0%, rgba(192,132,252,0.12) 45%, transparent 70%)' }}
+                />
+                <Bracket pos="tl" />
+                <Bracket pos="tr" />
+                <Bracket pos="bl" />
+                <Bracket pos="br" />
 
-              <div className="relative flex flex-col lg:flex-row gap-6 lg:gap-8">
-                {/* Character Frame (Left) - Interactive */}
-                <div className="flex-shrink-0 mx-auto lg:mx-0">
-                  <div
-                    ref={frameRef}
-                    className="group relative w-[260px] lg:w-[291.89px] cursor-pointer"
-                    onMouseMove={handleFrameMove}
-                    onMouseLeave={handleFrameLeave}
-                    style={{ '--tx': 0, '--ty': 0 }}
-                  >
-                    {/* Aura + cincin putus-putus */}
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-[8%] rounded-full pointer-events-none"
-                      style={{ background: 'radial-gradient(circle, rgba(126,224,210,0.18) 0%, rgba(192,132,252,0.10) 45%, transparent 70%)' }}
-                    />
-                    <svg aria-hidden="true" viewBox="0 0 100 100" className="ab-spin absolute inset-[6%] w-[88%] h-[88%] pointer-events-none opacity-40">
-                      <circle cx="50" cy="50" r="48" fill="none" stroke="#7ee0d2" strokeWidth="0.3" strokeDasharray="1 3" strokeLinecap="round" />
-                      <circle cx="50" cy="2" r="1.1" fill="#c084fc" />
-                    </svg>
-
-                    {/* Siku HUD */}
-                    <Bracket pos="tl" />
-                    <Bracket pos="tr" />
-                    <Bracket pos="bl" />
-                    <Bracket pos="br" />
-
-                    {/* Karakter: tilt 3D + zoom saat hover (sama seperti sebelumnya) */}
-                    <div className="relative transition-transform duration-300 group-hover:scale-105">
-                      <div
-                        style={{
-                          transform: 'perspective(500px) rotateY(calc(var(--tx, 0) * 1deg)) rotateX(calc(var(--ty, 0) * -1deg))',
-                          transition: 'transform 0.3s ease-out',
-                        }}
-                      >
-                        <img
-                          src={heroCharacter}
-                          alt="Xion Regalia"
-                          draggable={false}
-                          className="w-full h-auto object-contain select-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Garis scan muncul saat hover */}
-                    <div aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                      <div
-                        className="ab-scan absolute left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{
-                          background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.85), transparent)',
-                          boxShadow: '0 0 12px rgba(126,224,210,0.6)',
-                        }}
-                      />
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(15,10,34,0.9)] backdrop-blur-sm border border-[rgba(61,53,96,0.6)]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse"></div>
-                      <span className="font-medium text-[#a89ec0] text-[10px] tracking-wider uppercase font-sans">TELEM: STABLE</span>
-                    </div>
-
-                    {/* Chip stream berikutnya + equalizer */}
-                    <div className="absolute top-3 right-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-[rgba(15,10,34,0.9)] backdrop-blur-sm border border-[rgba(61,53,96,0.6)]">
-                      <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
+                {/* Real-time Status Badge (Top-Right) */}
+                <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0e0924]/90 backdrop-blur-md border border-white/10 shadow-lg">
+                  {streamBadge.type === 'live' ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="font-bold text-red-400 text-[10px] tracking-wider uppercase font-mono">{streamBadge.label}</span>
+                    </>
+                  ) : streamBadge.type === 'upcoming' ? (
+                    <>
+                      <span className="flex items-end gap-[2px] h-2.5" aria-hidden="true">
                         {[0, 1, 2, 3].map((i) => (
                           <span
                             key={i}
-                            className="ab-eq w-[2px] h-full rounded-full bg-[#c084fc] origin-bottom"
+                            className="ab-eq w-[2px] h-full rounded-full bg-[#7ee0d2] origin-bottom"
                             style={{ animationDelay: `${i * 0.15}s` }}
                           />
                         ))}
                       </span>
-                      <span className="font-medium text-[#a89ec0] text-[10px] tracking-wider uppercase font-sans">NEXT 23:00 WIB</span>
-                    </div>
+                      <span className="font-semibold text-white/90 text-[10px] tracking-wider uppercase font-mono">{streamBadge.label}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+                      <span className="font-semibold text-[#a89ec0] text-[10px] tracking-wider uppercase font-mono">{streamBadge.label}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Character Image */}
+                <div className="relative transition-transform duration-300 group-hover/frame:scale-105">
+                  <div
+                    style={{
+                      transform: 'perspective(500px) rotateY(calc(var(--tx, 0) * 1deg)) rotateX(calc(var(--ty, 0) * -1deg))',
+                      transition: 'transform 0.3s ease-out',
+                    }}
+                  >
+                    <img
+                      src={heroCharacter}
+                      alt="Xion Regalia"
+                      draggable={false}
+                      className="w-full h-auto object-contain select-none"
+                    />
                   </div>
                 </div>
 
-                {/* Info Block (Right) */}
-                <div className="flex-1 flex flex-col justify-between">
-                  {/* Header */}
+                {/* Bottom Telemetry Tag */}
+                <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0e0924]/90 backdrop-blur-sm border border-white/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                  <span className="font-medium text-[#a89ec0] text-[10px] tracking-wider uppercase font-mono">TELEM: OPTIMAL</span>
+                </div>
+              </div>
+
+              {/* Minimalist Community & Support Dock under character */}
+              <div className="w-full pt-5 mt-4 border-t border-white/[0.08]">
+                <p className="text-[10px] font-semibold text-[#a89ec0] uppercase tracking-wider font-mono text-center mb-3">
+                  Kanal Resmi & Dukungan
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {SOCIALS.map(({ name, href, Icon, brand }) => (
+                    <a
+                      key={name}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={name}
+                      style={{ '--brand': brand }}
+                      className="w-9 h-9 rounded-xl bg-[#231f42] border border-[#3d3560] flex items-center justify-center text-white/80 hover:text-[var(--brand)] hover:border-[var(--brand)] hover:scale-110 hover:shadow-[0_0_12px_-2px_var(--brand)] active:scale-95 transition-all duration-200"
+                    >
+                      <Icon />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bento Card 2: Chronicle, Lore & Live Operations Telemetry (7 Cols) */}
+          <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl p-px bg-[rgba(61,53,96,0.6)] relative overflow-hidden">
+            <div className="relative bg-[#191432] rounded-[15px] p-6 lg:p-8 flex flex-col justify-between h-full">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <div>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                      <h3 className="text-2xl lg:text-[32px] font-bold text-white tracking-[-0.8px] font-display">Xion Regalia</h3>
-                      <div className="inline-flex px-3 py-1.5 rounded bg-[#151028] border border-[rgba(61,53,96,0.5)] self-start sm:self-auto">
-                        <span className="font-bold text-[#a89ec0] text-[10px] lg:text-xs tracking-wider uppercase font-sans">INDEPENDENT VTUBER · SINCE 2025</span>
-                      </div>
-                    </div>
+                    <span className="text-[11px] font-mono uppercase tracking-widest text-[#7ee0d2] font-semibold block mb-1">
+                      PERSONA PROFILE
+                    </span>
+                    <h3 className="text-3xl lg:text-[36px] font-bold text-white tracking-tight font-display">
+                      Xion Regalia
+                    </h3>
+                  </div>
+                  <div className="inline-flex px-3.5 py-1.5 rounded-full bg-[#231f42] border border-[rgba(192,132,252,0.3)] self-start sm:self-auto">
+                    <span className="font-bold text-[#c084fc] text-[10px] lg:text-xs tracking-wider uppercase font-mono">
+                      INDEPENDENT VTUBER
+                    </span>
+                  </div>
+                </div>
 
-                    <p className="text-[#a89ec0] text-sm leading-relaxed mb-4">
-                      A quiet sanctuary under midnight skies. Streaming late-night introspective journeys, atmospheric indie games, and acoustic soundscapes for those who seek solace in the quiet hours.
+                <p className="text-[#a89ec0] text-sm sm:text-base leading-relaxed mb-6 font-body">
+                  A quiet sanctuary under midnight skies. Streaming late-night introspective journeys, atmospheric indie games, and acoustic soundscapes for those who seek solace in the quiet hours.
+                </p>
+
+                {/* 3 Telemetry Bento Cells */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#fbbf24]/50 transition-colors">
+                    <p className="text-[#fbbf24] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
+                      {activeDaysCount}
                     </p>
-
-                    {/* Official Channels & Support Links */}
-                    <div className="mb-6">
-                      <p className="text-[11px] font-semibold text-[#a89ec0] uppercase tracking-wider font-mono mb-2.5">
-                        Kanal Resmi & Media Sosial
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {SOCIALS.map(({ name, href, Icon, brand }) => (
-                          <a
-                            key={name}
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ '--brand': brand }}
-                            className="group flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#231f42]/90 border border-[#3d3560] hover:border-[var(--brand)] hover:bg-[#2b2552] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_-4px_var(--brand)] transition-all duration-200"
-                          >
-                            <span className="flex items-center gap-2 min-w-0">
-                              <span className="text-white/80 group-hover:text-[var(--brand)] transition-colors flex-shrink-0">
-                                <Icon />
-                              </span>
-                              <span className="font-medium text-white text-xs truncate group-hover:text-[var(--brand)] transition-colors">
-                                {name}
-                              </span>
-                            </span>
-                            <span className="text-[#a89ec0] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform flex-shrink-0">
-                              <ArrowUpRightIcon />
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="text-white text-xs font-semibold">Hari Mengudara</p>
+                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">Debut: 8 Feb 2025</p>
                   </div>
 
-                  {/* Divider */}
-                  <div className="border-t border-[rgba(61,53,96,0.6)] my-5"></div>
-
-                  {/* Stats Row - Real-time & Dynamic */}
-                  <div ref={statsRef}>
-                    <div className="grid grid-cols-3 gap-3 sm:gap-6">
-                      <div className="group text-center sm:text-left rounded-xl p-2 sm:p-3 -m-2 sm:-m-3 hover:bg-[rgba(35,31,66,0.55)] transition-colors duration-300">
-                        <p className="text-[#7ee0d2] text-2xl lg:text-[32px] font-bold font-display group-hover:scale-105 origin-left transition-transform duration-300">
-                          {videoCount.toLocaleString()}+
-                        </p>
-                        <p className="text-[#a89ec0] text-xs sm:text-sm font-sans">Total Video</p>
-                      </div>
-                      <div className="group text-center sm:text-left rounded-xl p-2 sm:p-3 -m-2 sm:-m-3 hover:bg-[rgba(35,31,66,0.55)] transition-colors duration-300">
-                        <p className="text-[#c084fc] text-2xl lg:text-[32px] font-bold font-display group-hover:scale-105 origin-left transition-transform duration-300">
-                          {subCount >= 1000 ? `${(subCount / 1000).toFixed(1)}k+` : subCount}
-                        </p>
-                        <p className="text-[#a89ec0] text-xs sm:text-sm font-sans">Subscribers</p>
-                      </div>
-                      <div className="group text-center sm:text-left rounded-xl p-2 sm:p-3 -m-2 sm:-m-3 hover:bg-[rgba(35,31,66,0.55)] transition-colors duration-300">
-                        <p className="text-[#fbbf24] text-2xl lg:text-[32px] font-bold font-display group-hover:scale-105 origin-left transition-transform duration-300">
-                          {activeDaysCount} Hari
-                        </p>
-                        <p className="text-[#a89ec0] text-xs sm:text-sm font-sans">Debut 8 Feb 2025</p>
-                      </div>
-                    </div>
-
-                    {/* Progress menuju milestone subscriber */}
-                    <div className="mt-6">
-                      <div className="flex items-center justify-between mb-2 font-sans">
-                        <span className="text-[#a89ec0] text-[10px] font-bold tracking-wider uppercase">
-                          Target Milestone · {SUB_GOAL / 1000}k subscribers
-                        </span>
-                        <span className="text-[#c084fc] text-xs font-bold">{milestone}%</span>
-                      </div>
-                      <div
-                        role="progressbar"
-                        aria-valuenow={milestone}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label="Progress menuju milestone subscriber berikutnya"
-                        className="h-1.5 rounded-full bg-[#151028] overflow-hidden"
-                      >
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${milestone}%`, background: 'linear-gradient(90deg, #7ee0d2, #c084fc)' }}
-                        />
-                      </div>
-                    </div>
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/50 transition-colors">
+                    <p className="text-[#7ee0d2] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
+                      {sessionsCount}
+                    </p>
+                    <p className="text-white text-xs font-semibold">Sesi Siaran</p>
+                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">Database X-VOCA</p>
                   </div>
+
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#c084fc]/50 transition-colors">
+                    <p className="text-[#c084fc] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
+                      WIB
+                    </p>
+                    <p className="text-white text-xs font-semibold">Zona Operasi</p>
+                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">Asia/Jakarta UTC+7</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Milestone Progress Bar */}
+              <div className="pt-4 border-t border-white/[0.08]">
+                <div className="flex items-center justify-between mb-2 font-mono">
+                  <span className="text-[#a89ec0] text-[11px] font-semibold tracking-wider uppercase">
+                    Komunitas Stargazer Milestone · 5.000
+                  </span>
+                  <span className="text-[#7ee0d2] text-xs font-bold font-mono">93%</span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-valuenow={93}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Progress menuju 5000 stargazers"
+                  className="h-2 rounded-full bg-[#120e26] overflow-hidden p-0.5 border border-white/5"
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{ width: '93%', background: 'linear-gradient(90deg, #7ee0d2, #c084fc)' }}
+                  />
                 </div>
               </div>
             </div>

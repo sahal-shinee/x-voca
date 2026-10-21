@@ -1010,43 +1010,31 @@ function HeroSection({ onRequestCollab }) {
                 </p>
               </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 sm:gap-4 mt-6 sm:mt-7 w-full sm:w-auto px-4 sm:px-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                <Link to="/voting" className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px] bg-[#7ee0d2] shadow-[0px_10px_15px_-3px_rgba(126,224,210,0.2),0px_4px_6px_-4px_rgba(126,224,210,0.2)] hover:shadow-[0px_10px_20px_-3px_rgba(126,224,210,0.3),0px_4px_8px_-4px_rgba(126,224,210,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                  <span className="font-bold text-[#18132B] text-sm font-body">Lihat Voting</span>
+              {/* Clean, Non-Duplicate CTA Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-6 sm:mt-7 w-full sm:w-auto px-4 sm:px-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                <a
+                  href="#schedule"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('schedule')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2.5 h-[46px] px-6 rounded-xl bg-[#7ee0d2] text-[#131024] font-bold text-sm font-body shadow-[0_4px_20px_rgba(126,224,210,0.25)] hover:shadow-[0_6px_28px_rgba(126,224,210,0.35)] hover:bg-[#8ff0e3] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                >
+                  <span>Lihat Jadwal Siaran</span>
                   <ArrowRightIcon />
-                </Link>
-
-                <Link to="/content" className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-[25px] rounded-[10px] border border-[#c084fc] hover:bg-[rgba(192,132,252,0.1)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                  <span className="text-[#c084fc]"><DocumentIcon /></span>
-                  <span className="font-semibold text-[#c084fc] text-sm font-body">Content Guide</span>
-                </Link>
+                </a>
 
                 {/* Saweria Direct Support Button */}
                 <a
                   href="https://saweria.co/xionregalia"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-5 rounded-[10px] bg-[#fbbf24]/10 border border-[#fbbf24]/35 text-[#fbbf24] hover:bg-[#fbbf24]/20 hover:border-[#fbbf24]/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 h-[46px] px-5 rounded-xl bg-[#fbbf24]/10 border border-[#fbbf24]/35 text-[#fbbf24] hover:bg-[#fbbf24]/20 hover:border-[#fbbf24]/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-sm font-semibold font-mono"
                   title="Dukung Xion Regalia di Saweria"
                 >
                   <SupportHeartIcon />
-                  <span className="font-semibold text-sm font-body font-mono">Saweria</span>
+                  <span>Dukung via Saweria</span>
                 </a>
-
-                {/* Request Collab Button */}
-                {onRequestCollab && (
-                  <button
-                    onClick={onRequestCollab}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-5 rounded-[10px]
-                      bg-accent-purple/10 border border-accent-purple/30
-                      text-accent-lilac hover:bg-accent-purple/20 hover:border-accent-purple/50
-                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="font-semibold text-sm font-body">Request Collab</span>
-                  </button>
-                )}
               </div>
 
               {/* Countdown Widget */}
@@ -1127,9 +1115,9 @@ function HeroSection({ onRequestCollab }) {
                         ))}
                       </>
                     ) : countdown.isEmpty ? (
-                      <div className="text-center py-4 w-full">
-                        <p className="text-[#a89ec0] text-sm">Tidak ada jadwal upcoming</p>
-                        <p className="text-[#5c5480] text-xs mt-1">Pastikan admin menambahkan jadwal</p>
+                      <div className="text-center py-3.5 w-full">
+                        <p className="text-white/80 text-xs sm:text-sm font-medium">Belum ada siaran yang dijadwalkan</p>
+                        <p className="text-[#a89ec0] text-[11px] mt-0.5">Jadwal siaran terbaru akan segera diperbarui</p>
                       </div>
                     ) : (
                       <>

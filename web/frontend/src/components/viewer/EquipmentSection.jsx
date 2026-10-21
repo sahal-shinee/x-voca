@@ -73,6 +73,8 @@ const cardToText = (card) =>
     `${card.label} (${card.system})`,
     ...card.items.map((item) => `- ${item.label}: ${item.title} - ${item.subtitle}`),
     ...(card.specs || []).map((spec) => `- ${spec.label}: ${spec.value}`),
+    ...(card.features || []).map((feat) => `- ${feat.label}: ${feat.value}`),
+    ...(card.software ? [`- Software: ${card.software.join(', ')}`] : []),
   ].join('\n');
 
 // Icon Components
@@ -520,22 +522,35 @@ const EquipmentCard = ({ card, index, isVisible, isExpanded, onToggle }) => {
             </div>
           )}
 
-          {/* Performance Bars */}
-          {card.performance && (
-            <div className="space-y-2.5">
-              <p className="text-[10px] text-[#a89ec0] uppercase tracking-widest mb-3">Metrik Performa</p>
-              {card.performance.map((perf, perfIndex) => (
-                <ProgressBar
-                  key={perfIndex}
-                  label={perf.label}
-                  value={perf.value}
-                  max={perf.max}
-                  color={colors.primary}
-                  showLabel
-                  active={isExpanded}
-                  delay={perfIndex * 120}
-                />
-              ))}
+          {/* Verified Architecture & Feature Badges */}
+          {card.features && (
+            <div className="space-y-2 mb-4">
+              <p className="text-[10px] text-[#a89ec0] uppercase tracking-widest font-mono">Keunggulan & Arsitektur</p>
+              <div className="space-y-1.5">
+                {card.features.map((feat, fIdx) => (
+                  <div key={fIdx} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-[#241f46]/60 border border-white/[0.05]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] mt-1.5 flex-shrink-0" />
+                    <div className="text-xs">
+                      <span className="font-semibold text-white/90">{feat.label}: </span>
+                      <span className="text-[#a89ec0]">{feat.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Software Toolchain Stack */}
+          {card.software && (
+            <div className="mb-4">
+              <p className="text-[10px] text-[#a89ec0] uppercase tracking-widest font-mono mb-2">Perangkat Lunak Pendukung</p>
+              <div className="flex flex-wrap gap-1.5">
+                {card.software.map((sw, sIdx) => (
+                  <span key={sIdx} className="px-2.5 py-1 rounded-md bg-[#191436] border border-white/10 text-[11px] font-mono text-accent-lilac">
+                    {sw}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -598,11 +613,13 @@ const EquipmentSection = () => {
         { label: 'Penyimpanan', value: '1TB NVMe SSD' },
         { label: 'Operasional', value: 'Siaran & Rendering' },
       ],
-      performance: [
-        { label: 'Performa CPU', value: 95, max: 100 },
-        { label: 'Performa GPU', value: 92, max: 100 },
-        { label: 'Penggunaan Memori', value: 24, max: 64 },
+      features: [
+        { label: 'Arsitektur CPU', value: '10 Core (6P+4E) / 16 Thread Hybrid Architecture' },
+        { label: 'Video Encoder', value: 'NVIDIA NVENC AV1/H.264 Hardware Encoder' },
+        { label: 'Kapasitas RAM', value: '64GB DDR5 Dual Channel High-Speed' },
+        { label: 'Penyimpanan', value: '1TB NVMe PCIe 4.0 Read Speed up to 5000MB/s' },
       ],
+      software: ['OBS Studio 30+', 'NVIDIA Broadcast', 'Discord Ops'],
     },
     {
       id: 2,
@@ -628,11 +645,13 @@ const EquipmentSection = () => {
         { label: 'Pola Tangkap', value: 'Cardioid Unidirectional' },
         { label: 'Fitur Khusus', value: 'Digital Popper Stopper' },
       ],
-      performance: [
-        { label: 'Kualitas Vokal', value: 98, max: 100 },
-        { label: 'Noise Floor', value: 5, max: 100 },
-        { label: 'Stabilitas Sinyal', value: 99, max: 100 },
+      features: [
+        { label: 'Konektivitas Dual', value: 'USB-C Digital & XLR Analog Simultan' },
+        { label: 'DSP Processing', value: 'Onboard DSP Reverb, Compressor & Limiter' },
+        { label: 'Voice Isolation', value: 'Pola Cardioid Menghilangkan Gemuruh Ruangan' },
+        { label: 'Popper Stopper', value: 'Peredam Plosif Digital Terintegrasi' },
       ],
+      software: ['Shure MOTIV Mix', 'Voicemeeter Banana', 'VST Plugins'],
     },
     {
       id: 3,
@@ -658,11 +677,13 @@ const EquipmentSection = () => {
         { label: 'Latensi', value: '< 16ms' },
         { label: 'Debut Siaran', value: '8 Februari 2025' },
       ],
-      performance: [
-        { label: 'Akurasi Pelacakan', value: 97, max: 100 },
-        { label: 'Deteksi Wajah', value: 99, max: 100 },
-        { label: 'Penghalusan Gerak', value: 95, max: 100 },
+      features: [
+        { label: 'Pelacakan Wajah', value: '52 Titik Blendshapes Apple ARKit' },
+        { label: 'Optical Capture', value: 'iPhone 15 Pro TrueDepth Sensor IR 60 FPS' },
+        { label: 'Fisika Karakter', value: 'Fisika 3-Axis XYZ untuk Rambut, Busana & Mata' },
+        { label: 'Koneksi Sinyal', value: 'Jalur Nirkabel Lokal Latensi Ultra Rendah' },
       ],
+      software: ['VTube Studio', 'Live2D Cubism 5.0', 'Open See Face'],
     },
   ];
 

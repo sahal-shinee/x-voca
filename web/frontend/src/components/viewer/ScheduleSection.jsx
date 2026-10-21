@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Calendar,
   Clock,
@@ -201,6 +201,7 @@ const transformScheduleData = (data) => {
     time: formatTanggalWIB(scheduledAtISO),
     scheduled_at: scheduledAtISO,
     live_started_at: liveStartedAt,
+    auto_done_at: data.auto_done_at,
     countdown: countdownString,
     estimated_duration: data.estimated_duration || 'Durasi ±2-3 Jam',
     platform: data.stream_platform || 'YouTube',
@@ -211,9 +212,23 @@ const transformScheduleData = (data) => {
   };
 };
 
-// Live Timer Component
+// Calculate duration for completed or upcoming streams
+const formatScheduleDuration = (schedule) => {
+  if (!schedule) return 'Durasi ±2-3 Jam';
+  if ((schedule.status === 'done' || schedule.status === 'archived') && schedule.live_started_at && schedule.auto_done_at) {
+    const diff = Math.max(0, new Date(schedule.auto_done_at).getTime() - new Date(schedule.live_started_at).getTime());
+    const totalMinutes = Math.floor(diff / 60000);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h > 0) return `Durasi: ${h}j ${m > 0 ? `${m}m` : ''}`.trim();
+    return `Durasi: ${m}m`;
+  }
+  return schedule.estimated_duration || 'Durasi ±2-3 Jam';
+};
+
+// Live Timer Component (real-time ticking seconds)
 const LiveTimer = ({ startTime }) => {
-  const [elapsed, setElapsed] = useState({ h: 0, m: 0 });
+  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
 
   useEffect(() => {
     if (!startTime) return;
@@ -223,20 +238,21 @@ const LiveTimer = ({ startTime }) => {
     const calculateElapsed = () => {
       const now = new Date();
       const diff = Math.max(0, now - startDate);
-      const totalMinutes = Math.floor(diff / (1000 * 60));
-      const m = totalMinutes % 60;
-      const h = Math.floor(totalMinutes / 60);
-      return { h, m };
+      const totalSeconds = Math.floor(diff / 1000);
+      const s = totalSeconds % 60;
+      const m = Math.floor((totalSeconds / 60) % 60);
+      const h = Math.floor(totalSeconds / 3600);
+      return { h, m, s };
     };
 
     setElapsed(calculateElapsed());
-    const id = setInterval(() => setElapsed(calculateElapsed()), 60000);
+    const id = setInterval(() => setElapsed(calculateElapsed()), 1000);
     return () => clearInterval(id);
   }, [startTime]);
 
   return (
-    <span className="text-[11px] font-mono text-red-400 font-semibold">
-      {elapsed.h > 0 ? `${elapsed.h}j ${elapsed.m}m` : `${elapsed.m}m`}
+    <span className="text-[11px] font-mono text-red-400 font-semibold tracking-wider">
+      {elapsed.h > 0 ? `${elapsed.h}j ` : ''}{String(elapsed.m).padStart(2, '0')}m {String(elapsed.s).padStart(2, '0')}s
     </span>
   );
 };
@@ -334,6 +350,29 @@ const ScheduleSection = () => {
   const [loading, setLoading] = useState(true);
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Calculate total broadcast duration dynamically from all schedules
+  const totalBroadcastHours = useMemo(() => {
+    let minutes = 0;
+    schedules.forEach((s) => {
+      if (s.status === 'live' && s.live_started_at) {
+        const elapsed = Math.max(0, Date.now() - new Date(s.live_started_at).getTime());
+        minutes += Math.floor(elapsed / 60000);
+      } else if (s.status === 'done' || s.status === 'archived') {
+        if (s.live_started_at && s.auto_done_at) {
+          const diff = Math.max(0, new Date(s.auto_done_at).getTime() - new Date(s.live_started_at).getTime());
+          minutes += Math.floor(diff / 60000);
+        } else {
+          minutes += 150; // standard 2.5 hours per completed session
+        }
+      } else {
+        // planned upcoming session
+        minutes += 120;
+      }
+    });
+    const hours = minutes / 60;
+    return hours > 0 ? hours.toFixed(1) : '0';
+  }, [schedules]);
 
   const handleCopyLink = async (e, schedule) => {
     e.preventDefault();
@@ -502,13 +541,17 @@ const ScheduleSection = () => {
             </div>
 
             {/* Schedule Counter Pill */}
-            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-4 flex-shrink-0 self-start sm:self-auto">
+            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto">
               <div>
                 <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Total Sesi</p>
                 <p className="text-2xl font-bold text-white font-display">{schedules.length}</p>
               </div>
+              <div className="pl-4 border-l border-white/10">
+                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi Siaran</p>
+                <p className="text-2xl font-bold text-accent-cyan font-display">±{totalBroadcastHours} Jam</p>
+              </div>
               {schedules.length > 0 && (
-                <div className="flex gap-1.5 pl-3 border-l border-white/10">
+                <div className="flex gap-1.5 pl-3 border-l border-white/10 hidden md:flex">
                   {schedules.slice(0, 5).map((s) => (
                     <span
                       key={s.id}
@@ -688,7 +731,7 @@ const ScheduleSection = () => {
                         {getPlatformIcon(schedule.platform)}
                         <span>{schedule.platform || 'YouTube'}</span>
                       </div>
-                      <span className="text-[11px] text-white/40 font-mono">{schedule.estimated_duration}</span>
+                      <span className="text-[11px] text-white/50 font-mono">{formatScheduleDuration(schedule)}</span>
                     </div>
 
                     {/* Real-time Ticking Countdown for upcoming streams */}
