@@ -3,7 +3,6 @@ import '../../data/models/todo_model.dart';
 import '../../data/services/todo_service.dart';
 import 'auth_provider.dart' show dioProvider;
 
-// State untuk menyimpan daftar Todo, status Loading, Meta Stats, dan Error
 class TodoState {
   final bool isLoading;
   final List<TodoModel> todos;
@@ -43,7 +42,6 @@ class TodoNotifier extends StateNotifier<TodoState> {
     fetchTodos();
   }
 
-  // Ambil semua Todo dari database Railway
   Future<void> fetchTodos({String? status, String? priority}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -59,11 +57,11 @@ class TodoNotifier extends StateNotifier<TodoState> {
     }
   }
 
-  // Tambah Todo baru (Optimistic Update)
   Future<void> addTodo({
     required String title,
     String? description,
     String priority = 'medium',
+    String status = 'pending',
     DateTime? deadline,
     List<String> tags = const [],
     String? resourceInfo,
@@ -78,13 +76,12 @@ class TodoNotifier extends StateNotifier<TodoState> {
       title: title,
       description: description,
       priority: priority,
-      status: 'pending',
+      status: status,
       deadline: deadline,
       tags: tags,
       resourceInfo: resourceInfo,
     );
 
-    // Optimistic Update: Langsung tambah ke list & sesuaikan meta stats
     final newMeta = Map<String, int>.from(state.meta);
     newMeta['total'] = (newMeta['total'] ?? state.todos.length) + 1;
     if (deadline != null && deadline.isAfter(DateTime.now())) {
@@ -106,23 +103,21 @@ class TodoNotifier extends StateNotifier<TodoState> {
         resourceInfo: resourceInfo,
       );
 
-      // Sinkronkan ID resmi dari database tanpa re-fetch
       state = state.copyWith(
         todos: state.todos.map((t) => t.id == tempId ? newTodo : t).toList(),
       );
     } catch (e) {
-      // Rollback jika request server gagal
       state = state.copyWith(todos: previousTodos, meta: previousMeta);
       rethrow;
     }
   }
 
-  // Edit/Update Todo (Optimistic Update)
   Future<void> updateTodo({
     required int id,
     required String title,
     String? description,
     required String priority,
+    String? status,
     DateTime? deadline,
     List<String> tags = const [],
     String? resourceInfo,
@@ -134,12 +129,12 @@ class TodoNotifier extends StateNotifier<TodoState> {
       title: title,
       description: description,
       priority: priority,
+      status: status ?? current.status,
       deadline: deadline,
       tags: tags,
       resourceInfo: resourceInfo,
     );
 
-    // Optimistic Update: Perbarui item di memori lokal
     state = state.copyWith(
       todos: state.todos.map((t) => t.id == id ? updatedTodo : t).toList(),
     );
@@ -152,56 +147,50 @@ class TodoNotifier extends StateNotifier<TodoState> {
         'deadline': deadline?.toIso8601String(),
         'tags': tags,
         'resource_info': resourceInfo,
+        if (status != null) 'status': status,
       };
       final updatedFromServer = await _todoService.updateTodo(id, body);
       state = state.copyWith(
         todos: state.todos.map((t) => t.id == id ? updatedFromServer : t).toList(),
       );
     } catch (e) {
-      // Rollback jika request gagal
       state = state.copyWith(todos: previousTodos);
       rethrow;
     }
   }
 
-  // Toggle/Update status Todo (pending <-> completed) (Optimistic Update)
-  Future<void> toggleStatus(TodoModel todo) async {
+  Future<void> updateStatus(int id, String newStatus) async {
     final previousTodos = state.todos;
-    final previousMeta = state.meta;
-
-    final nextStatus = todo.status == 'completed' ? 'pending' : 'completed';
-    final isNowCompleted = nextStatus == 'completed';
-
-    final updatedTodo = todo.copyWith(
-      status: nextStatus,
-      completedAt: isNowCompleted ? DateTime.now() : null,
-    );
-
-    // Optimistic Update: Perbarui item dan counter meta selesai
-    final newMeta = Map<String, int>.from(state.meta);
-    final currentCompletedToday = newMeta['completed_today'] ?? 0;
-    newMeta['completed_today'] = isNowCompleted
-        ? (currentCompletedToday + 1)
-        : (currentCompletedToday > 0 ? currentCompletedToday - 1 : 0);
+    final isNowCompleted = newStatus == 'completed';
 
     state = state.copyWith(
-      todos: state.todos.map((t) => t.id == todo.id ? updatedTodo : t).toList(),
-      meta: newMeta,
+      todos: state.todos.map((t) {
+        if (t.id == id) {
+          return t.copyWith(
+            status: newStatus,
+            completedAt: isNowCompleted ? DateTime.now() : null,
+          );
+        }
+        return t;
+      }).toList(),
     );
 
     try {
-      final updated = await _todoService.updateTodo(todo.id, {'status': nextStatus});
+      final updated = await _todoService.updateTodo(id, {'status': newStatus});
       state = state.copyWith(
-        todos: state.todos.map((t) => t.id == todo.id ? updated : t).toList(),
+        todos: state.todos.map((t) => t.id == id ? updated : t).toList(),
       );
     } catch (e) {
-      // Rollback jika request server gagal
-      state = state.copyWith(todos: previousTodos, meta: previousMeta);
+      state = state.copyWith(todos: previousTodos);
       rethrow;
     }
   }
 
-  // Hapus Todo (Optimistic Update)
+  Future<void> toggleStatus(TodoModel todo) async {
+    final nextStatus = todo.status == 'completed' ? 'pending' : 'completed';
+    await updateStatus(todo.id, nextStatus);
+  }
+
   Future<void> deleteTodo(int id) async {
     final previousTodos = state.todos;
     final previousMeta = state.meta;
@@ -223,7 +212,6 @@ class TodoNotifier extends StateNotifier<TodoState> {
       newMeta['pending_deadlines'] = currentPending > 0 ? currentPending - 1 : 0;
     }
 
-    // Optimistic Update: Langsung hapus dari UI
     state = state.copyWith(
       todos: state.todos.where((t) => t.id != id).toList(),
       meta: newMeta,
@@ -232,19 +220,16 @@ class TodoNotifier extends StateNotifier<TodoState> {
     try {
       await _todoService.deleteTodo(id);
     } catch (e) {
-      // Rollback jika request server gagal
       state = state.copyWith(todos: previousTodos, meta: previousMeta);
       rethrow;
     }
   }
 }
 
-// Service Provider yang menginisialisasi TodoService
 final todoServiceProvider = Provider<TodoService>((ref) {
   return TodoService(ref.watch(dioProvider));
 });
 
-// Main Provider untuk digunakan di UI Screen
 final todoProvider = StateNotifierProvider<TodoNotifier, TodoState>((ref) {
   final todoService = ref.watch(todoServiceProvider);
   return TodoNotifier(todoService);

@@ -47,24 +47,63 @@ class CollabNotifier extends StateNotifier<CollabState> {
   }
 
   Future<void> updateStatus(int id, String status, {String? notes}) async {
+    final previous = state.requests;
+    state = state.copyWith(
+      requests: state.requests.map((r) {
+        if (r.id == id) {
+          return r.copyWith(
+            status: status,
+            reviewNotes: notes ?? r.reviewNotes,
+            reviewedAt: DateTime.now().toIso8601String(),
+          );
+        }
+        return r;
+      }).toList(),
+    );
+
     try {
-      final updated =
-          await _collabService.updateCollabStatus(id, status, notes: notes);
+      final updated = await _collabService.updateCollabStatus(id, status, notes: notes);
       state = state.copyWith(
         requests: state.requests.map((r) => r.id == id ? updated : r).toList(),
       );
     } catch (e) {
+      state = state.copyWith(requests: previous);
+      rethrow;
+    }
+  }
+
+  Future<void> updateNotes(int id, String notes) async {
+    final previous = state.requests;
+    state = state.copyWith(
+      requests: state.requests.map((r) {
+        if (r.id == id) {
+          return r.copyWith(reviewNotes: notes);
+        }
+        return r;
+      }).toList(),
+    );
+
+    try {
+      final updated = await _collabService.updateReviewNotes(id, notes);
+      state = state.copyWith(
+        requests: state.requests.map((r) => r.id == id ? updated : r).toList(),
+      );
+    } catch (e) {
+      state = state.copyWith(requests: previous);
       rethrow;
     }
   }
 
   Future<void> deleteRequest(int id) async {
+    final previous = state.requests;
+    state = state.copyWith(
+      requests: state.requests.where((r) => r.id != id).toList(),
+    );
+
     try {
       await _collabService.deleteCollabRequest(id);
-      state = state.copyWith(
-        requests: state.requests.where((r) => r.id != id).toList(),
-      );
     } catch (e) {
+      state = state.copyWith(requests: previous);
       rethrow;
     }
   }

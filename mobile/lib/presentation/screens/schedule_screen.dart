@@ -16,7 +16,6 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int _selectedFilterIndex = 0;
-  final List<String> _filters = ['ALL', 'UPCOMING', 'LIVE', 'PAST'];
 
   final List<String> _categories = [
     'Survival Horror',
@@ -47,10 +46,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
+    // Hitung counter status untuk chip filter (identik dengan versi web)
+    final liveCount = allSchedules.where((s) => s.status.toLowerCase() == 'live').length;
+    final upcomingCount = allSchedules.where((s) => s.status.toLowerCase() == 'upcoming').length;
+    final doneCount = allSchedules.where((s) {
+      final st = s.status.toLowerCase();
+      return st == 'done' || st == 'archived' || st == 'past' || st == 'completed';
+    }).length;
+
+    final filterLabels = [
+      'SEMUA (${allSchedules.length})',
+      'LIVE ($liveCount)',
+      'UPCOMING ($upcomingCount)',
+      'SELESAI ($doneCount)',
+    ];
+
     final filteredSchedules = allSchedules.where((s) {
       final statusLower = s.status.toLowerCase();
-      if (_selectedFilterIndex == 1) return statusLower == 'upcoming';
-      if (_selectedFilterIndex == 2) return statusLower == 'live';
+      if (_selectedFilterIndex == 1) return statusLower == 'live';
+      if (_selectedFilterIndex == 2) return statusLower == 'upcoming';
       if (_selectedFilterIndex == 3) {
         return statusLower == 'done' || statusLower == 'archived' || statusLower == 'past' || statusLower == 'completed';
       }
@@ -62,59 +76,124 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       appBar: AppBar(
         backgroundColor: bgNav,
         elevation: 0,
-        title: Text(
-          'STREAM SCHEDULES',
-          style: GoogleFonts.spaceGrotesk(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: textPrimary,
-            letterSpacing: 1,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SIARAN & PENJADWALAN',
+              style: GoogleFonts.spaceMono(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accentCyan,
+                letterSpacing: 1.2,
+              ),
+            ),
+            Text(
+              'Manajemen Jadwal',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: textPrimary,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
             icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
             onPressed: () => ref.read(scheduleProvider.notifier).fetchSchedules(),
           ),
-          IconButton(
-            icon: const Icon(LucideIcons.plus, color: AppColors.accentCyan),
-            onPressed: () => _showAddScheduleDialog(context),
-          ),
+          const SizedBox(width: 8),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.accentCyan,
+        elevation: 4,
+        icon: const Icon(LucideIcons.plus, color: Colors.black, size: 18),
+        label: Text(
+          'Tambah Jadwal',
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+        onPressed: () => _showAddScheduleDialog(context),
       ),
       body: Column(
         children: [
-          // Filter Chips
+          // Header Mini Summary (Sinkron dengan Web)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: bgSurface,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: bgNav,
             child: Row(
-              children: List.generate(_filters.length, (index) {
-                final isSelected = _selectedFilterIndex == index;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: ChoiceChip(
-                    label: Text(
-                      _filters[index],
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.black : textSecondary,
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor: AppColors.accentCyan,
-                    backgroundColor: bgInput,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: isSelected ? AppColors.accentCyan : borderSubtle,
-                      ),
-                    ),
-                    onSelected: (_) => setState(() => _selectedFilterIndex = index),
+              children: [
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Siaran Aktif',
+                    value: liveCount > 0 ? '$liveCount LIVE' : 'Tidak ada',
+                    color: liveCount > 0 ? AppColors.accentRed : textSecondary,
+                    isDark: isDark,
                   ),
-                );
-              }),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Slot Terjadwal',
+                    value: '$upcomingCount Sesi',
+                    color: AppColors.accentPurple,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStat(
+                    title: 'Selesai',
+                    value: '$doneCount Sesi',
+                    color: AppColors.accentCyan,
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderSubtle),
+
+          // Filter Chips Bar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: bgSurface,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(filterLabels.length, (index) {
+                  final isSelected = _selectedFilterIndex == index;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      label: Text(
+                        filterLabels[index],
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.black : textSecondary,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: AppColors.accentCyan,
+                      backgroundColor: bgInput,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.accentCyan : borderSubtle,
+                        ),
+                      ),
+                      onSelected: (_) => setState(() => _selectedFilterIndex = index),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
           Divider(height: 1, color: borderSubtle),
@@ -159,7 +238,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Tekan tombol + untuk menambah jadwal baru',
+                                  'Tekan "+ Tambah Jadwal" untuk membuat agenda baru',
                                   style: GoogleFonts.spaceMono(fontSize: 11, color: textMuted),
                                 ),
                               ],
@@ -169,7 +248,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             onRefresh: () => ref.read(scheduleProvider.notifier).fetchSchedules(),
                             color: AppColors.accentCyan,
                             child: ListView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
                               itemCount: filteredSchedules.length,
                               itemBuilder: (context, index) =>
                                   _buildScheduleCard(filteredSchedules[index], isDark),
@@ -178,6 +257,29 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMiniStat({
+    required String title,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    return Column(
+      children: [
+        Text(title, style: GoogleFonts.spaceMono(fontSize: 9, color: textMuted)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
@@ -197,15 +299,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     switch (statusLower) {
       case 'live':
         statusColor = AppColors.accentRed;
-        statusLabel = 'LIVE NOW';
+        statusLabel = 'LIVE';
         statusIcon = LucideIcons.radio;
         break;
       case 'done':
       case 'archived':
       case 'past':
       case 'completed':
-        statusColor = textMuted;
-        statusLabel = 'COMPLETED';
+        statusColor = const Color(0xFF10B981); // Emerald Green khas Web
+        statusLabel = 'SELESAI';
         statusIcon = LucideIcons.circle_check;
         break;
       default:
@@ -239,6 +341,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -276,7 +379,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     icon: const Icon(LucideIcons.pencil, size: 16, color: AppColors.accentCyan),
                     onPressed: () => _showEditScheduleDialog(context, schedule),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   IconButton(
                     constraints: const BoxConstraints(),
                     padding: EdgeInsets.zero,
@@ -305,7 +408,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             ],
                           ),
                           content: Text(
-                            'Apakah Anda yakin ingin menghapus data ini?\n("${schedule.title}")',
+                            'Apakah Anda yakin ingin menghapus jadwal ini?\n("${schedule.title}")',
                             style: GoogleFonts.spaceMono(
                               color: textSecondary,
                               fontSize: 12,
@@ -376,7 +479,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               Icon(LucideIcons.calendar, color: textSecondary, size: 14),
@@ -507,7 +610,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
-  // TAMBAH JADWAL DIALOG
+  // TAMBAH JADWAL MODAL
   void _showAddScheduleDialog(BuildContext context) {
     final messenger = ScaffoldMessenger.of(context);
     final titleController = TextEditingController();
@@ -552,7 +655,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('MODIFIKASI JADWAL',
-                              style: GoogleFonts.spaceMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentRed)),
+                              style: GoogleFonts.spaceMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentCyan)),
                           Text('Tambah Jadwal Baru',
                               style: GoogleFonts.spaceGrotesk(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary)),
                         ],
@@ -768,7 +871,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
-  // EDIT JADWAL DIALOG
+  // EDIT JADWAL MODAL
   void _showEditScheduleDialog(BuildContext context, ScheduleModel schedule) {
     final messenger = ScaffoldMessenger.of(context);
     final titleController = TextEditingController(text: schedule.title);
@@ -870,7 +973,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     items: [
                       DropdownMenuItem(value: 'upcoming', child: Text('Upcoming', style: GoogleFonts.spaceGrotesk(color: AppColors.accentPurple))),
                       DropdownMenuItem(value: 'live', child: Text('Live Now', style: GoogleFonts.spaceGrotesk(color: AppColors.accentRed))),
-                      DropdownMenuItem(value: 'done', child: Text('Selesai (Done)', style: GoogleFonts.spaceGrotesk(color: textMuted))),
+                      DropdownMenuItem(value: 'done', child: Text('Selesai (Done)', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF10B981)))),
                     ],
                     onChanged: (val) => setModalState(() => selectedStatus = val ?? 'upcoming'),
                   ),

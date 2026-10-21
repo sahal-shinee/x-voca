@@ -20,9 +20,24 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   final String _deviceFingerprint =
       'device_${DateTime.now().millisecondsSinceEpoch}';
 
+  // State untuk Tab 1: Game Voting
   String _selectedFilter = 'all';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  // Helper Dialog Konfirmasi Serbaguna
+  // State untuk Tab 2: Collab Requests
+  String _selectedCollabFilter = 'all';
+  final TextEditingController _collabSearchController = TextEditingController();
+  String _collabSearchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _collabSearchController.dispose();
+    super.dispose();
+  }
+
+  // Helper Dialog Konfirmasi Universal
   Future<bool> _showConfirmDialog({
     required BuildContext context,
     required String title,
@@ -92,6 +107,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     return result ?? false;
   }
 
+  // Modal Tambah Usulan Game Kandidat
   void _showAddGameModal(BuildContext context) {
     final titleController = TextEditingController();
     final genreController = TextEditingController();
@@ -135,7 +151,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                 color: AppColors.accentCyan, size: 20),
                             const SizedBox(width: 8),
                             Text(
-                              'Tambah Game Poll Baru',
+                              'Tambah Game Usulan Baru',
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -259,7 +275,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                     strokeWidth: 2, color: Colors.black),
                               )
                             : Text(
-                                'Simpan Game kandidat',
+                                'Simpan Game',
                                 style: GoogleFonts.spaceGrotesk(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -294,14 +310,27 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
         appBar: AppBar(
           backgroundColor: bgNav,
           elevation: 0,
-          title: Text(
-            'COMMUNITY HUB',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textPrimary,
-              letterSpacing: 1,
-            ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MODERASI & VOTING',
+                style: GoogleFonts.spaceMono(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accentCyan,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Text(
+                'Community Hub',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
+            ],
           ),
           actions: [
             IconButton(
@@ -315,6 +344,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               icon: const Icon(LucideIcons.plus, color: AppColors.accentCyan),
               onPressed: () => _showAddGameModal(context),
             ),
+            const SizedBox(width: 8),
           ],
           bottom: TabBar(
             indicatorColor: AppColors.accentCyan,
@@ -323,7 +353,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             labelStyle: GoogleFonts.spaceGrotesk(
                 fontWeight: FontWeight.bold, fontSize: 13),
             tabs: const [
-              Tab(text: 'Game Votes'),
+              Tab(text: 'Game Voting'),
               Tab(text: 'Collab Requests'),
             ],
           ),
@@ -338,15 +368,27 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
-  // TAB 1: GAME VOTES
+  // ==========================================
+  // TAB 1: GAME VOTING
+  // ==========================================
   Widget _buildGameVotesTab(bool isDark) {
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
     final gameState = ref.watch(gameProvider);
     final games = gameState.games;
     final voteStats = gameState.voteStats;
 
     final int totalVotes = voteStats?.totalVotes ??
         games.fold<int>(0, (sum, game) => sum + game.voteCount);
+
+    final requestedCount = games.where((g) => g.status == 'requested').length;
+    final acceptedCount = games.where((g) => g.status == 'accepted').length;
+    final playingCount = games.where((g) => g.status == 'playing').length;
+    final doneCount = games.where((g) => g.status == 'done').length;
 
     if (gameState.isLoading && games.isEmpty) {
       return const Center(
@@ -376,15 +418,107 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       );
     }
 
+    // Filter list berdasarkan tab chip & pencarian
+    final filteredGames = games.where((g) {
+      final matchesFilter = _selectedFilter == 'all' || g.status == _selectedFilter;
+      final matchesSearch = _searchQuery.isEmpty ||
+          g.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (g.genre?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      return matchesFilter && matchesSearch;
+    }).toList();
+
     return RefreshIndicator(
       onRefresh: () => ref.read(gameProvider.notifier).loadAllData(),
       color: AppColors.accentCyan,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Header Mini Summary
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: bgNav,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Review',
+                    value: '$requestedCount',
+                    color: AppColors.accentGold,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Diterima',
+                    value: '$acceptedCount',
+                    color: AppColors.accentCyan,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Dimainkan',
+                    value: '$playingCount',
+                    color: Colors.greenAccent,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Selesai',
+                    value: '$doneCount',
+                    color: textMuted,
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Search Field Game
+          Container(
+            decoration: BoxDecoration(
+              color: bgInput,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Cari judul atau genre game...',
+                hintStyle: GoogleFonts.spaceGrotesk(fontSize: 12, color: textMuted),
+                prefixIcon: Icon(LucideIcons.search, size: 16, color: textMuted),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(LucideIcons.x, size: 16, color: textMuted),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           _buildFilterChips(games, isDark),
-          const SizedBox(height: 16),
-          _buildMainPollCard(games, totalVotes, isDark),
+          const SizedBox(height: 14),
+
+          _buildMainPollCard(filteredGames, totalVotes, isDark),
         ],
       ),
     );
@@ -431,8 +565,8 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               showCheckmark: false,
               label: Text(
                 '${f['label']} (${f['count']})',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 12,
+                style: GoogleFonts.spaceMono(
+                  fontSize: 10,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? Colors.black : textSecondary,
                 ),
@@ -440,11 +574,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               backgroundColor: bgSurface,
               selectedColor: AppColors.accentCyan,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: isSelected
-                      ? AppColors.accentCyan
-                      : borderSubtle,
+                  color: isSelected ? AppColors.accentCyan : borderSubtle,
                 ),
               ),
               onSelected: (_) {
@@ -459,21 +591,14 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
-  Widget _buildMainPollCard(List<GameModel> games, int totalVotes, bool isDark) {
+  Widget _buildMainPollCard(
+      List<GameModel> filteredGames, int totalVotes, bool isDark) {
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
-
-    final filteredGames = games.where((g) {
-      if (_selectedFilter == 'all') return true;
-      return g.status == _selectedFilter;
-    }).toList();
-
-    final int filteredTotalVotes =
-        filteredGames.fold<int>(0, (sum, game) => sum + game.voteCount);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -520,11 +645,11 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            'Pilih game yang ingin kamu tonton. Suara kamu menentukan live dan playthrough berikutnya.',
+            'Pilih game yang ingin kamu tonton. Suara kamu menentukan sesi live stream dan playthrough berikutnya.',
             style: GoogleFonts.spaceGrotesk(
-                fontSize: 13, color: textSecondary),
+                fontSize: 12, color: textSecondary),
           ),
           const SizedBox(height: 16),
           if (filteredGames.isEmpty)
@@ -532,17 +657,29 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Text(
-                  'Tidak ada game dalam kategori ini.',
-                  style: GoogleFonts.spaceGrotesk(color: textMuted),
+                  'Tidak ada game dalam filter atau pencarian ini.',
+                  style: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
                 ),
               ),
             )
           else
             ...filteredGames.map((game) {
               final gameVotes = game.voteCount;
-              final double percentage = filteredTotalVotes > 0
-                  ? (gameVotes / filteredTotalVotes)
-                  : 0.0;
+              final double percentage =
+                  totalVotes > 0 ? (gameVotes / totalVotes) : 0.0;
+
+              Color statusBadgeColor = AppColors.accentGold;
+              String statusText = 'REQUESTED';
+              if (game.status == 'accepted') {
+                statusBadgeColor = AppColors.accentCyan;
+                statusText = 'ACCEPTED';
+              } else if (game.status == 'playing') {
+                statusBadgeColor = Colors.greenAccent;
+                statusText = 'PLAYING';
+              } else if (game.status == 'done') {
+                statusBadgeColor = textMuted;
+                statusText = 'DONE';
+              }
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -639,12 +776,40 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                               color: textPrimary,
                                             ),
                                           ),
-                                          Text(
-                                            'Status: ${game.status.toUpperCase()}',
-                                            style: GoogleFonts.spaceMono(
-                                              fontSize: 9,
-                                              color: AppColors.accentGold,
-                                            ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 5,
+                                                        vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: statusBadgeColor
+                                                      .withValues(alpha: 0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  statusText,
+                                                  style: GoogleFonts.spaceMono(
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: statusBadgeColor,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (game.genre?.isNotEmpty == true) ...[
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '• ${game.genre}',
+                                                  style: GoogleFonts.spaceMono(
+                                                    fontSize: 9,
+                                                    color: textMuted,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -678,9 +843,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                               onTap: () async {
                                 final confirm = await _showConfirmDialog(
                                   context: context,
-                                  title: 'Hapus Kandidat Game?',
+                                  title: 'Hapus Usulan Game?',
                                   content:
-                                      'Game "${game.title}" akan dihapus permanen dari daftar.',
+                                      'Game "${game.title}" akan dihapus permanen dari daftar usulan.',
                                   confirmText: 'Tolak & Hapus',
                                   confirmColor: AppColors.accentRed,
                                 );
@@ -715,9 +880,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                               onTap: () async {
                                 final confirm = await _showConfirmDialog(
                                   context: context,
-                                  title: 'Terima Game Kandidat?',
+                                  title: 'Terima Usulan Game?',
                                   content:
-                                      'Game "${game.title}" akan disetujui dan masuk daftar voting resmi.',
+                                      'Game "${game.title}" akan disetujui dan masuk ke daftar voting resmi.',
                                   confirmText: 'Ya, Terima',
                                   confirmColor: AppColors.accentCyan,
                                 );
@@ -789,7 +954,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                                   context: context,
                                   title: 'Selesaikan Game?',
                                   content:
-                                      'Game "${game.title}" akan ditandai Selesai/Tamat (Done).',
+                                      'Game "${game.title}" akan ditandai Tamat / Selesai (Done).',
                                   confirmText: 'Ya, Selesai',
                                   confirmColor: textMuted,
                                 );
@@ -825,7 +990,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
             }),
           const SizedBox(height: 6),
           Text(
-            '$filteredTotalVotes suara pada kategori ini',
+            'Total $totalVotes suara pada periode voting ini',
             style: GoogleFonts.spaceMono(fontSize: 10, color: textMuted),
           ),
         ],
@@ -833,10 +998,17 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
+  // ==========================================
   // TAB 2: COLLAB REQUESTS
+  // ==========================================
   Widget _buildCollabRequestsTab(bool isDark) {
+    final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     final collabState = ref.watch(collabProvider);
     final requests = collabState.requests;
@@ -870,71 +1042,225 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       );
     }
 
-    if (requests.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: () =>
-            ref.read(collabProvider.notifier).fetchCollabRequests(),
-        color: AppColors.accentCyan,
-        child: ListView(
-          padding: const EdgeInsets.all(32),
-          children: [
-            const SizedBox(height: 60),
-            Icon(LucideIcons.users, size: 48, color: textMuted),
-            const SizedBox(height: 12),
-            Center(
-              child: Text(
-                'Belum Ada Request Collab',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: Text(
-                'Ajakan mabar atau collab dari streamer lain bakal muncul di sini.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.spaceMono(
-                    fontSize: 12, color: textMuted),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    // Metrik Counter (Sinkron dengan Web)
+    final totalCount = requests.length;
+    final pendingCount = requests.where((r) => r.status.toLowerCase() == 'pending').length;
+    final shortlistCount = requests.where((r) {
+      final st = r.status.toLowerCase();
+      return st == 'approved' || st == 'accepted' || st == 'shortlist';
+    }).length;
+    final scheduledCount = requests.where((r) => r.status.toLowerCase() == 'scheduled').length;
+    final archivedCount = requests.where((r) {
+      final st = r.status.toLowerCase();
+      return st == 'rejected' || st == 'archived' || st == 'expired';
+    }).length;
+
+    // Filter list berdasarkan chip & search query
+    final filteredRequests = requests.where((r) {
+      final st = r.status.toLowerCase();
+      if (_selectedCollabFilter == 'pending' && st != 'pending') return false;
+      if (_selectedCollabFilter == 'approved' && st != 'approved' && st != 'accepted' && st != 'shortlist') return false;
+      if (_selectedCollabFilter == 'scheduled' && st != 'scheduled') return false;
+      if (_selectedCollabFilter == 'rejected' && st != 'rejected' && st != 'archived' && st != 'expired') return false;
+
+      if (_collabSearchQuery.isNotEmpty) {
+        final q = _collabSearchQuery.toLowerCase();
+        final matchStreamer = r.requestedStreamerName.toLowerCase().contains(q);
+        final matchMsg = r.message?.toLowerCase().contains(q) ?? false;
+        final matchSocial = r.requestedStreamerSocial?.toLowerCase().contains(q) ?? false;
+        if (!matchStreamer && !matchMsg && !matchSocial) return false;
+      }
+      return true;
+    }).toList();
 
     return RefreshIndicator(
       onRefresh: () => ref.read(collabProvider.notifier).fetchCollabRequests(),
       color: AppColors.accentCyan,
-      child: ListView.builder(
+      child: ListView(
         padding: const EdgeInsets.all(16),
-        itemCount: requests.length,
-        itemBuilder: (context, index) {
-          final collab = requests[index];
-          return _buildCollabCard(collab, isDark);
-        },
+        children: [
+          // Header Mini Stats Collab
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: bgNav,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Total Usulan',
+                    value: '$totalCount',
+                    color: textPrimary,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Usulan Baru',
+                    value: '$pendingCount',
+                    color: AppColors.accentGold,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Disimpan',
+                    value: '$shortlistCount',
+                    color: AppColors.accentPurple,
+                    isDark: isDark,
+                  ),
+                ),
+                Container(width: 1, height: 26, color: borderSubtle),
+                Expanded(
+                  child: _buildMiniStatItem(
+                    title: 'Dijadwalkan',
+                    value: '$scheduledCount',
+                    color: const Color(0xFF10B981),
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Search Field Collab
+          Container(
+            decoration: BoxDecoration(
+              color: bgInput,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: TextField(
+              controller: _collabSearchController,
+              onChanged: (val) => setState(() => _collabSearchQuery = val.trim()),
+              style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Cari streamer / pesan usulan...',
+                hintStyle: GoogleFonts.spaceGrotesk(fontSize: 12, color: textMuted),
+                prefixIcon: Icon(LucideIcons.search, size: 16, color: textMuted),
+                suffixIcon: _collabSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(LucideIcons.x, size: 16, color: textMuted),
+                        onPressed: () {
+                          _collabSearchController.clear();
+                          setState(() => _collabSearchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 11),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Filter Chips Collab
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildCollabFilterChip('all', 'Semua ($totalCount)', isDark),
+                _buildCollabFilterChip('pending', 'Baru ($pendingCount)', isDark),
+                _buildCollabFilterChip('approved', 'Disimpan ($shortlistCount)', isDark),
+                _buildCollabFilterChip('scheduled', 'Dijadwalkan ($scheduledCount)', isDark),
+                _buildCollabFilterChip('rejected', 'Arsip ($archivedCount)', isDark),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // List Collab Requests
+          if (filteredRequests.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  Icon(LucideIcons.users, size: 40, color: textMuted),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tidak ada request dalam filter ini',
+                    style: GoogleFonts.spaceGrotesk(fontSize: 14, color: textSecondary),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...filteredRequests.map((collab) => _buildCollabCard(collab, isDark)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollabFilterChip(String key, String label, bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    final isSelected = _selectedCollabFilter == key;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: isSelected,
+        showCheckmark: false,
+        label: Text(
+          label,
+          style: GoogleFonts.spaceMono(
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.black : textSecondary,
+          ),
+        ),
+        backgroundColor: bgSurface,
+        selectedColor: AppColors.accentCyan,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: isSelected ? AppColors.accentCyan : borderSubtle),
+        ),
+        onSelected: (_) => setState(() => _selectedCollabFilter = key),
       ),
     );
   }
 
   Widget _buildCollabCard(CollabModel collab, bool isDark) {
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     Color statusColor;
-    switch (collab.status.toLowerCase()) {
+    String statusLabel;
+    final statusLower = collab.status.toLowerCase();
+
+    switch (statusLower) {
+      case 'approved':
       case 'accepted':
-        statusColor = Colors.greenAccent;
+      case 'shortlist':
+        statusColor = AppColors.accentPurple;
+        statusLabel = 'DISIMPAN';
+        break;
+      case 'scheduled':
+        statusColor = const Color(0xFF10B981);
+        statusLabel = 'DIJADWALKAN';
         break;
       case 'rejected':
+      case 'archived':
+      case 'expired':
         statusColor = AppColors.accentRed;
+        statusLabel = 'ARSIP';
         break;
       default:
         statusColor = AppColors.accentGold;
+        statusLabel = 'BARU';
     }
 
     return Container(
@@ -954,8 +1280,20 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.tv,
-                        size: 16, color: AppColors.accentCyan),
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: AppColors.accentPurple.withValues(alpha: 0.2),
+                      child: Text(
+                        collab.requestedStreamerName.isNotEmpty
+                            ? collab.requestedStreamerName[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentPurple,
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -965,195 +1303,291 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                           fontWeight: FontWeight.bold,
                           color: textPrimary,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  collab.status.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+
+              // Status Dropdown
+              PopupMenuButton<String>(
+                onSelected: (newStatus) async {
+                  await ref.read(collabProvider.notifier).updateStatus(collab.id, newStatus);
+                },
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(value: 'pending', child: Text('Baru (Pending)', style: GoogleFonts.spaceGrotesk(color: AppColors.accentGold))),
+                  PopupMenuItem(value: 'approved', child: Text('Disimpan (Shortlist)', style: GoogleFonts.spaceGrotesk(color: AppColors.accentPurple))),
+                  PopupMenuItem(value: 'scheduled', child: Text('Dijadwalkan', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF10B981)))),
+                  PopupMenuItem(value: 'rejected', child: Text('Arsipkan', style: GoogleFonts.spaceGrotesk(color: AppColors.accentRed))),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        statusLabel,
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(LucideIcons.chevron_down, size: 11, color: statusColor),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          if (collab.message != null && collab.message!.isNotEmpty) ...[
-            Text(
-              collab.message!,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 12,
-                color: textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          if (collab.requestedStreamerSocial != null &&
-              collab.requestedStreamerSocial!.isNotEmpty) ...[
+          // Link Sosmed
+          if (collab.requestedStreamerSocial != null && collab.requestedStreamerSocial!.isNotEmpty) ...[
             GestureDetector(
               onTap: () async {
                 String rawUrl = collab.requestedStreamerSocial!.trim();
                 if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
                   rawUrl = 'https://$rawUrl';
                 }
-                final url = Uri.parse(rawUrl);
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                final uri = Uri.tryParse(rawUrl);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
               },
-              child: Row(
-                children: [
-                  const Icon(LucideIcons.link,
-                      size: 13, color: AppColors.accentCyan),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: bgInput,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(LucideIcons.link, size: 12, color: AppColors.accentCyan),
+                    const SizedBox(width: 6),
+                    Text(
                       collab.requestedStreamerSocial!,
                       style: GoogleFonts.spaceMono(
                         fontSize: 11,
                         color: AppColors.accentCyan,
                         decoration: TextDecoration.underline,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    const Icon(LucideIcons.external_link, size: 10, color: AppColors.accentCyan),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
           ],
 
-          if (collab.status.toLowerCase() == 'pending') ...[
-            Divider(color: borderSubtle),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.accentRed),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: const Icon(LucideIcons.x,
-                      size: 14, color: AppColors.accentRed),
-                  label: Text('Tolak',
-                      style: GoogleFonts.spaceMono(
-                          fontSize: 11, color: AppColors.accentRed)),
-                  onPressed: () async {
-                    final confirm = await _showConfirmDialog(
-                      context: context,
-                      title: 'Tolak Collab Request?',
-                      content:
-                          'Ajakan collab dari "${collab.requestedStreamerName}" akan ditolak.',
-                      confirmText: 'Tolak Request',
-                      confirmColor: AppColors.accentRed,
-                    );
-
-                    if (confirm) {
-                      try {
-                        await ref
-                            .read(collabProvider.notifier)
-                            .updateStatus(collab.id, 'rejected');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: bgSurface,
-                              content: Text('Request collab ditolak',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: textPrimary)),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: bgSurface,
-                              content: Text('Gagal update: $e',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.accentRed)),
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
+          // Pesan Usulan Viewer
+          if (collab.message != null && collab.message!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: bgInput,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '"${collab.message!}"',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: textSecondary,
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentCyan,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Catatan Admin
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: bgInput.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.notebook_pen, size: 13, color: AppColors.accentGold),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    collab.reviewNotes?.isNotEmpty == true
+                        ? collab.reviewNotes!
+                        : 'Belum ada catatan admin',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 11,
+                      color: collab.reviewNotes?.isNotEmpty == true ? textPrimary : textMuted,
                     ),
                   ),
-                  icon: const Icon(LucideIcons.check,
-                      size: 14, color: Colors.black),
-                  label: Text('Terima',
-                      style: GoogleFonts.spaceMono(
-                          fontSize: 11,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold)),
-                  onPressed: () async {
-                    final confirm = await _showConfirmDialog(
-                      context: context,
-                      title: 'Terima Collab Request?',
-                      content:
-                          'Apakah kamu yakin ingin menerima ajakan collab dari "${collab.requestedStreamerName}"?',
-                      confirmText: 'Ya, Terima',
-                      confirmColor: AppColors.accentCyan,
-                    );
-
-                    if (confirm) {
-                      try {
-                        await ref
-                            .read(collabProvider.notifier)
-                            .updateStatus(collab.id, 'accepted');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: bgSurface,
-                              content: Text('Request collab diterima!',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.accentCyan)),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: bgSurface,
-                              content: Text('Gagal update: $e',
-                                  style: GoogleFonts.spaceGrotesk(
-                                      color: AppColors.accentRed)),
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
+                ),
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(LucideIcons.pencil, size: 13, color: AppColors.accentCyan),
+                  onPressed: () => _showEditCollabNoteDialog(collab),
                 ),
               ],
             ),
-          ],
+          ),
+          const SizedBox(height: 10),
+
+          // Bottom Action Row (Hapus & Jadwalkan)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+                icon: Icon(LucideIcons.trash, size: 16, color: textMuted),
+                onPressed: () async {
+                  final confirm = await _showConfirmDialog(
+                    context: context,
+                    title: 'Hapus Request Collab?',
+                    content: 'Usulan kolaborasi dari "${collab.requestedStreamerName}" akan dihapus permanen.',
+                    confirmText: 'Ya, Hapus',
+                    confirmColor: AppColors.accentRed,
+                  );
+                  if (confirm) {
+                    await ref.read(collabProvider.notifier).deleteRequest(collab.id);
+                  }
+                },
+              ),
+
+              if (statusLower != 'scheduled')
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(LucideIcons.calendar, size: 13, color: Colors.black),
+                  label: Text(
+                    'Jadwalkan',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  onPressed: () async {
+                    await ref.read(collabProvider.notifier).updateStatus(collab.id, 'scheduled');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Status "${collab.requestedStreamerName}" diubah ke DIJADWALKAN!'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  // Dialog Edit Catatan Admin Collab
+  void _showEditCollabNoteDialog(CollabModel collab) {
+    final noteController = TextEditingController(text: collab.reviewNotes ?? '');
+    final messenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+        final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+        final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+        final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+        final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+        return AlertDialog(
+          backgroundColor: bgSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: borderSubtle),
+          ),
+          title: Text(
+            'Catatan Admin',
+            style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+          ),
+          content: TextField(
+            controller: noteController,
+            maxLines: 3,
+            style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'Tulis rencana / catatan koordinasi streamer...',
+              hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+              filled: true,
+              fillColor: bgInput,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.spaceMono(color: textMuted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentCyan,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                final notes = noteController.text.trim();
+                Navigator.pop(ctx);
+                try {
+                  await ref.read(collabProvider.notifier).updateNotes(collab.id, notes);
+                  messenger.showSnackBar(const SnackBar(content: Text('Catatan admin berhasil disimpan!')));
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text('Gagal menyimpan catatan: $e')));
+                }
+              },
+              child: Text('Simpan', style: GoogleFonts.spaceMono(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Mini Stat Widget Helper
+  Widget _buildMiniStatItem({
+    required String title,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    return Column(
+      children: [
+        Text(title, style: GoogleFonts.spaceMono(fontSize: 8, color: textMuted)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

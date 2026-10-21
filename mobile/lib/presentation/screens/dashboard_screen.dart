@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/todo_model.dart';
+import '../../data/models/audit_log_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/todo_provider.dart';
 import '../providers/schedule_provider.dart';
 import '../providers/game_provider.dart';
+import '../providers/audit_log_provider.dart';
 import '../widgets/countdown_widget.dart';
 import '../widgets/stat_card.dart';
 import 'schedule_screen.dart';
@@ -52,14 +54,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
-    // KODE BARU (SUDAH AMAN NULL-SAFETY):
-final String creatorName = (user?.name != null && user!.name.isNotEmpty)
-    ? user!.name
-    : 'Xion Regalia';
-
-final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
-    ? user!.rigName!
-    : 'Obsidian Rig #03';
+    // Bersih dari error null-safety dan bebas dari warning analyzer
+    final userName = user?.name;
+    final userRig = user?.rigName;
+    final String creatorName = (userName != null && userName.trim().isNotEmpty)
+        ? userName
+        : 'Xion Regalia';
+    final String rigName = (userRig != null && userRig.trim().isNotEmpty)
+        ? userRig
+        : 'Obsidian Rig #03';
 
     return Scaffold(
       backgroundColor: bgBase,
@@ -72,7 +75,7 @@ final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
               radius: 16,
               backgroundColor: AppColors.accentPurple,
               child: Text(
-                creatorName[0].toUpperCase(),
+                creatorName.isNotEmpty ? creatorName[0].toUpperCase() : 'X',
                 style: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -109,6 +112,7 @@ final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
               ref.read(todoProvider.notifier).fetchTodos();
               ref.read(scheduleProvider.notifier).fetchSchedules();
               ref.read(gameProvider.notifier).loadAllData();
+              ref.read(auditLogProvider.notifier).fetchLogs();
             },
           ),
           IconButton(
@@ -230,6 +234,7 @@ final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
           ref.read(todoProvider.notifier).fetchTodos(),
           ref.read(scheduleProvider.notifier).fetchSchedules(),
           ref.read(gameProvider.notifier).loadAllData(),
+          ref.read(auditLogProvider.notifier).fetchLogs(),
         ]);
       },
       color: AppColors.accentCyan,
@@ -346,13 +351,13 @@ final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
                               setState(() => _isLoadingBroadcast = true);
                               try {
                                 final dio = ref.read(dioProvider);
-                                await dio.patch(
-                                  '/api/dashboard/live-status',
+                                await dio.patch('/dashboard/live-status',
                                   data: {'is_live': val},
                                 );
 
                                 setState(() => _isBroadcasting = val);
                                 await ref.read(scheduleProvider.notifier).fetchSchedules();
+                                ref.read(auditLogProvider.notifier).fetchLogs();
 
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -520,9 +525,175 @@ final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Aktivitas Terkini (Audit Logs) Section
+            _buildAuditLogsSection(isDark),
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAuditLogsSection(bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    final auditState = ref.watch(auditLogProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(LucideIcons.activity, color: AppColors.accentCyan, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'AKTIVITAS TERKINI',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 11,
+                      color: textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(LucideIcons.refresh_cw, color: textMuted, size: 14),
+                onPressed: () => ref.read(auditLogProvider.notifier).fetchLogs(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (auditState.isLoading && auditState.logs.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentCyan),
+                ),
+              ),
+            )
+          else if (auditState.logs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Belum ada log aktivitas sistem.',
+                style: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+              ),
+            )
+          else
+            ...auditState.logs.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final log = entry.value;
+              return Column(
+                children: [
+                  _buildLogItem(log, isDark),
+                  if (idx < auditState.logs.length - 1)
+                    Divider(color: borderSubtle, height: 16),
+                ],
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogItem(AuditLogModel log, bool isDark) {
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+
+    Color badgeColor = AppColors.accentCyan;
+    final action = log.actionType.toUpperCase();
+    if (action.contains('BROADCAST')) {
+      badgeColor = AppColors.accentRed;
+    } else if (action.contains('DELETE') || action.contains('REJECT')) {
+      badgeColor = AppColors.accentRed;
+    } else if (action.contains('UPDATE') || action.contains('EDIT')) {
+      badgeColor = AppColors.accentGold;
+    } else if (action.contains('KONTEN') || action.contains('CONTENT')) {
+      badgeColor = AppColors.accentPurple;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(LucideIcons.clock, size: 12, color: textMuted),
+            const SizedBox(width: 4),
+            Text(
+              log.timeAgo,
+              style: GoogleFonts.spaceMono(fontSize: 10, color: textMuted),
+            ),
+          ],
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: badgeColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            log.actionType.replaceAll('_', ' '),
+            style: GoogleFonts.spaceMono(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: badgeColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                log.description,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  color: textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (log.subDetail != null && log.subDetail!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    log.subDetail!,
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: textMuted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
