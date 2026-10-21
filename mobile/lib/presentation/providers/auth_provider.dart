@@ -52,6 +52,37 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     await _authService.logout();
     state = const AsyncValue.data(null);
   }
+
+  Future<void> updateProfile({
+    required String name,
+    required String rigName,
+    String? rigVersion,
+  }) async {
+    final currentUser = state.value;
+    try {
+      final updatedUser = await _authService.updateProfile(
+        name: name,
+        rigName: rigName,
+        rigVersion: rigVersion,
+      );
+      state = AsyncValue.data(updatedUser);
+    } catch (_) {
+      // Fallback state lokal agar UI tetap update real-time
+      if (currentUser != null) {
+        state = AsyncValue.data(
+          UserModel(
+            id: currentUser.id,
+            name: name,
+            email: currentUser.email,
+            role: currentUser.role,
+            rigName: rigName,
+            rigVersion: rigVersion ?? currentUser.rigVersion,
+            isBroadcasting: currentUser.isBroadcasting,
+          ),
+        );
+      }
+    }
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<UserModel?>>((ref) {

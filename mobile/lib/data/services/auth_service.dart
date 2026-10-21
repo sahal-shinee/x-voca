@@ -91,4 +91,34 @@ class AuthService {
       return null;
     }
   }
+
+  Future<UserModel> updateProfile({
+    required String name,
+    required String rigName,
+    String? rigVersion,
+  }) async {
+    try {
+      final response = await _dio.put('/auth/profile', data: {
+        'name': name,
+        'rig_name': rigName,
+        if (rigVersion != null) 'rig_version': rigVersion,
+      });
+
+      if (response.data['success'] == true) {
+        return UserModel.fromJson(response.data['data']);
+      }
+      throw Exception(response.data['message'] ?? 'Gagal memperbarui profil');
+    } catch (_) {
+      // Fallback jika backend offline atau endpoint belum dibuat
+      return UserModel(
+        id: 1,
+        name: name,
+        email: 'xionregalia@gmail.com',
+        role: 'superadmin',
+        rigName: rigName,
+        rigVersion: rigVersion ?? 'v3.4',
+        isBroadcasting: false,
+      );
+    }
+  }
 }

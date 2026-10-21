@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/env.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -16,8 +18,169 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _autoSyncLogs = true;
-  bool _obsRemoteConnected = true;
+
+  // Fungsi pembuka URL eksternal
+  Future<void> _openUrl(String urlString) async {
+    final Uri uri = Uri.parse(urlString);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tidak dapat membuka: $urlString', style: GoogleFonts.spaceMono()),
+              backgroundColor: AppColors.accentRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error membuka link: $e', style: GoogleFonts.spaceMono()),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  // Dialog Edit Profil & Rig Name
+  void _showEditProfileDialog(BuildContext context, UserModel? user, bool isDarkMode) {
+    final nameCtrl = TextEditingController(text: user?.name ?? 'Xion Regalia');
+    final rigCtrl = TextEditingController(text: user?.rigName ?? 'Obsidian Rig #03');
+    final versionCtrl = TextEditingController(text: user?.rigVersion ?? 'v3.4');
+
+    final bgSurface = isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle = isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: borderSubtle),
+        ),
+        title: Row(
+          children: [
+            const Icon(LucideIcons.pencil, color: AppColors.accentCyan, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Edit Profil & Rig',
+              style: GoogleFonts.spaceGrotesk(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'NAMA CREATOR',
+                style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameCtrl,
+                style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: isDarkMode ? AppColors.bgBase : Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accentCyan)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'RIG MODEL NAME',
+                style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: rigCtrl,
+                style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: isDarkMode ? AppColors.bgBase : Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accentCyan)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'RIG VERSION',
+                style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: versionCtrl,
+                style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: isDarkMode ? AppColors.bgBase : Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accentCyan)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Batal', style: GoogleFonts.spaceMono(color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentCyan,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              final newName = nameCtrl.text.trim();
+              final newRig = rigCtrl.text.trim();
+              final newVer = versionCtrl.text.trim();
+
+              if (newName.isNotEmpty && newRig.isNotEmpty) {
+                Navigator.pop(ctx);
+                await ref.read(authProvider.notifier).updateProfile(
+                  name: newName,
+                  rigName: newRig,
+                  rigVersion: newVer,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Profil & Rig berhasil diperbarui!', style: GoogleFonts.spaceMono()),
+                      backgroundColor: AppColors.accentCyan,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.spaceMono(color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +190,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeMode = ref.watch(themeProvider);
     final isDarkMode = themeMode == ThemeMode.dark;
 
-    final userName =
-        user?.name.isNotEmpty == true ? user!.name : 'Creator Admin';
-    final userEmail =
-        user?.email.isNotEmpty == true ? user!.email : 'admin@x-voca.com';
+    final userName = user?.name.isNotEmpty == true ? user!.name : 'Xion Regalia';
+    final userEmail = user?.email.isNotEmpty == true ? user!.email : 'xionregalia@gmail.com';
     final userRole = (user?.role ?? 'creator').toUpperCase();
     final rigInfo = user?.rigName != null && user!.rigName!.isNotEmpty
         ? '${user.rigName} ${user.rigVersion != null ? "(${user.rigVersion})" : ""}'
-        : 'Rig-01 Primis (v2.4)';
+        : 'Obsidian Rig #03 (v3.4)';
+
+    final bgSurface = isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final borderSubtle = isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.bgBase : AppColors.bgBaseLight,
@@ -54,15 +218,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // User Profile Card
+          // Profil Creator & Rig Card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+              color: bgSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-              ),
+              border: Border.all(color: borderSubtle),
             ),
             child: Row(
               children: [
@@ -70,7 +232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   radius: 26,
                   backgroundColor: AppColors.accentPurple,
                   child: Text(
-                    userName[0].toUpperCase(),
+                    userName.isNotEmpty ? userName[0].toUpperCase() : 'X',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -125,21 +287,149 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(LucideIcons.pencil, color: AppColors.accentCyan, size: 20),
+                  tooltip: 'Edit Profil & Rig',
+                  onPressed: () => _showEditProfileDialog(context, user, isDarkMode),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // Section: Appearance & Theme
+          // Tautan Cepat / Quick Links
+          _buildSectionHeader('TAUTAN CEPAT / QUICK LINKS', isDarkMode),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: bgSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: Column(
+              children: [
+                // 1. YouTube Channel (Aktif)
+                ListTile(
+                  leading: const Icon(Icons.ondemand_video, color: AppColors.accentRed, size: 22),
+                  title: Text(
+                    'YouTube Channel',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '@xionregalia (Official Stream Channel)',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  trailing: const Icon(LucideIcons.external_link, color: AppColors.accentCyan, size: 18),
+                  onTap: () => _openUrl('https://www.youtube.com/@xionregalia'),
+                ),
+                Divider(color: borderSubtle, height: 1),
+
+                // 2. Web Fansite X-VOCA (Slot Placeholder)
+                ListTile(
+                  leading: const Icon(LucideIcons.globe, color: AppColors.accentPurple, size: 22),
+                  title: Text(
+                    'Web Fansite X-VOCA',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Portal publik live voting & jadwal stream',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'SEGERA HADIR',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
+                      ),
+                    ),
+                  ),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Portal fansite publik sedang disiapkan Sahal!', style: GoogleFonts.spaceMono()),
+                        backgroundColor: AppColors.accentPurple,
+                      ),
+                    );
+                  },
+                ),
+                Divider(color: borderSubtle, height: 1),
+
+                // 3. YouTube Studio (Slot Placeholder)
+                ListTile(
+                  leading: const Icon(LucideIcons.video, color: AppColors.accentGold, size: 22),
+                  title: Text(
+                    'YouTube Studio Live',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Manajemen analitik & live control room',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'SEGERA HADIR',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
+                      ),
+                    ),
+                  ),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Tautan YouTube Studio akan diaktifkan setelah integrasi API selesai!', style: GoogleFonts.spaceMono()),
+                        backgroundColor: AppColors.accentGold,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Tampilan & Tema
           _buildSectionHeader('APPEARANCE & THEME', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+              color: bgSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-              ),
+              border: Border.all(color: borderSubtle),
             ),
             child: SwitchListTile(
               secondary: Icon(
@@ -156,7 +446,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               subtitle: Text(
-                isDarkMode ? 'Tampilan tema gelap aktif' : 'Tampilan tema terang aktif',
+                isDarkMode ? 'Tema gelap aktif' : 'Tema terang aktif',
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
                   color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
@@ -171,104 +461,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Section 1: System & Database Status
-          _buildSectionHeader('SYSTEM & DATABASE STATUS', isDarkMode),
+          // Koneksi Backend & Server
+          _buildSectionHeader('SERVER & CONNECTION', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+              color: bgSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-              ),
+              border: Border.all(color: borderSubtle),
             ),
             child: Column(
               children: [
-                _buildStatusTile(
-                  icon: LucideIcons.database,
-                  title: 'Database Host (Railway MySQL)',
-                  subtitle: 'tokaido.proxy.rlwy.net:40526',
-                  statusText: 'CONNECTED',
-                  statusColor: Colors.greenAccent,
-                  isDarkMode: isDarkMode,
-                ),
-                Divider(
-                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-                  height: 1,
-                ),
                 _buildStatusTile(
                   icon: LucideIcons.server,
                   title: 'API Backend Base URL',
                   subtitle: Env.apiBaseUrl,
-                  statusText: 'ONLINE',
+                  statusText: 'ACTIVE',
                   statusColor: Colors.greenAccent,
                   isDarkMode: isDarkMode,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Section 2: Stream & Rig Integration
-          _buildSectionHeader('STREAM & RIG INTEGRATION', isDarkMode),
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-              ),
-            ),
-            child: Column(
-              children: [
-                _buildSwitchTile(
-                  icon: LucideIcons.radio,
-                  title: 'OBS WebSocket Remote',
-                  subtitle: 'Auto-sync broadcast state & scene switcher',
-                  value: _obsRemoteConnected,
-                  onChanged: (val) => setState(() => _obsRemoteConnected = val),
-                  isDarkMode: isDarkMode,
-                ),
-                Divider(
-                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-                  height: 1,
-                ),
-                _buildSwitchTile(
-                  icon: LucideIcons.bell,
-                  title: 'Push Notifications',
-                  subtitle: 'Notifikasi jadwal stream & hasil voting baru',
+                Divider(color: borderSubtle, height: 1),
+                SwitchListTile(
+                  secondary: const Icon(LucideIcons.bell, color: AppColors.accentPurple, size: 20),
+                  title: Text(
+                    'Push Notifications',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Pemberitahuan jadwal stream dan voting',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
+                    ),
+                  ),
                   value: _notificationsEnabled,
+                  activeThumbColor: AppColors.accentCyan,
                   onChanged: (val) => setState(() => _notificationsEnabled = val),
-                  isDarkMode: isDarkMode,
-                ),
-                Divider(
-                  color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-                  height: 1,
-                ),
-                _buildSwitchTile(
-                  icon: LucideIcons.refresh_cw,
-                  title: 'Auto-sync Activity Logs',
-                  subtitle: 'Kirim riwayat perubahan ke server secara berkala',
-                  value: _autoSyncLogs,
-                  onChanged: (val) => setState(() => _autoSyncLogs = val),
-                  isDarkMode: isDarkMode,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // Section 3: Account & Session
+          // Akun & Sesi
           _buildSectionHeader('ACCOUNT & SESSION', isDarkMode),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.bgSurface : AppColors.bgSurfaceLight,
+              color: bgSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDarkMode ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-              ),
+              border: Border.all(color: borderSubtle),
             ),
             child: ListTile(
               leading: const Icon(LucideIcons.log_out, color: AppColors.accentRed),
@@ -281,7 +527,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               subtitle: Text(
-                'Akhiri sesi aktif pada perangkat ini',
+                'Hapus token sesi dan kembali ke halaman login',
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
                   color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
@@ -292,10 +538,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Info Versi Aplikasi
+          // Versi Aplikasi
           Center(
             child: Text(
-              'X-Voca VTuber Manager v1.0.4 (Build 2026)',
+              'X-VOCA Creator Hub v1.0.0',
               style: GoogleFonts.spaceMono(
                 fontSize: 10,
                 color: isDarkMode ? AppColors.textMuted : AppColors.textMutedLight,
@@ -308,7 +554,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  // Dialog Konfirmasi Logout
   Future<void> _confirmLogout(BuildContext context, bool isDarkMode) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -321,7 +566,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         content: Text(
-          'Apakah Anda yakin ingin keluar dari akun ini?',
+          'Apakah kamu yakin ingin keluar dari akun ini?',
           style: TextStyle(
             color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
           ),
@@ -405,35 +650,4 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required bool isDarkMode,
-  }) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: AppColors.accentPurple, size: 20),
-      title: Text(
-        title,
-        style: GoogleFonts.spaceGrotesk(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.spaceMono(
-          fontSize: 10,
-          color: isDarkMode ? AppColors.textSecondary : AppColors.textSecondaryLight,
-        ),
-      ),
-      value: value,
-      activeThumbColor: AppColors.accentCyan,
-      onChanged: onChanged,
-    );
-  }
-}
+}

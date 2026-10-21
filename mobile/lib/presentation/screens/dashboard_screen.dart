@@ -25,9 +25,21 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
   bool _isBroadcasting = false;
+  bool _isLoadingBroadcast = false;
+
+  // Set untuk mencatat tab mana saja yang sudah pernah dibuka (Lazy Loading)
+  final Set<int> _visitedTabs = {0};
 
   @override
   Widget build(BuildContext context) {
+    // Sinkronkan toggle siaran dengan data live yang masuk dari scheduleProvider
+    ref.listen(scheduleProvider, (previous, next) {
+      final isAnyLive = next.schedules.any((s) => s.status.toLowerCase() == 'live');
+      if (mounted && _isBroadcasting != isAnyLive) {
+        setState(() => _isBroadcasting = isAnyLive);
+      }
+    });
+
     final authState = ref.watch(authProvider);
     final user = authState.value;
 
@@ -40,6 +52,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
+    // KODE BARU (SUDAH AMAN NULL-SAFETY):
+final String creatorName = (user?.name != null && user!.name.isNotEmpty)
+    ? user!.name
+    : 'Xion Regalia';
+
+final String rigName = (user?.rigName != null && user!.rigName!.isNotEmpty)
+    ? user!.rigName!
+    : 'Obsidian Rig #03';
+
     return Scaffold(
       backgroundColor: bgBase,
       appBar: AppBar(
@@ -51,7 +72,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               radius: 16,
               backgroundColor: AppColors.accentPurple,
               child: Text(
-                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'X',
+                creatorName[0].toUpperCase(),
                 style: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -63,7 +84,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.name.isNotEmpty == true ? user!.name : 'Creator',
+                  creatorName,
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -71,7 +92,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  user?.rigName ?? 'Rig-01 Primis',
+                  rigName,
                   style: GoogleFonts.spaceMono(
                     fontSize: 10,
                     color: textSecondary,
@@ -97,6 +118,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   backgroundColor: bgSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: borderSubtle),
+                  ),
                   title: Text(
                     'Konfirmasi Logout',
                     style: TextStyle(color: textPrimary),
@@ -124,19 +149,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
+      // Lazy IndexedStack: Hanya render widget yang tab-nya sudah pernah dibuka
       body: IndexedStack(
         index: _currentIndex,
         children: [
           _buildDashboardBody(isDark),
-          const ScheduleScreen(),
-          const VotesScreen(),
-          const TodoScreen(),
-          const SettingsScreen(),
+          _visitedTabs.contains(1) ? const ScheduleScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(2) ? const VotesScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(3) ? const TodoScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(4) ? const SettingsScreen() : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+            _visitedTabs.add(index);
+          });
+        },
         type: BottomNavigationBarType.fixed,
         backgroundColor: bgNav,
         selectedItemColor: isDark ? AppColors.accentCyan : AppColors.accentPurple,
@@ -208,7 +239,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Toggle Broadcasting
+            // Container Toggle Broadcasting Live
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -237,76 +268,126 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ],
                   ),
-                  Switch(
-                    value: _isBroadcasting,
-                    activeThumbColor: AppColors.accentRed,
-                    onChanged: (val) async {
-                      final bool? confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          backgroundColor: bgSurface,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: borderSubtle),
+                  _isLoadingBroadcast
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accentRed,
                           ),
-                          title: Row(
-                            children: [
-                              Icon(
-                                LucideIcons.radio,
-                                color: val ? AppColors.accentRed : AppColors.accentCyan,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                val ? 'Mulai Live Broadcast?' : 'Hentikan Broadcast?',
-                                style: GoogleFonts.spaceGrotesk(
-                                  color: textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                        )
+                      : Switch(
+                          value: _isBroadcasting,
+                          activeThumbColor: AppColors.accentRed,
+                          onChanged: (val) async {
+                            final bool? confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: bgSurface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: borderSubtle),
                                 ),
-                              ),
-                            ],
-                          ),
-                          content: Text(
-                            val
-                                ? 'Apakah Anda yakin ingin mengaktifkan status siaran live (Broadcasting Live)?'
-                                : 'Apakah Anda yakin ingin menonaktifkan status siaran live?',
-                            style: GoogleFonts.spaceMono(
-                              color: textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: Text(
-                                'Batal',
-                                style: GoogleFonts.spaceMono(color: textMuted),
-                              ),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: val ? AppColors.accentRed : AppColors.accentCyan,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text(
-                                val ? 'Ya, Mulai Live' : 'Ya, Hentikan',
-                                style: GoogleFonts.spaceMono(
-                                  color: val ? Colors.white : Colors.black,
-                                  fontWeight: FontWeight.bold,
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      LucideIcons.radio,
+                                      color: val ? AppColors.accentRed : AppColors.accentCyan,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      val ? 'Mulai Live Broadcast?' : 'Hentikan Broadcast?',
+                                      style: GoogleFonts.spaceGrotesk(
+                                        color: textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                content: Text(
+                                  val
+                                      ? 'Apakah Anda yakin ingin mengaktifkan status siaran live (Broadcasting Live)?'
+                                      : 'Apakah Anda yakin ingin menonaktifkan status siaran live?',
+                                  style: GoogleFonts.spaceMono(
+                                    color: textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: Text(
+                                      'Batal',
+                                      style: GoogleFonts.spaceMono(color: textMuted),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: val ? AppColors.accentRed : AppColors.accentCyan,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: Text(
+                                      val ? 'Ya, Mulai Live' : 'Ya, Hentikan',
+                                      style: GoogleFonts.spaceMono(
+                                        color: val ? Colors.white : Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                      );
+                            );
 
-                      if (confirm == true && mounted) {
-                        setState(() => _isBroadcasting = val);
-                      }
-                    },
-                  ),
+                            if (confirm == true && mounted) {
+                              setState(() => _isLoadingBroadcast = true);
+                              try {
+                                final dio = ref.read(dioProvider);
+                                await dio.patch(
+                                  '/api/dashboard/live-status',
+                                  data: {'is_live': val},
+                                );
+
+                                setState(() => _isBroadcasting = val);
+                                await ref.read(scheduleProvider.notifier).fetchSchedules();
+
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        val
+                                            ? 'Status siaran diubah ke LIVE!'
+                                            : 'Siaran telah dinonaktifkan.',
+                                        style: GoogleFonts.spaceMono(),
+                                      ),
+                                      backgroundColor:
+                                          val ? AppColors.accentRed : AppColors.accentCyan,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Gagal mengubah status siaran: $e',
+                                        style: GoogleFonts.spaceMono(),
+                                      ),
+                                      backgroundColor: AppColors.accentRed,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isLoadingBroadcast = false);
+                                }
+                              }
+                            }
+                          },
+                        ),
                 ],
               ),
             ),
@@ -384,7 +465,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => setState(() => _currentIndex = 3),
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 3;
+                            _visitedTabs.add(3);
+                          });
+                        },
                         child: Row(
                           children: [
                             Text(
