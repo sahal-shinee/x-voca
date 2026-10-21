@@ -1,12 +1,19 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase';
+import logoXion from '../../assets/logo_xion.png';
 
 // Icons
 const UserIcon = ({ size = 15, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const HeartHandIcon = ({ size = 14, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
   </svg>
 );
 
@@ -162,8 +169,8 @@ const TopNav = () => {
             className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
             onClick={() => setIsMenuOpen(false)}
           >
-            <div className="w-8 h-8 rounded-xl bg-[#1b1536] border border-[rgba(126,224,210,0.3)] flex items-center justify-center text-[#7ee0d2] group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(126,224,210,0.25)] transition-all duration-300">
-              <span className="text-base group-hover:rotate-45 transition-transform duration-500">✦</span>
+            <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.3)] flex items-center justify-center p-0.5 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(126,224,210,0.25)] group-hover:border-[#7ee0d2]/70 transition-all duration-300">
+              <img src={logoXion} alt="Xion Regalia Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-white text-lg sm:text-[21px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
@@ -243,6 +250,18 @@ const TopNav = () => {
               </div>
             </button>
 
+            {/* Saweria Donation Action */}
+            <a
+              href="https://saweria.co/xionregalia"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fbbf24]/10 border border-[#fbbf24]/30 hover:border-[#fbbf24]/60 hover:bg-[#fbbf24]/20 text-[#fbbf24] text-xs font-semibold tracking-wide transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(251,191,36,0.12)] group"
+              title="Dukung Xion Regalia di Saweria"
+            >
+              <HeartHandIcon size={14} className="text-[#fbbf24] group-hover:scale-110 transition-transform duration-200" />
+              <span className="hidden sm:inline font-mono">Saweria</span>
+            </a>
+
             {/* Admin Portal Button */}
             <Link
               to="/admin/login"
@@ -312,6 +331,19 @@ const TopNav = () => {
           >
             Jadwal Siaran (Upcoming)
           </button>
+          <a
+            href="https://saweria.co/xionregalia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-between text-[#fbbf24] bg-[#fbbf24]/10 border border-[#fbbf24]/30 hover:bg-[#fbbf24]/20 transition-all mt-1"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            <span className="flex items-center gap-2">
+              <HeartHandIcon size={15} />
+              <span>Dukung di Saweria</span>
+            </span>
+            <span className="text-xs font-mono uppercase tracking-wider text-[#fbbf24]/80">Tautan Luar</span>
+          </a>
         </div>
       </div>
     </nav>

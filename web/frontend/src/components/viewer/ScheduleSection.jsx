@@ -9,6 +9,9 @@ import {
   ChevronRight,
   Radio,
   CheckCircle,
+  Copy,
+  Check,
+  CalendarPlus,
 } from 'lucide-react';
 import { getSchedules } from '../../services/scheduleService';
 import { CollabRequestModal } from './CollabRequestModal';
@@ -238,13 +241,70 @@ const LiveTimer = ({ startTime }) => {
   );
 };
 
-// Countdown Badge
-const CountdownBadge = ({ text }) => (
-  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-medium font-mono">
-    <Clock className="w-3 h-3 text-amber-400" />
-    {text}
-  </span>
-);
+// Calculate exact countdown components
+const calculateTimeRemaining = (targetDateString) => {
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
+  const diff = target.getTime() - Date.now();
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  return { days, hours, minutes, seconds };
+};
+
+// Real-time ticking countdown badge
+const LiveCountdown = ({ targetDate }) => {
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeRemaining(targetDate));
+
+  useEffect(() => {
+    const update = () => setTimeLeft(calculateTimeRemaining(targetDate));
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  if (!timeLeft) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-mono font-medium">
+        <Clock className="w-3 h-3 text-emerald-400" />
+        Segera Tayang
+      </span>
+    );
+  }
+
+  const { days, hours, minutes, seconds } = timeLeft;
+
+  return (
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 text-[#7ee0d2] text-[11px] font-mono font-semibold">
+      <Clock className="w-3 h-3 text-[#7ee0d2] animate-pulse" />
+      <span>
+        {days > 0 ? `${days}h ` : ''}
+        {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+      </span>
+    </div>
+  );
+};
+
+// Google Calendar URL generator
+const getGoogleCalendarUrl = (schedule) => {
+  if (!schedule.scheduled_at) return null;
+  const d = safeParseDate(schedule.scheduled_at);
+  if (!d) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatGDate = (dt) =>
+    `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}00Z`;
+  const start = formatGDate(d);
+  const end = formatGDate(new Date(d.getTime() + 2.5 * 60 * 60 * 1000));
+  const title = encodeURIComponent(`[STREAM] ${schedule.title} - Xion Regalia`);
+  const details = encodeURIComponent(
+    `${schedule.subtitle || schedule.title}\n\nTonton Siaran: ${schedule.youtube_url || 'https://youtube.com'}\nPlatform: X-VOCA Ops`
+  );
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}`;
+};
 
 // Loading Skeleton Card
 const SkeletonCard = () => (
@@ -273,6 +333,29 @@ const ScheduleSection = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleCopyLink = async (e, schedule) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = schedule.youtube_url || window.location.href;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(schedule.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   // Fetch all schedules
   useEffect(() => {
@@ -523,8 +606,8 @@ const ScheduleSection = () => {
                 className={`
                   relative flex-shrink-0 w-full sm:w-[380px] lg:w-[400px]
                   rounded-2xl overflow-hidden flex flex-col snap-start
-                  transition-all duration-300 group
-                  ${schedule.status === 'live' ? 'shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'shadow-xl'}
+                  transition-all duration-300 group hover:-translate-y-1
+                  ${schedule.status === 'live' ? 'shadow-[0_0_30px_rgba(239,68,68,0.25)]' : 'shadow-xl hover:shadow-2xl hover:border-accent-cyan/30'}
                 `}
                 style={{
                   background: schedule.status === 'live'
@@ -532,7 +615,7 @@ const ScheduleSection = () => {
                     : '#17122e',
                   border: `1px solid ${
                     schedule.status === 'live'
-                      ? 'rgba(239,68,68,0.35)'
+                      ? 'rgba(239,68,68,0.4)'
                       : 'rgba(255,255,255,0.08)'
                   }`,
                 }}
@@ -548,6 +631,19 @@ const ScheduleSection = () => {
                       : 'linear-gradient(90deg, #10b981, #6ee7b7, transparent)',
                   }}
                 />
+
+                {/* Optional Stream Thumbnail Preview */}
+                {schedule.thumbnail_url && (
+                  <div className="relative w-full h-40 overflow-hidden bg-[#100d20]">
+                    <img
+                      src={schedule.thumbnail_url}
+                      alt={schedule.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#17122e] via-[#17122e]/40 to-transparent" />
+                  </div>
+                )}
 
                 <div className="p-6 flex flex-col flex-1">
                   {/* Status badge + Game category row */}
@@ -595,9 +691,10 @@ const ScheduleSection = () => {
                       <span className="text-[11px] text-white/40 font-mono">{schedule.estimated_duration}</span>
                     </div>
 
-                    {schedule.countdown && schedule.status === 'upcoming' && (
+                    {/* Real-time Ticking Countdown for upcoming streams */}
+                    {schedule.status === 'upcoming' && schedule.scheduled_at && (
                       <div className="pt-1">
-                        <CountdownBadge text={schedule.countdown} />
+                        <LiveCountdown targetDate={schedule.scheduled_at} />
                       </div>
                     )}
 
@@ -616,19 +713,52 @@ const ScheduleSection = () => {
                     )}
                   </div>
 
-                  {/* Card Action Footer */}
-                  <div className="pt-4 border-t border-white/5">
+                  {/* Card Action Footer with Real-time Utilities */}
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-2">
+                    {/* Utility Action Buttons: Copy link & Google Calendar */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyLink(e, schedule)}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-cyan/50 hover:bg-accent-cyan/10 text-[#a89ec0] hover:text-accent-cyan transition-all active:scale-95"
+                        title={copiedId === schedule.id ? "Tautan Berhasil Disalin!" : "Salin Tautan Siaran"}
+                        aria-label="Salin tautan siaran"
+                      >
+                        {copiedId === schedule.id ? (
+                          <Check className="w-3.5 h-3.5 text-accent-cyan" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      {schedule.status === 'upcoming' && schedule.scheduled_at && (
+                        <a
+                          href={getGoogleCalendarUrl(schedule)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-purple/50 hover:bg-accent-purple/10 text-[#a89ec0] hover:text-accent-lilac transition-all active:scale-95"
+                          title="Simpan Jadwal ke Google Calendar"
+                          aria-label="Simpan ke Google Calendar"
+                        >
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Primary Link Action */}
                     {schedule.status === 'done' ? (
                       <a
                         href={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
                         rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`flex items-center justify-between text-xs font-semibold ${
-                          schedule.youtube_url ? 'text-accent-cyan hover:underline' : 'text-[#a89ec0] opacity-50 cursor-default'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                          schedule.youtube_url
+                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
+                            : 'text-[#a89ec0] opacity-50 cursor-default'
                         }`}
                         onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
                       >
-                        <span>{schedule.youtube_url ? 'Tonton Rekaman di YouTube' : 'Arsip Rekaman'}</span>
+                        <span>{schedule.youtube_url ? 'Tonton Rekaman' : 'Arsip Rekaman'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     ) : schedule.status === 'live' ? (
@@ -636,9 +766,9 @@ const ScheduleSection = () => {
                         href={schedule.youtube_url || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between text-xs font-semibold text-red-400 hover:underline"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-xs font-semibold shadow-[0_0_12px_rgba(239,68,68,0.25)]"
                       >
-                        <span>Tonton Siaran Langsung</span>
+                        <span>Tonton Siaran</span>
                         <Play className="w-3.5 h-3.5 fill-current" />
                       </a>
                     ) : (
@@ -646,12 +776,14 @@ const ScheduleSection = () => {
                         href={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
                         rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`flex items-center justify-between text-xs font-semibold ${
-                          schedule.youtube_url ? 'text-accent-cyan hover:underline' : 'text-[#a89ec0] opacity-50 cursor-default'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                          schedule.youtube_url
+                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
+                            : 'text-[#a89ec0] opacity-50 cursor-default'
                         }`}
                         onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
                       >
-                        <span>{schedule.youtube_url ? 'Buka Tautan Siaran' : 'Jadwal Terdaftar'}</span>
+                        <span>{schedule.youtube_url ? 'Buka Tautan' : 'Jadwal Terdaftar'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}

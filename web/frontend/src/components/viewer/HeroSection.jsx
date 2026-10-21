@@ -70,6 +70,12 @@ const ClockIcon = () => (
   </svg>
 );
 
+const SupportHeartIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </svg>
+);
+
 // ========== MOOD DATA ==========
 
 // Ubah teks / warna di sini untuk menyesuaikan persona Xion.
@@ -1005,7 +1011,7 @@ function HeroSection({ onRequestCollab }) {
               </div>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-6 sm:mt-7 w-full sm:w-auto px-4 sm:px-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 sm:gap-4 mt-6 sm:mt-7 w-full sm:w-auto px-4 sm:px-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 <Link to="/voting" className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px] bg-[#7ee0d2] shadow-[0px_10px_15px_-3px_rgba(126,224,210,0.2),0px_4px_6px_-4px_rgba(126,224,210,0.2)] hover:shadow-[0px_10px_20px_-3px_rgba(126,224,210,0.3),0px_4px_8px_-4px_rgba(126,224,210,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
                   <span className="font-bold text-[#18132B] text-sm font-body">Lihat Voting</span>
                   <ArrowRightIcon />
@@ -1016,11 +1022,23 @@ function HeroSection({ onRequestCollab }) {
                   <span className="font-semibold text-[#c084fc] text-sm font-body">Content Guide</span>
                 </Link>
 
+                {/* Saweria Direct Support Button */}
+                <a
+                  href="https://saweria.co/xionregalia"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-5 rounded-[10px] bg-[#fbbf24]/10 border border-[#fbbf24]/35 text-[#fbbf24] hover:bg-[#fbbf24]/20 hover:border-[#fbbf24]/60 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  title="Dukung Xion Regalia di Saweria"
+                >
+                  <SupportHeartIcon />
+                  <span className="font-semibold text-sm font-body font-mono">Saweria</span>
+                </a>
+
                 {/* Request Collab Button */}
                 {onRequestCollab && (
                   <button
                     onClick={onRequestCollab}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px]
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-5 rounded-[10px]
                       bg-accent-purple/10 border border-accent-purple/30
                       text-accent-lilac hover:bg-accent-purple/20 hover:border-accent-purple/50
                       transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
