@@ -371,7 +371,7 @@ function DashboardPage() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse" />
                 <span className="text-[11px] font-mono text-accent-cyan font-bold tracking-widest uppercase">
-                  Telemetry Node 01
+                  Pusat Kendali Kreator
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
@@ -528,7 +528,7 @@ function DashboardPage() {
                     TOP VOTE
                   </span>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white">
+                <h3 className="text-base sm:text-lg font-bold text-text-primary">
                   {stats.topVotedGame.title}
                 </h3>
                 <p className="text-xs text-text-muted mt-0.5">

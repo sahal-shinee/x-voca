@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { todoService } from '../../services/todoService';
 import { useToast } from '../../components/common/Toast';
+import CustomSelect from '../../components/common/CustomSelect';
 
 // ========== CONSTANTS ==========
 const PRIORITIES = [
@@ -212,6 +213,18 @@ function TodoPage() {
   useEffect(() => {
     fetchTodos();
   }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showModal || deletingTodo) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showModal, deletingTodo]);
 
   // Compute Stats
   const stats = useMemo(() => {
@@ -597,15 +610,19 @@ function TodoPage() {
           {/* Sort Dropdown */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-text-muted hidden sm:inline">Urutkan:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-accent-cyan cursor-pointer"
-            >
-              <option value="deadline">Batas Waktu Terdekat</option>
-              <option value="priority">Prioritas Tertinggi</option>
-              <option value="newest">Terbaru Dibuat</option>
-            </select>
+            <div className="w-48">
+              <CustomSelect
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                options={[
+                  { value: 'deadline', label: 'Batas Waktu Terdekat' },
+                  { value: 'priority', label: 'Prioritas Tertinggi' },
+                  { value: 'newest', label: 'Terbaru Dibuat' },
+                ]}
+                size="sm"
+                aria-label="Urutkan"
+              />
+            </div>
           </div>
         </div>
 
@@ -772,16 +789,18 @@ function TodoPage() {
                       </span>
 
                       {/* Status Selector Button */}
-                      <div className="relative inline-block">
-                        <select
+                      <div className="w-32">
+                        <CustomSelect
                           value={todo.status || 'pending'}
                           onChange={(e) => handleStatusChange(todo, e.target.value)}
-                          className={`text-[11px] font-medium px-2 py-0.5 rounded-md border cursor-pointer focus:outline-none transition-colors ${statusInfo.badge}`}
-                        >
-                          <option value="pending" className="bg-[#1b1732] text-amber-300">Pending</option>
-                          <option value="in_progress" className="bg-[#1b1732] text-cyan-300">Dalam Pengerjaan</option>
-                          <option value="completed" className="bg-[#1b1732] text-emerald-300">Selesai</option>
-                        </select>
+                          options={[
+                            { value: 'pending', label: 'Pending' },
+                            { value: 'in_progress', label: 'Pengerjaan' },
+                            { value: 'completed', label: 'Selesai' },
+                          ]}
+                          size="sm"
+                          aria-label="Ubah Status Todo"
+                        />
                       </div>
 
                       {/* Deadline Info */}
@@ -845,15 +864,12 @@ function TodoPage() {
       {/* ========== FORM MODAL (TAMBAH / EDIT) ========== */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div
-            className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in max-h-[92vh] overflow-y-auto"
-            style={{ background: 'rgba(22, 18, 44, 0.98)' }}
-          >
-            {/* Header */}
-            <div className="flex justify-between items-center pb-4 mb-4 border-b border-border-subtle">
+          <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Pinned Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
               <div>
                 <h2 className="text-lg font-bold text-text-primary">
                   {editingTodo ? 'Edit Todo' : 'Tambah Todo Baru'}
@@ -863,18 +879,20 @@ function TodoPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
-                className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-lg transition-colors"
+                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-lg transition-colors"
+                title="Tutup"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSave} className="space-y-4">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 overscroll-contain">
               {/* Title */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Judul Tugas <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -889,7 +907,7 @@ function TodoPage() {
 
               {/* Category Selection */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Kategori
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -918,7 +936,7 @@ function TodoPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Priority */}
                 <div>
-                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                     Prioritas
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -941,24 +959,24 @@ function TodoPage() {
 
                 {/* Status */}
                 <div>
-                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                     Status
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
                     onChange={e => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary focus:outline-none focus:border-accent-cyan transition-colors"
-                  >
-                    <option value="pending">Pending (Menunggu)</option>
-                    <option value="in_progress">Dalam Pengerjaan</option>
-                    <option value="completed">Selesai</option>
-                  </select>
+                    options={[
+                      { value: 'pending', label: 'Pending (Menunggu)' },
+                      { value: 'in_progress', label: 'Dalam Pengerjaan' },
+                      { value: 'completed', label: 'Selesai' },
+                    ]}
+                  />
                 </div>
               </div>
 
               {/* Deadline */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Batas Waktu (Deadline)
                 </label>
                 <div className="relative">
@@ -972,7 +990,7 @@ function TodoPage() {
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, deadline: '' }))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-rose-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-rose-400 font-medium"
                     >
                       Hapus
                     </button>
@@ -982,7 +1000,7 @@ function TodoPage() {
 
               {/* Description */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Deskripsi / Catatan Tambahan (Opsional)
                 </label>
                 <textarea
@@ -996,7 +1014,7 @@ function TodoPage() {
 
               {/* Resource Info */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Tautan Sumber / Dokumen (Opsional)
                 </label>
                 <div className="relative">
@@ -1010,26 +1028,27 @@ function TodoPage() {
                   />
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-subtle mt-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2.5 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={!formData.title.trim() || isSubmitting}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-cyan text-bg-base font-semibold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:bg-accent-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Footer Actions */}
+            <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-border-subtle flex-shrink-0 bg-bg-surface/50">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="px-4 py-2.5 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!formData.title.trim() || isSubmitting}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-cyan text-bg-base font-semibold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:bg-accent-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1037,13 +1056,10 @@ function TodoPage() {
       {/* ========== DELETE CONFIRMATION MODAL ========== */}
       {deletingTodo && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && setDeletingTodo(null)}
         >
-          <div
-            className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center"
-            style={{ background: 'rgba(22, 18, 44, 0.98)' }}
-          >
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto mb-4">
               <Trash2 className="w-6 h-6" />
             </div>

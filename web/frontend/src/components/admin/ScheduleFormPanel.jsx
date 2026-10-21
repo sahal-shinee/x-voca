@@ -14,6 +14,7 @@ import {
 import { youtubeAPI } from '../../services/api';
 import { getGames } from '../../services/gameService';
 import Toggle from '../common/Toggle';
+import CustomSelect from '../common/CustomSelect';
 
 /**
  * ScheduleFormPanel - Slide-in panel untuk Tambah / Edit Jadwal Siaran
@@ -291,7 +292,7 @@ function ScheduleFormPanel({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 overscroll-contain">
           {/* Tautan YouTube & Auto-fill */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -374,40 +375,33 @@ function ScheduleFormPanel({
               <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
                 Kategori Siaran / Game
               </label>
-              <div className="relative">
-                <select
-                  name="game_category"
-                  value={formData.game_category}
-                  onChange={handleChange}
-                  disabled={gamesLoading}
-                  className="w-full px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary appearance-none focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors disabled:opacity-50 pr-9"
-                >
-                  <option value="">Pilih kategori atau game...</option>
-                  {acceptedGames.length > 0 && (
-                    <optgroup label="Game Usulan Voting Komunitas">
-                      {acceptedGames.map(game => (
-                        <option key={game.id} value={game.title}>
-                          {game.title} ({game.vote_count || 0} suara)
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Kategori Umum">
-                    <option value="SURVIVAL HORROR">Survival Horror</option>
-                    <option value="ACTION RPG">Action RPG</option>
-                    <option value="ADVENTURE">Adventure</option>
-                    <option value="SIMULATION">Simulation</option>
-                    <option value="STRATEGY">Strategy</option>
-                    <option value="INDIE">Indie</option>
-                    <option value="RETRO">Retro</option>
-                    <option value="MULTIPLAYER">Multiplayer</option>
-                    <option value="JUST CHATTING">Just Chatting</option>
-                    <option value="SPECIAL EVENT">Special Event</option>
-                    <option value="OTHER">Lainnya</option>
-                  </optgroup>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-              </div>
+              <CustomSelect
+                name="game_category"
+                value={formData.game_category}
+                onChange={handleChange}
+                disabled={gamesLoading}
+                placeholder="Pilih kategori atau game..."
+                options={[
+                  ...(acceptedGames.length > 0
+                    ? acceptedGames.map(game => ({
+                        value: game.title,
+                        label: `${game.title} (${game.vote_count || 0} suara)`,
+                        badge: 'Voting',
+                      }))
+                    : []),
+                  { value: 'SURVIVAL HORROR', label: 'Survival Horror' },
+                  { value: 'ACTION RPG', label: 'Action RPG' },
+                  { value: 'ADVENTURE', label: 'Adventure' },
+                  { value: 'SIMULATION', label: 'Simulation' },
+                  { value: 'STRATEGY', label: 'Strategy' },
+                  { value: 'INDIE', label: 'Indie' },
+                  { value: 'RETRO', label: 'Retro' },
+                  { value: 'MULTIPLAYER', label: 'Multiplayer' },
+                  { value: 'JUST CHATTING', label: 'Just Chatting' },
+                  { value: 'SPECIAL EVENT', label: 'Special Event' },
+                  { value: 'OTHER', label: 'Lainnya' },
+                ]}
+              />
             </div>
 
             {/* Jadwal Tanggal & Waktu */}
@@ -421,7 +415,7 @@ function ScheduleFormPanel({
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
-                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors [color-scheme:dark] ${
+                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
                     errors.date ? 'border-status-live' : 'border-border-subtle'
                   }`}
                 />
@@ -443,7 +437,7 @@ function ScheduleFormPanel({
                   name="time"
                   value={formData.time}
                   onChange={handleChange}
-                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors [color-scheme:dark] ${
+                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
                     errors.time ? 'border-status-live' : 'border-border-subtle'
                   }`}
                 />

@@ -396,7 +396,7 @@ function ContentFormPanel({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 overscroll-contain">
           {/* ── 1. URL YOUTUBE & AUTO-FETCH ───────────────────────────── */}
           <div className="p-4 bg-bg-card border border-border-subtle rounded-2xl space-y-3">
             <div className="flex items-center justify-between">

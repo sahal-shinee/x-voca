@@ -14,7 +14,7 @@ function HomePage() {
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-bg-base">
+    <div className="min-h-screen bg-[#0D0B14] text-[#F8F9FC]">
       {/* ========== HERO SECTION ========== */}
       <HeroSection onRequestCollab={() => setIsCollabModalOpen(true)} />
 
