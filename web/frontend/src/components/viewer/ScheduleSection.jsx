@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Calendar,
   Clock,
@@ -9,6 +9,9 @@ import {
   ChevronRight,
   Radio,
   CheckCircle,
+  Copy,
+  Check,
+  CalendarPlus,
 } from 'lucide-react';
 import { getSchedules } from '../../services/scheduleService';
 import { CollabRequestModal } from './CollabRequestModal';
@@ -198,6 +201,7 @@ const transformScheduleData = (data) => {
     time: formatTanggalWIB(scheduledAtISO),
     scheduled_at: scheduledAtISO,
     live_started_at: liveStartedAt,
+    auto_done_at: data.auto_done_at,
     countdown: countdownString,
     estimated_duration: data.estimated_duration || 'Durasi ±2-3 Jam',
     platform: data.stream_platform || 'YouTube',
@@ -208,9 +212,23 @@ const transformScheduleData = (data) => {
   };
 };
 
-// Live Timer Component
+// Calculate duration for completed or upcoming streams
+const formatScheduleDuration = (schedule) => {
+  if (!schedule) return 'Durasi ±2-3 Jam';
+  if ((schedule.status === 'done' || schedule.status === 'archived') && schedule.live_started_at && schedule.auto_done_at) {
+    const diff = Math.max(0, new Date(schedule.auto_done_at).getTime() - new Date(schedule.live_started_at).getTime());
+    const totalMinutes = Math.floor(diff / 60000);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h > 0) return `Durasi: ${h}j ${m > 0 ? `${m}m` : ''}`.trim();
+    return `Durasi: ${m}m`;
+  }
+  return schedule.estimated_duration || 'Durasi ±2-3 Jam';
+};
+
+// Live Timer Component (real-time ticking seconds)
 const LiveTimer = ({ startTime }) => {
-  const [elapsed, setElapsed] = useState({ h: 0, m: 0 });
+  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
 
   useEffect(() => {
     if (!startTime) return;
@@ -220,31 +238,89 @@ const LiveTimer = ({ startTime }) => {
     const calculateElapsed = () => {
       const now = new Date();
       const diff = Math.max(0, now - startDate);
-      const totalMinutes = Math.floor(diff / (1000 * 60));
-      const m = totalMinutes % 60;
-      const h = Math.floor(totalMinutes / 60);
-      return { h, m };
+      const totalSeconds = Math.floor(diff / 1000);
+      const s = totalSeconds % 60;
+      const m = Math.floor((totalSeconds / 60) % 60);
+      const h = Math.floor(totalSeconds / 3600);
+      return { h, m, s };
     };
 
     setElapsed(calculateElapsed());
-    const id = setInterval(() => setElapsed(calculateElapsed()), 60000);
+    const id = setInterval(() => setElapsed(calculateElapsed()), 1000);
     return () => clearInterval(id);
   }, [startTime]);
 
   return (
-    <span className="text-[11px] font-mono text-red-400 font-semibold">
-      {elapsed.h > 0 ? `${elapsed.h}j ${elapsed.m}m` : `${elapsed.m}m`}
+    <span className="text-[11px] font-mono text-red-400 font-semibold tracking-wider">
+      {elapsed.h > 0 ? `${elapsed.h}j ` : ''}{String(elapsed.m).padStart(2, '0')}m {String(elapsed.s).padStart(2, '0')}s
     </span>
   );
 };
 
-// Countdown Badge
-const CountdownBadge = ({ text }) => (
-  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-medium font-mono">
-    <Clock className="w-3 h-3 text-amber-400" />
-    {text}
-  </span>
-);
+// Calculate exact countdown components
+const calculateTimeRemaining = (targetDateString) => {
+  const target = safeParseDate(targetDateString);
+  if (!target) return null;
+  const diff = target.getTime() - Date.now();
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  return { days, hours, minutes, seconds };
+};
+
+// Real-time ticking countdown badge
+const LiveCountdown = ({ targetDate }) => {
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeRemaining(targetDate));
+
+  useEffect(() => {
+    const update = () => setTimeLeft(calculateTimeRemaining(targetDate));
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  if (!timeLeft) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-mono font-medium">
+        <Clock className="w-3 h-3 text-emerald-400" />
+        Segera Tayang
+      </span>
+    );
+  }
+
+  const { days, hours, minutes, seconds } = timeLeft;
+
+  return (
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 text-[#7ee0d2] text-[11px] font-mono font-semibold">
+      <Clock className="w-3 h-3 text-[#7ee0d2] animate-pulse" />
+      <span>
+        {days > 0 ? `${days}h ` : ''}
+        {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+      </span>
+    </div>
+  );
+};
+
+// Google Calendar URL generator
+const getGoogleCalendarUrl = (schedule) => {
+  if (!schedule.scheduled_at) return null;
+  const d = safeParseDate(schedule.scheduled_at);
+  if (!d) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatGDate = (dt) =>
+    `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}00Z`;
+  const start = formatGDate(d);
+  const end = formatGDate(new Date(d.getTime() + 2.5 * 60 * 60 * 1000));
+  const title = encodeURIComponent(`[STREAM] ${schedule.title} - Xion Regalia`);
+  const details = encodeURIComponent(
+    `${schedule.subtitle || schedule.title}\n\nTonton Siaran: ${schedule.youtube_url || 'https://youtube.com'}\nPlatform: X-VOCA Ops`
+  );
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}`;
+};
 
 // Loading Skeleton Card
 const SkeletonCard = () => (
@@ -273,6 +349,52 @@ const ScheduleSection = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+
+  // Calculate total broadcast duration dynamically from all schedules
+  const totalBroadcastHours = useMemo(() => {
+    let minutes = 0;
+    schedules.forEach((s) => {
+      if (s.status === 'live' && s.live_started_at) {
+        const elapsed = Math.max(0, Date.now() - new Date(s.live_started_at).getTime());
+        minutes += Math.floor(elapsed / 60000);
+      } else if (s.status === 'done' || s.status === 'archived') {
+        if (s.live_started_at && s.auto_done_at) {
+          const diff = Math.max(0, new Date(s.auto_done_at).getTime() - new Date(s.live_started_at).getTime());
+          minutes += Math.floor(diff / 60000);
+        } else {
+          minutes += 150; // standard 2.5 hours per completed session
+        }
+      } else {
+        // planned upcoming session
+        minutes += 120;
+      }
+    });
+    const hours = minutes / 60;
+    return hours > 0 ? hours.toFixed(1) : '0';
+  }, [schedules]);
+
+  const handleCopyLink = async (e, schedule) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = schedule.youtube_url || window.location.href;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(schedule.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   // Fetch all schedules
   useEffect(() => {
@@ -419,13 +541,17 @@ const ScheduleSection = () => {
             </div>
 
             {/* Schedule Counter Pill */}
-            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-4 flex-shrink-0 self-start sm:self-auto">
+            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto">
               <div>
                 <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Total Sesi</p>
                 <p className="text-2xl font-bold text-white font-display">{schedules.length}</p>
               </div>
+              <div className="pl-4 border-l border-white/10">
+                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi Siaran</p>
+                <p className="text-2xl font-bold text-accent-cyan font-display">±{totalBroadcastHours} Jam</p>
+              </div>
               {schedules.length > 0 && (
-                <div className="flex gap-1.5 pl-3 border-l border-white/10">
+                <div className="flex gap-1.5 pl-3 border-l border-white/10 hidden md:flex">
                   {schedules.slice(0, 5).map((s) => (
                     <span
                       key={s.id}
@@ -523,8 +649,8 @@ const ScheduleSection = () => {
                 className={`
                   relative flex-shrink-0 w-full sm:w-[380px] lg:w-[400px]
                   rounded-2xl overflow-hidden flex flex-col snap-start
-                  transition-all duration-300 group
-                  ${schedule.status === 'live' ? 'shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'shadow-xl'}
+                  transition-all duration-300 group hover:-translate-y-1
+                  ${schedule.status === 'live' ? 'shadow-[0_0_30px_rgba(239,68,68,0.25)]' : 'shadow-xl hover:shadow-2xl hover:border-accent-cyan/30'}
                 `}
                 style={{
                   background: schedule.status === 'live'
@@ -532,7 +658,7 @@ const ScheduleSection = () => {
                     : '#17122e',
                   border: `1px solid ${
                     schedule.status === 'live'
-                      ? 'rgba(239,68,68,0.35)'
+                      ? 'rgba(239,68,68,0.4)'
                       : 'rgba(255,255,255,0.08)'
                   }`,
                 }}
@@ -548,6 +674,19 @@ const ScheduleSection = () => {
                       : 'linear-gradient(90deg, #10b981, #6ee7b7, transparent)',
                   }}
                 />
+
+                {/* Optional Stream Thumbnail Preview */}
+                {schedule.thumbnail_url && (
+                  <div className="relative w-full h-40 overflow-hidden bg-[#100d20]">
+                    <img
+                      src={schedule.thumbnail_url}
+                      alt={schedule.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#17122e] via-[#17122e]/40 to-transparent" />
+                  </div>
+                )}
 
                 <div className="p-6 flex flex-col flex-1">
                   {/* Status badge + Game category row */}
@@ -592,12 +731,13 @@ const ScheduleSection = () => {
                         {getPlatformIcon(schedule.platform)}
                         <span>{schedule.platform || 'YouTube'}</span>
                       </div>
-                      <span className="text-[11px] text-white/40 font-mono">{schedule.estimated_duration}</span>
+                      <span className="text-[11px] text-white/50 font-mono">{formatScheduleDuration(schedule)}</span>
                     </div>
 
-                    {schedule.countdown && schedule.status === 'upcoming' && (
+                    {/* Real-time Ticking Countdown for upcoming streams */}
+                    {schedule.status === 'upcoming' && schedule.scheduled_at && (
                       <div className="pt-1">
-                        <CountdownBadge text={schedule.countdown} />
+                        <LiveCountdown targetDate={schedule.scheduled_at} />
                       </div>
                     )}
 
@@ -616,19 +756,52 @@ const ScheduleSection = () => {
                     )}
                   </div>
 
-                  {/* Card Action Footer */}
-                  <div className="pt-4 border-t border-white/5">
+                  {/* Card Action Footer with Real-time Utilities */}
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-2">
+                    {/* Utility Action Buttons: Copy link & Google Calendar */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyLink(e, schedule)}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-cyan/50 hover:bg-accent-cyan/10 text-[#a89ec0] hover:text-accent-cyan transition-all active:scale-95"
+                        title={copiedId === schedule.id ? "Tautan Berhasil Disalin!" : "Salin Tautan Siaran"}
+                        aria-label="Salin tautan siaran"
+                      >
+                        {copiedId === schedule.id ? (
+                          <Check className="w-3.5 h-3.5 text-accent-cyan" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      {schedule.status === 'upcoming' && schedule.scheduled_at && (
+                        <a
+                          href={getGoogleCalendarUrl(schedule)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-purple/50 hover:bg-accent-purple/10 text-[#a89ec0] hover:text-accent-lilac transition-all active:scale-95"
+                          title="Simpan Jadwal ke Google Calendar"
+                          aria-label="Simpan ke Google Calendar"
+                        >
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Primary Link Action */}
                     {schedule.status === 'done' ? (
                       <a
                         href={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
                         rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`flex items-center justify-between text-xs font-semibold ${
-                          schedule.youtube_url ? 'text-accent-cyan hover:underline' : 'text-[#a89ec0] opacity-50 cursor-default'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                          schedule.youtube_url
+                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
+                            : 'text-[#a89ec0] opacity-50 cursor-default'
                         }`}
                         onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
                       >
-                        <span>{schedule.youtube_url ? 'Tonton Rekaman di YouTube' : 'Arsip Rekaman'}</span>
+                        <span>{schedule.youtube_url ? 'Tonton Rekaman' : 'Arsip Rekaman'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     ) : schedule.status === 'live' ? (
@@ -636,9 +809,9 @@ const ScheduleSection = () => {
                         href={schedule.youtube_url || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between text-xs font-semibold text-red-400 hover:underline"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-xs font-semibold shadow-[0_0_12px_rgba(239,68,68,0.25)]"
                       >
-                        <span>Tonton Siaran Langsung</span>
+                        <span>Tonton Siaran</span>
                         <Play className="w-3.5 h-3.5 fill-current" />
                       </a>
                     ) : (
@@ -646,12 +819,14 @@ const ScheduleSection = () => {
                         href={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
                         rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`flex items-center justify-between text-xs font-semibold ${
-                          schedule.youtube_url ? 'text-accent-cyan hover:underline' : 'text-[#a89ec0] opacity-50 cursor-default'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                          schedule.youtube_url
+                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
+                            : 'text-[#a89ec0] opacity-50 cursor-default'
                         }`}
                         onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
                       >
-                        <span>{schedule.youtube_url ? 'Buka Tautan Siaran' : 'Jadwal Terdaftar'}</span>
+                        <span>{schedule.youtube_url ? 'Buka Tautan' : 'Jadwal Terdaftar'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}

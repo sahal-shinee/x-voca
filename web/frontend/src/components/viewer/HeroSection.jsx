@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import heroCharacter from '../../assets/hero-character.png';
 import TopNav from './TopNav';
 import { getNextSchedule } from '../../services/scheduleService';
-import { Users } from 'lucide-react';
 
 // ========== ICONS ==========
 
@@ -420,18 +419,18 @@ function InteractiveBackground({ mood }) {
       className="absolute inset-0 overflow-hidden pointer-events-none z-0"
       style={{ '--sx': '50%', '--sy': '40%', '--so': 0, '--px': 0, '--py': 0 }}
     >
-      {/* Nebula: warna pertama mengikuti mood */}
+      {/* Nebula: warna lembut dan tenang */}
       <div style={parallax(-46)} className="absolute -left-[10%] top-[8%] w-[48vw] h-[48vw] max-w-[720px] max-h-[720px]">
         <div
-          className="xv-drift w-full h-full rounded-full blur-[90px]"
-          style={{ background: `rgba(${mood.glow},0.16)`, transition: 'background 1.2s ease' }}
+          className="xv-drift w-full h-full rounded-full blur-[100px]"
+          style={{ background: `rgba(${mood.glow},0.07)`, transition: 'background 1.2s ease' }}
         />
       </div>
       <div style={parallax(34)} className="absolute -right-[8%] top-[18%] w-[44vw] h-[44vw] max-w-[680px] max-h-[680px]">
-        <div className="xv-drift-rev w-full h-full rounded-full blur-[100px]" style={{ background: 'rgba(192,132,252,0.14)' }} />
+        <div className="xv-drift-rev w-full h-full rounded-full blur-[110px]" style={{ background: 'rgba(192,132,252,0.06)' }} />
       </div>
       <div style={parallax(-22)} className="absolute left-[30%] -bottom-[12%] w-[40vw] h-[26vw] max-w-[620px] max-h-[400px]">
-        <div className="xv-drift w-full h-full rounded-full blur-[90px]" style={{ background: 'rgba(76,102,220,0.12)' }} />
+        <div className="xv-drift w-full h-full rounded-full blur-[100px]" style={{ background: 'rgba(76,102,220,0.05)' }} />
       </div>
 
       {/* Bulan sabit (hanya layar lebar) */}
@@ -471,15 +470,6 @@ function InteractiveBackground({ mood }) {
 
 // ========== CHARACTER STAGE ==========
 
-// Posisi tetap (tanpa Math.random) agar render konsisten
-const SPARKLES = [
-  { left: '6%', top: '22%', size: 12, delay: 0, dur: 3.4 },
-  { left: '90%', top: '30%', size: 10, delay: 0.8, dur: 4 },
-  { left: '14%', top: '68%', size: 9, delay: 1.5, dur: 3.8 },
-  { left: '84%', top: '74%', size: 13, delay: 0.4, dur: 4.4 },
-  { left: '50%', top: '4%', size: 9, delay: 1.1, dur: 3.6 },
-];
-
 function useTypewriter(text, speed = 28) {
   const [out, setOut] = useState('');
 
@@ -517,7 +507,6 @@ function CharacterStage({ moodIndex, onMoodChange }) {
   const stageRef = useRef(null);
   const frameRef = useRef(0);
   const [lineIndex, setLineIndex] = useState(0);
-  const [bursts, setBursts] = useState([]);
 
   const mood = MOODS[moodIndex];
   const line = mood.lines[lineIndex % mood.lines.length];
@@ -548,24 +537,8 @@ function CharacterStage({ moodIndex, onMoodChange }) {
     el.style.setProperty('--my', '0');
   };
 
-  const handleGreet = (e) => {
+  const handleGreet = () => {
     setLineIndex((i) => i + 1);
-
-    const el = stageRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    // e.detail === 0 berarti diaktifkan lewat keyboard -> pakai titik tengah
-    const x = e.detail === 0 ? r.width / 2 : e.clientX - r.left;
-    const y = e.detail === 0 ? r.height / 2 : e.clientY - r.top;
-    const base = Date.now() + Math.random();
-    const items = Array.from({ length: 6 }, (_, k) => {
-      const a = (Math.PI * 2 * k) / 6;
-      return { id: base + k, x, y, bx: Math.cos(a) * 52, by: Math.sin(a) * 52 };
-    });
-    setBursts((b) => [...b, ...items]);
-    setTimeout(() => {
-      setBursts((b) => b.filter((i) => !items.some((n) => n.id === i.id)));
-    }, 900);
   };
 
   const selectMood = (index) => {
@@ -602,26 +575,6 @@ function CharacterStage({ moodIndex, onMoodChange }) {
           <circle cx="50" cy="98" r="0.9" fill="#c084fc" />
         </svg>
 
-        {/* Kilau */}
-        {SPARKLES.map((s, i) => (
-          <span
-            key={i}
-            aria-hidden="true"
-            className="xv-twinkle absolute pointer-events-none"
-            style={{
-              left: s.left,
-              top: s.top,
-              fontSize: s.size,
-              color: i % 2 ? '#c084fc' : mood.color,
-              animationDelay: `${s.delay}s`,
-              animationDuration: `${s.dur}s`,
-              ...depth(i % 2 ? 26 : 18),
-            }}
-          >
-            ✦
-          </span>
-        ))}
-
         {/* Karakter (klik untuk menyapa) */}
         <div style={depth(8)}>
           <div
@@ -643,7 +596,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
                   draggable={false}
                   className="relative w-full h-auto object-contain select-none"
                   style={{
-                    filter: `drop-shadow(0 0 28px rgba(${mood.glow},0.35))`,
+                    filter: `drop-shadow(0 0 20px rgba(${mood.glow},0.25))`,
                     transition: 'filter 0.6s ease',
                   }}
                 />
@@ -652,27 +605,15 @@ function CharacterStage({ moodIndex, onMoodChange }) {
           </div>
         </div>
 
-        {/* Ledakan kilau saat diklik */}
-        {bursts.map((b) => (
-          <span
-            key={b.id}
-            aria-hidden="true"
-            className="xv-burst absolute pointer-events-none text-sm"
-            style={{ left: b.x, top: b.y, color: mood.color, '--bx': `${b.bx}px`, '--by': `${b.by}px` }}
-          >
-            ✦
-          </span>
-        ))}
-
-        {/* Pill protokol (ikut berubah sesuai mood) */}
+        {/* Pill status persona */}
         <div
           className="absolute left-[15%] sm:left-[20%] lg:left-[120px] top-[8%] sm:top-[5%] lg:top-[60px]"
           style={depth(22)}
         >
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-[rgba(24,19,43,0.9)] backdrop-blur-sm border border-[rgba(192,132,252,0.4)]">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#c084fc] animate-pulse"></div>
-            <span className="font-bold text-[#c084fc] text-[8px] sm:text-[9px] lg:text-[11px] tracking-wider uppercase whitespace-nowrap font-sans">
-              REGALIA PROTOCOL : {mood.label}
+          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-[#15102a]/90 backdrop-blur-sm border border-white/10 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+            <span className="font-semibold text-white/90 text-[9px] sm:text-[10px] tracking-wider uppercase whitespace-nowrap font-mono">
+              MODE: {mood.label}
             </span>
           </div>
         </div>
@@ -975,102 +916,75 @@ function HeroSection({ onRequestCollab }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 pt-8 sm:pt-12 lg:pt-0 lg:items-center min-h-[calc(100vh-70px)] lg:min-h-[calc(100vh-70px-112px)]">
             {/* LEFT SIDE CONTENT */}
             <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-12 lg:pt-8 pb-12 lg:pb-0">
-              {/* Pill Badge */}
-              <div className="mb-4 sm:mb-5 animate-fade-in">
-                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[rgba(192,132,252,0.12)] border border-[#c084fc] shadow-[0px_0px_15px_0px_rgba(192,132,252,0.15)]">
-                  <span className="text-[#c084fc] text-xs">✦</span>
-                  <span className="font-semibold text-[#c084fc] text-[10px] sm:text-xs tracking-wider uppercase font-sans">
-                    Virtual Creator
-                  </span>
-                </div>
-              </div>
-
               {/* Heading */}
-              <div className="drop-shadow-[0px_4px_12px_rgba(126,224,210,0.22)] animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                <h1 className="font-extrabold tracking-[-1px] sm:tracking-[-2.1px] text-gradient-xion font-display" style={{ fontSize: 'clamp(48px, 10vw, 84px)', lineHeight: 1 }}>
+              <div className="animate-fade-in">
+                <h1 className="font-extrabold tracking-[-1px] sm:tracking-[-2px] text-white font-display" style={{ fontSize: 'clamp(46px, 9vw, 80px)', lineHeight: 1 }}>
                   XION
                 </h1>
-              </div>
-
-              <div className="mt-0 sm:mt-1 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <h2 className="font-light text-[#f1f0f5] tracking-[0.3em] uppercase font-display" style={{ fontSize: 'clamp(20px, 5vw, 38px)', lineHeight: 1.25 }}>
+                <h2 className="font-light text-[#7ee0d2] tracking-[0.25em] uppercase font-display mt-1" style={{ fontSize: 'clamp(18px, 4vw, 32px)', lineHeight: 1.2 }}>
                   REGALIA
                 </h2>
               </div>
 
-              <div className="max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-4 sm:mt-5 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <p className="font-normal text-[#a89ec0] text-sm sm:text-base leading-6 lg:leading-[26px] font-body">
+              <div className="max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-4 sm:mt-5 animate-fade-in" style={{ animationDelay: '0.15s' }}>
+                <p className="font-normal text-[#94a3b8] text-sm sm:text-base leading-6 lg:leading-[26px] font-body">
                   Your space to follow every stream, vote for what comes next, and discover every journey.
                 </p>
               </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-6 sm:mt-7 w-full sm:w-auto px-4 sm:px-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                <Link to="/voting" className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px] bg-[#7ee0d2] shadow-[0px_10px_15px_-3px_rgba(126,224,210,0.2),0px_4px_6px_-4px_rgba(126,224,210,0.2)] hover:shadow-[0px_10px_20px_-3px_rgba(126,224,210,0.3),0px_4px_8px_-4px_rgba(126,224,210,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                  <span className="font-bold text-[#18132B] text-sm font-body">Lihat Voting</span>
+              {/* Single Clean CTA Button */}
+              <div className="mt-6 sm:mt-7 w-full sm:w-auto animate-fade-in" style={{ animationDelay: '0.25s' }}>
+                <a
+                  href="#schedule"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('schedule')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 h-[44px] px-6 rounded-xl bg-[#7ee0d2] text-[#0d091a] font-semibold text-sm hover:bg-[#68d5c5] transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span>Lihat Jadwal Siaran</span>
                   <ArrowRightIcon />
-                </Link>
-
-                <Link to="/content" className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-4 sm:px-[25px] rounded-[10px] border border-[#c084fc] hover:bg-[rgba(192,132,252,0.1)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                  <span className="text-[#c084fc]"><DocumentIcon /></span>
-                  <span className="font-semibold text-[#c084fc] text-sm font-body">Content Guide</span>
-                </Link>
-
-                {/* Request Collab Button */}
-                {onRequestCollab && (
-                  <button
-                    onClick={onRequestCollab}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[10px]
-                      bg-accent-purple/10 border border-accent-purple/30
-                      text-accent-lilac hover:bg-accent-purple/20 hover:border-accent-purple/50
-                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="font-semibold text-sm font-body">Request Collab</span>
-                  </button>
-                )}
+                </a>
               </div>
 
               {/* Countdown Widget */}
-              <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl bg-[#231f42] border border-[#3d3560] shadow-[0px_12px_36px_0px_rgba(15,10,34,0.65)] relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                <div className="absolute -right-4 sm:-right-8 -top-4 sm:-top-8 w-[80px] sm:w-[112px] h-[80px] sm:h-[112px] rounded-full bg-[rgba(126,224,210,0.1)] blur-[10px] sm:blur-[12px]"></div>
-
+              <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl bg-[#181333]/85 border border-white/[0.08] shadow-lg relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 {/* Header Section */}
-                <div className="border-b border-[rgba(61,53,96,0.6)] pb-3 sm:pb-3.5">
+                <div className="border-b border-white/[0.08] pb-3 sm:pb-3.5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <CalendarIcon />
-                      <span className="font-bold text-[#a89ec0] text-[9px] sm:text-[11px] tracking-wider uppercase font-sans">
-                        STREAM BERIKUTNYA
+                      <span className="font-semibold text-[#94a3b8] text-[9px] sm:text-[11px] tracking-wider uppercase font-mono">
+                        Stream Berikutnya
                       </span>
                     </div>
 
                     {/* Status Badge - Dynamic based on data */}
                     {loading ? (
-                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(192,132,252,0.3)]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#a89ec0] animate-pulse"></div>
-                        <span className="font-medium text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse"></div>
+                        <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           MEMUAT...
                         </span>
                       </div>
                     ) : countdown.isEmpty ? (
-                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(192,132,252,0.3)]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#a89ec0]"></div>
-                        <span className="font-medium text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]"></div>
+                        <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           TIDAK ADA JADWAL
                         </span>
                       </div>
                     ) : countdown.isLive ? (
-                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(239,68,68,0.2)] border border-[rgba(239,68,68,0.4)]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse"></div>
-                        <span className="font-medium text-[#ef4444] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                        <span className="font-semibold text-[#ef4444] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           LIVE NOW
                         </span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[rgba(24,19,43,0.8)] border border-[rgba(74,222,128,0.3)]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse"></div>
-                        <span className="font-medium text-[#4ade80] text-[8px] sm:text-[10px] tracking-wider font-sans">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/30">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse"></div>
+                        <span className="font-semibold text-[#7ee0d2] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           {scheduleDateDisplay || 'SYNCED'}
                         </span>
                       </div>
@@ -1109,9 +1023,9 @@ function HeroSection({ onRequestCollab }) {
                         ))}
                       </>
                     ) : countdown.isEmpty ? (
-                      <div className="text-center py-4 w-full">
-                        <p className="text-[#a89ec0] text-sm">Tidak ada jadwal upcoming</p>
-                        <p className="text-[#5c5480] text-xs mt-1">Pastikan admin menambahkan jadwal</p>
+                      <div className="text-center py-3.5 w-full">
+                        <p className="text-white/80 text-xs sm:text-sm font-medium">Belum ada siaran yang dijadwalkan</p>
+                        <p className="text-[#a89ec0] text-[11px] mt-0.5">Jadwal siaran terbaru akan segera diperbarui</p>
                       </div>
                     ) : (
                       <>
@@ -1139,9 +1053,9 @@ function HeroSection({ onRequestCollab }) {
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex flex-col gap-1 sm:gap-1.5">
                       {/* Title dari database */}
-                      <div className="flex items-center gap-1 sm:gap-1.5">
-                        <span className="text-[#c084fc] text-xs">✦</span>
-                        <span className="font-normal text-[#a89ec0] text-[10px] sm:text-xs font-body line-clamp-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+                        <span className="font-normal text-[#94a3b8] text-[10px] sm:text-xs font-body line-clamp-1">
                           {loading ? (
                             <span className="inline-block w-32 h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse"></span>
                           ) : nextSchedule?.title ? (

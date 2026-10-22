@@ -186,8 +186,90 @@ const fetchYouTubeInfo = async (req, res) => {
   }
 };
 
+/**
+ * In-memory cache for YouTube channel stats (5-minute TTL)
+ */
+let _statsCache = null;
+let _statsCachedAt = 0;
+const STATS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetch YouTube channel statistics (subscribers, video count)
+ * GET /api/youtube/stats  — public, no auth required
+ * Returns: { subscriberCount, videoCount }
+ */
+const getChannelStats = async (req, res) => {
+  try {
+    const now = Date.now();
+
+    // Serve from cache if fresh
+    if (_statsCache && now - _statsCachedAt < STATS_CACHE_TTL_MS) {
+      return res.status(200).json({ success: true, data: _statsCache, cached: true });
+    }
+
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    const channelId = process.env.YOUTUBE_CHANNEL_ID;
+
+    if (!apiKey || !channelId) {
+      return res.status(503).json({
+        success: false,
+        data: null,
+        message: 'YouTube API key atau Channel ID belum dikonfigurasi.'
+      });
+    }
+
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+      params: {
+        part: 'statistics',
+        id: channelId,
+        key: apiKey
+      },
+      timeout: 8000
+    });
+
+    const items = response.data?.items;
+    if (!items || items.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'Channel YouTube tidak ditemukan.'
+      });
+    }
+
+    const stats = items[0].statistics;
+    const payload = {
+      subscriberCount: parseInt(stats.subscriberCount || '0', 10),
+      videoCount: parseInt(stats.videoCount || '0', 10),
+      viewCount: parseInt(stats.viewCount || '0', 10)
+    };
+
+    // Store in cache
+    _statsCache = payload;
+    _statsCachedAt = now;
+
+    return res.status(200).json({ success: true, data: payload, cached: false });
+  } catch (error) {
+    console.error('YouTube channel stats error:', error.response?.data || error.message);
+
+    if (error.response?.status === 403) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        message: 'YouTube API key tidak memiliki akses atau kuota habis.'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: 'Gagal mengambil statistik channel YouTube.'
+    });
+  }
+};
+
 module.exports = {
   fetchYouTubeInfo,
+  getChannelStats,
   extractVideoId,
   extractPlaylistId
 };
