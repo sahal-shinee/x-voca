@@ -170,14 +170,19 @@ const ProfileSection = () => {
   const [subscriberCount, setSubscriberCount] = useState(0);
   const [totalVideos, setTotalVideos] = useState(0);
 
-  // Fetch YouTube subscriber count from backend proxy (public, cached 5 min)
+  // Fetch YouTube subscriber count & total video count from backend proxy (public, cached 5 min)
   useEffect(() => {
     let cancelled = false;
     const fetchStats = () => {
       getYoutubeStats()
         .then((data) => {
-          if (!cancelled && data?.subscriberCount != null) {
-            setSubscriberCount(data.subscriberCount);
+          if (!cancelled && data) {
+            if (data.subscriberCount != null) {
+              setSubscriberCount(data.subscriberCount);
+            }
+            if (data.videoCount != null && data.videoCount > 0) {
+              setTotalVideos(data.videoCount);
+            }
           }
         })
         .catch(() => {});
@@ -190,12 +195,12 @@ const ProfileSection = () => {
     };
   }, []);
 
-  // Fetch total video count from ContentGuide
+  // Fallback: Fetch video count from ContentGuide if YouTube not available
   useEffect(() => {
     getContent({ limit: 1 })
       .then((res) => {
         const total = res?.pagination?.totalItems ?? res?.pagination?.total ?? 0;
-        setTotalVideos(total);
+        setTotalVideos((prev) => (prev > 0 ? prev : total));
       })
       .catch(() => {});
   }, []);
@@ -415,7 +420,7 @@ const ProfileSection = () => {
                       {videosCount}
                     </p>
                     <p className="text-white text-xs font-semibold">Total Video</p>
-                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">Content Guide</p>
+                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">YouTube · Arsip</p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#c084fc]/50 transition-colors">

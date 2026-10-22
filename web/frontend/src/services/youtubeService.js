@@ -7,6 +7,6 @@ import api from './api';
  * @returns {Promise<{ subscriberCount: number, videoCount: number, viewCount: number }>}
  */
 export const getYoutubeStats = async () => {
-  const response = await api.get('/youtube/stats');
+  const response = await api.get('/api/youtube/stats');
   return response.data?.data ?? null;
 };
