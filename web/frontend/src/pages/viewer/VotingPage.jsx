@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { getGames, voteGame, requestGame } from '../../services/gameService';
 import { getFingerprint, hasVoted, markVoted, getCurrentPeriodKey } from '../../utils/fingerprint';
 import { useVotes } from '../../hooks/useFirebase';
@@ -9,40 +8,21 @@ import { useToast } from '../../components/common/Toast';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
 
-// ========== ICONS ==========
+// ========== ICONS (CLEAN VECTOR SVGS - ZERO EMOJIS / ZERO AI SLOP) ==========
 const SearchIcon = ({ className = '' }) => (
-  <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 );
 
-const RefreshIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-  </svg>
-);
-
 const PlusIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 );
 
-const SparkleIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
-  </svg>
-);
-
-const FireIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-  </svg>
-);
-
 const TrophyIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
     <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
     <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
@@ -50,130 +30,113 @@ const TrophyIcon = ({ className = '' }) => (
   </svg>
 );
 
-const ChevronUpIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="18 15 12 9 6 15"/>
-  </svg>
-);
-
-const ArrowRightIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-  </svg>
-);
-
 const ShareIcon = ({ className = '' }) => (
-  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
   </svg>
 );
 
-const GamepadIcon = ({ className = '' }) => (
-  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="6" x2="10" y1="11" y2="11"/>
-    <line x1="8" x2="8" y1="9" y2="13"/>
-    <line x1="15" x2="15.01" y1="12" y2="12"/>
-    <line x1="18" x2="18.01" y1="10" y2="10"/>
-    <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/>
+const GamepadIcon = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="6" width="20" height="12" rx="4" />
+    <path d="M6 12h4" />
+    <path d="M8 10v4" />
+    <circle cx="15.5" cy="11.5" r=".75" fill="currentColor" />
+    <circle cx="17.5" cy="13.5" r=".75" fill="currentColor" />
   </svg>
 );
 
-// ========== PARTICLE BACKGROUND ==========
-const ParticleBackground = () => {
-  const particles = useMemo(() => {
-    return Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      size: Math.random() * 2 + 1,
-      duration: Math.random() * 20 + 15,
-      delay: Math.random() * 10,
-      opacity: Math.random() * 0.3 + 0.1,
-      isCyan: Math.random() > 0.5,
-    }));
-  }, []);
+const CheckCircleIcon = ({ className = 'w-6 h-6' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
 
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full animate-float"
-          style={{
-            left: `${p.left}%`,
-            top: `${p.top}%`,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            backgroundColor: p.isCyan ? '#2DFFC2' : '#9B6DFF',
-            opacity: p.opacity,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `${p.delay}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-};
+// ========== AMBIENT BACKGROUND (CALM & PROFESSIONAL - ZERO DIZZYING NEON PARTICLES) ==========
+const AmbientBackground = () => (
+  <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full bg-[#7ee0d2]/[0.02] blur-[140px]" />
+    <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] rounded-full bg-[#c084fc]/[0.02] blur-[140px]" />
+  </div>
+);
 
 // ========== QUICK VOTE CARD COMPONENT ==========
-const QuickVoteCard = ({ game, onVote, hasVoted, voting }) => {
-  const statusColors = {
-    playing: { border: 'border-amber-500', badge: 'bg-amber-500', text: 'text-amber-400' },
-    accepted: { border: 'border-purple-500', badge: 'bg-purple-500', text: 'text-purple-400' },
-    requested: { border: 'border-cyan-500', badge: 'bg-cyan-500', text: 'text-cyan-400' },
-    done: { border: 'border-gray-500', badge: 'bg-gray-500', text: 'text-gray-400' },
-  };
-  const colors = statusColors[game.status] || statusColors.requested;
+const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
+  const isPlaying = game.status === 'playing';
+  const isDone = game.status === 'done';
 
   return (
     <div className={`
-      group relative bg-[#1A1730] rounded-xl p-4 
-      border ${colors.border} border-opacity-50
-      hover:bg-[#201D3A] transition-all duration-200 cursor-pointer
-      ${hasVoted ? 'opacity-70' : ''}
-      ${voting ? 'scale-95' : ''}
+      group relative bg-[#141126] hover:bg-[#1a1633] rounded-xl p-4 
+      border border-white/10 hover:border-[#7ee0d2]/30
+      transition-all duration-200 flex flex-col justify-between gap-3
+      ${hasVoted ? 'opacity-85' : ''}
+      ${voting ? 'scale-[0.99]' : ''}
     `}>
       <div className="flex items-center gap-3">
-        {/* Game Icon */}
-        <div className="w-10 h-10 rounded-lg bg-[#2A2645] flex items-center justify-center flex-shrink-0">
-          <span className="text-lg">🎮</span>
+        {/* Cover / Icon Thumbnail */}
+        <div className="relative w-12 h-12 rounded-lg bg-[#1f1b3a] border border-white/5 overflow-hidden flex items-center justify-center flex-shrink-0">
+          {game.cover_url ? (
+            <img 
+              src={game.cover_url} 
+              alt={game.title}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            <GamepadIcon className="w-5 h-5 text-[#8E8AAB]" />
+          )}
+          {rank && (
+            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-black/75 text-[#7ee0d2]">
+              #{rank}
+            </span>
+          )}
         </div>
 
-        {/* Game Info */}
+        {/* Game Title & Genre */}
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-white truncate group-hover:text-[#2DFFC2] transition-colors">
+          <h4 className="text-sm font-semibold text-white truncate group-hover:text-[#7ee0d2] transition-colors">
             {game.title}
           </h4>
-          <p className="text-xs text-[#5C5878]">{game.genre}</p>
+          <p className="text-xs text-[#8E8AAB] truncate">{game.genre || 'Game'}</p>
         </div>
 
-        {/* Vote Count & Button */}
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-sm font-bold font-mono text-[#2DFFC2]">
-            {game.votes}
-          </span>
+        {/* Vote Count & Action Button */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-bold font-mono text-[#7ee0d2]">
+              {game.votes || 0}
+            </span>
+            <span className="text-[10px] text-[#8E8AAB]">suara</span>
+          </div>
           <button
-            onClick={() => !hasVoted && !voting && onVote(game)}
-            disabled={hasVoted || voting}
+            type="button"
+            onClick={() => !hasVoted && !voting && !isPlaying && !isDone && onVote(game)}
+            disabled={hasVoted || voting || isPlaying || isDone}
             className={`
-              px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200
+              px-3 py-1 rounded-lg text-xs font-medium transition-all duration-150
               ${hasVoted 
-                ? 'bg-[#2DFFC2]/20 text-[#2DFFC2] cursor-default'
-                : 'bg-[#2DFFC2] text-[#0D0B1A] hover:bg-[#2DFFC2]/90 hover:shadow-lg hover:shadow-[#2DFFC2]/20'
+                ? 'bg-white/10 text-[#7ee0d2] border border-[#7ee0d2]/30 cursor-default'
+                : isPlaying
+                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-default text-[10px]'
+                : isDone
+                ? 'bg-white/5 text-[#8E8AAB] border border-white/10 cursor-default text-[10px]'
+                : 'bg-[#7ee0d2] text-[#0a0718] font-semibold hover:bg-[#7ee0d2]/90 active:scale-95 shadow-sm'
               }
             `}
           >
-            {voting ? '...' : hasVoted ? 'Voted' : 'Vote'}
+            {voting ? '...' : hasVoted ? 'Sudah Vote' : isPlaying ? 'Playing' : isDone ? 'Selesai' : 'Vote'}
           </button>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="mt-3 h-1 bg-[#2A2645] rounded-full overflow-hidden">
+      <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
         <div 
-          className="h-full bg-gradient-to-r from-[#2DFFC2] to-[#9B6DFF] rounded-full transition-all duration-500"
-          style={{ width: `${Math.min(game.percentage, 100)}%` }}
+          className="h-full bg-gradient-to-r from-[#7ee0d2] to-[#c084fc] rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(game.percentage || 0, 100)}%` }}
         />
       </div>
     </div>
@@ -211,6 +174,7 @@ function VotingPage() {
   // Refs
   const searchRef = useRef(null);
   const quickVoteRef = useRef(null);
+
   // Fetch games from API
   const fetchGames = useCallback(async () => {
     try {
@@ -228,7 +192,7 @@ function VotingPage() {
           setPeriodKey(metaData.period_key);
         }
 
-        // Hitung total votes dari games
+        // Calculate total votes from games list
         const total = gamesData.reduce((sum, g) => sum + (g.vote_count || 0), 0);
         setTotalVotesGlobal(total);
       } else {
@@ -287,10 +251,10 @@ function VotingPage() {
     });
   }, [games, firebaseVotes, firebaseTotal, totalVotesGlobal]);
 
-  // Top 3 games for quick voting
+  // Top 3 games for quick voting (only active non-done games)
   const topGames = useMemo(() => {
     return [...gamesWithVotes]
-      .filter(g => g.status !== 'done')
+      .filter((g) => g.status !== 'done')
       .sort((a, b) => (b.votes || 0) - (a.votes || 0))
       .slice(0, 3);
   }, [gamesWithVotes]);
@@ -300,9 +264,10 @@ function VotingPage() {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
     return gamesWithVotes
-      .filter(g => 
-        g.title?.toLowerCase().includes(query) ||
-        g.genre?.toLowerCase().includes(query)
+      .filter(
+        (g) =>
+          g.title?.toLowerCase().includes(query) ||
+          g.genre?.toLowerCase().includes(query)
       )
       .slice(0, 5);
   }, [searchQuery, gamesWithVotes]);
@@ -383,7 +348,7 @@ function VotingPage() {
         setShowCelebration(true);
         toast.success(`Terima kasih! Vote untuk "${game.title}" sudah tercatat.`);
         
-        setTimeout(() => setShowCelebration(false), 2000);
+        setTimeout(() => setShowCelebration(false), 2400);
         fetchGames();
       } else if (response.alreadyVoted) {
         markVoted(game.id, periodKey);
@@ -402,7 +367,7 @@ function VotingPage() {
 
   // Handle game request
   const handleSubmitRequest = useCallback(async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!requestForm.title.trim()) {
       toast.error('Judul game harus diisi');
       return;
@@ -420,7 +385,7 @@ function VotingPage() {
       if (resp.success) {
         setShowRequestModal(false);
         setShowRequestSuccessModal(true);
-        setRequestForm({ title: '', genre: '', notes: '' });
+        setRequestForm({ title: '', genre: '' });
         fetchGames();
       } else {
         toast.error(resp.message || 'Gagal mengirim request');
@@ -437,10 +402,10 @@ function VotingPage() {
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: 'X-VOCA Voting',
+        title: 'X-VOCA Voting Game',
         text: 'Vote game favoritmu di X-VOCA!',
         url: window.location.href,
-      });
+      }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link voting berhasil disalin!');
@@ -449,108 +414,106 @@ function VotingPage() {
 
   // Format period key to display name
   const formatPeriodName = (key) => {
-    if (!key) return 'Loading...';
+    if (!key) return 'Memuat...';
     const [year, month] = key.split('-');
     const monthNames = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     const monthIndex = parseInt(month, 10) - 1;
-    return `${monthNames[monthIndex]} ${year}`;
+    return `${monthNames[monthIndex] || ''} ${year || ''}`.trim() || key;
   };
 
-  // Filter tabs configuration
+  // Filter tabs configuration (clean, cohesive palette)
   const filterTabs = [
-    { key: 'all', label: 'Semua', color: '#2DFFC2' },
-    { key: 'requested', label: 'Requested', color: '#C084FC' },
-    { key: 'accepted', label: 'Accepted', color: '#9B6DFF' },
-    { key: 'playing', label: 'Playing', color: '#F5A623', highlight: true },
-    { key: 'done', label: 'Done', color: '#6B7280' },
+    { key: 'all', label: 'Semua Status' },
+    { key: 'requested', label: 'Request' },
+    { key: 'accepted', label: 'Diterima' },
+    { key: 'playing', label: 'Sedang Dimainkan', highlight: true },
+    { key: 'done', label: 'Selesai' },
   ];
 
   return (
-    <div className="min-h-screen bg-[#0D0B1A] relative overflow-x-hidden">
-      {/* Particle Background */}
-      <ParticleBackground />
+    <div className="min-h-screen bg-[#0D0B1A] relative overflow-x-hidden text-white">
+      {/* Calm Ambient Background */}
+      <AmbientBackground />
 
-      {/* Celebration Animation */}
+      {/* Clean Celebration Modal Badge */}
       {showCelebration && celebrationGame && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="absolute inset-0 bg-[#2DFFC2]/10 animate-pulse" />
-          <div className="bg-[#1A1730] border border-[#2DFFC2] rounded-2xl p-8 text-center animate-bounce-in">
-            <div className="text-5xl mb-4">🎉</div>
-            <p className="text-white font-bold text-lg">Vote Terkirim!</p>
-            <p className="text-[#2DFFC2] font-semibold mt-2">{celebrationGame.title}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4">
+          <div className="absolute inset-0 bg-[#0d0b1a]/60 backdrop-blur-xs" />
+          <div className="relative bg-[#151226] border border-[#7ee0d2]/40 rounded-2xl p-6 text-center shadow-[0_16px_40px_rgba(0,0,0,0.5)] max-w-sm w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full bg-[#7ee0d2]/15 border border-[#7ee0d2]/40 flex items-center justify-center mx-auto mb-3 text-[#7ee0d2]">
+              <CheckCircleIcon className="w-7 h-7" />
+            </div>
+            <p className="text-white font-bold text-base mb-1">Vote Berhasil Dikirim!</p>
+            <p className="text-[#7ee0d2] font-semibold text-sm truncate">{celebrationGame.title}</p>
+            <p className="text-xs text-[#8e8aab] mt-1">Terima kasih atas partisipasi kamu</p>
           </div>
         </div>
       )}
 
       {/* Top Navigation Bar */}
       <TopNav />
-      {/* ========== HEADER ========== */}
-      <header className="relative bg-gradient-to-b from-[#12102A] to-[#0D0B1A] pt-24 pb-8 px-4 sm:px-6 lg:px-12 z-10">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-[#2DFFC2] opacity-[0.03] blur-[100px]" />
-          <div className="absolute top-20 left-20 w-80 h-80 rounded-full bg-[#9B6DFF] opacity-[0.03] blur-[80px]" />
-        </div>
 
-        <div className="relative max-w-[1280px] mx-auto">
+      {/* ========== HEADER ========== */}
+      <header className="relative bg-gradient-to-b from-[#141126] to-[#0D0B1A] pt-24 pb-8 px-4 sm:px-6 lg:px-12 z-10 border-b border-white/5">
+        <div className="max-w-[1280px] mx-auto">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div className="flex-1">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F5A623]/10 border border-[#F5A623]/20 mb-4">
-                <SparkleIcon className="text-[#F5A623]" />
-                <span className="text-[#F5A623] text-[10px] font-bold tracking-wider uppercase">Audience Governance</span>
+              {/* Clean Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                <span className="text-[#7ee0d2] text-[11px] font-semibold tracking-wider uppercase">Voting Game Komunitas</span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 font-sans tracking-tight">
-                Cosmic{' '}
-                <span className="bg-gradient-to-r from-[#2DFFC2] to-[#9B6DFF] bg-clip-text text-transparent">
-                  Democracy
+                Pilih Game{' '}
+                <span className="bg-gradient-to-r from-[#7ee0d2] via-[#a78bfa] to-[#c084fc] bg-clip-text text-transparent">
+                  Selanjutnya
                 </span>
               </h1>
               <p className="text-[#A09BB8] text-sm max-w-xl leading-relaxed">
-                Pilih game yang ingin kamu tonton. Suara kamu menentukan live dan playthrough berikutnya.
+                Tentukan game yang akan dimainkan di sesi live streaming berikutnya. Setiap suara kamu berkontribusi langsung pada konten siaran.
               </p>
             </div>
 
-            {/* Period Info Card - Compact */}
-            <div className="bg-[#1A1730] border border-[#2A2645] rounded-xl p-4 min-w-[260px]">
+            {/* Period Info Card - Sleek Dark Theme */}
+            <div className="bg-[#141126] border border-white/10 rounded-xl p-4 min-w-[260px] shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-[#5C5878] uppercase tracking-wider">Periode</span>
+                <span className="text-[10px] font-mono text-[#8E8AAB] uppercase tracking-wider">Periode Aktif</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2DFFC2] animate-pulse" />
-                  <span className="text-[#2DFFC2] text-[10px] font-medium">Active</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                  <span className="text-[#7ee0d2] text-[10px] font-semibold">Berjalan</span>
                 </div>
               </div>
               
-              <div className="text-lg font-bold text-white font-mono mb-1">
+              <div className="text-base font-bold text-white mb-2">
                 {formatPeriodName(periodKey)}
               </div>
               
-              <div className="pt-3 border-t border-[#2A2645]">
+              <div className="pt-2.5 border-t border-white/5">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-[#2DFFC2] font-mono">
+                  <span className="text-2xl font-bold text-[#7ee0d2] font-mono">
                     {totalVotesGlobal.toLocaleString()}
                   </span>
-                  <span className="text-[#5C5878] text-xs">Suara</span>
+                  <span className="text-[#8E8AAB] text-xs">Total Suara</span>
                 </div>
               </div>
 
-              {/* Mini Stats */}
-              <div className="mt-3 flex gap-2">
-                <div className="flex-1 text-center p-1.5 rounded-lg bg-[#12102A]">
-                  <div className="text-sm font-bold text-[#F5A623] font-mono">{statusCounts.playing || 0}</div>
-                  <div className="text-[9px] text-[#5C5878] uppercase">Playing</div>
+              {/* Status Mini Badges */}
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="text-center p-1.5 rounded-lg bg-white/[0.03] border border-white/5">
+                  <div className="text-xs font-bold text-amber-300 font-mono">{statusCounts.playing || 0}</div>
+                  <div className="text-[9px] text-[#8E8AAB] uppercase">Playing</div>
                 </div>
-                <div className="flex-1 text-center p-1.5 rounded-lg bg-[#12102A]">
-                  <div className="text-sm font-bold text-[#2DFFC2] font-mono">{statusCounts.accepted || 0}</div>
-                  <div className="text-[9px] text-[#5C5878] uppercase">Accepted</div>
+                <div className="text-center p-1.5 rounded-lg bg-white/[0.03] border border-white/5">
+                  <div className="text-xs font-bold text-[#7ee0d2] font-mono">{statusCounts.accepted || 0}</div>
+                  <div className="text-[9px] text-[#8E8AAB] uppercase">Accepted</div>
                 </div>
-                <div className="flex-1 text-center p-1.5 rounded-lg bg-[#12102A]">
-                  <div className="text-sm font-bold text-[#C084FC] font-mono">{statusCounts.requested || 0}</div>
-                  <div className="text-[9px] text-[#5C5878] uppercase">Requested</div>
+                <div className="text-center p-1.5 rounded-lg bg-white/[0.03] border border-white/5">
+                  <div className="text-xs font-bold text-[#c084fc] font-mono">{statusCounts.requested || 0}</div>
+                  <div className="text-[9px] text-[#8E8AAB] uppercase">Requested</div>
                 </div>
               </div>
             </div>
@@ -559,17 +522,17 @@ function VotingPage() {
       </header>
 
       {/* ========== QUICK VOTE SECTION ========== */}
-      <section ref={quickVoteRef} className="px-4 sm:px-6 lg:px-12 py-6 bg-[#12102A] border-b border-[#2A2645]">
+      <section ref={quickVoteRef} className="px-4 sm:px-6 lg:px-12 py-6 bg-[#110e22] border-b border-white/5">
         <div className="max-w-[1280px] mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrophyIcon className="text-[#F5A623]" />
+              <TrophyIcon className="text-[#7ee0d2]" />
               <h2 className="text-sm font-bold text-white">Quick Vote</h2>
-              <span className="text-[10px] text-[#5C5878] bg-[#2A2645] px-2 py-0.5 rounded-full">Top 3</span>
+              <span className="text-[10px] text-[#8E8AAB] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full font-medium">Top 3</span>
             </div>
             <button 
               onClick={handleShare}
-              className="flex items-center gap-1.5 text-xs text-[#A09BB8] hover:text-[#2DFFC2] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#8E8AAB] hover:text-[#7ee0d2] transition-colors"
             >
               <ShareIcon />
               <span>Bagikan</span>
@@ -579,14 +542,15 @@ function VotingPage() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-[#1A1730] rounded-xl animate-pulse" />
+                <div key={i} className="h-20 bg-[#141126] rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : (
+          ) : topGames.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {topGames.map((game, index) => (
                 <QuickVoteCard
                   key={game.id}
+                  rank={index + 1}
                   game={game}
                   onVote={handleVote}
                   hasVoted={hasVoted(game.id, periodKey)}
@@ -594,44 +558,40 @@ function VotingPage() {
                 />
               ))}
             </div>
+          ) : (
+            <div className="py-6 px-4 rounded-xl bg-[#141126] border border-white/5 text-center flex flex-col items-center justify-center">
+              <p className="text-xs text-[#8E8AAB]">
+                Belum ada game aktif dalam nominasi voting cepat saat ini. Kamu dapat mengajukan usulan game baru melalui tombol Request Game di bawah.
+              </p>
+            </div>
           )}
         </div>
       </section>
 
-      {/* ========== QUICK REQUEST SECTION ========== */}
-      <section className="px-4 sm:px-6 lg:px-12 py-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1235 0%, #160e30 50%, #0f1a2e 100%)' }}>
-        {/* Animated background glows */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -left-20 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#9B6DFF] opacity-[0.06] blur-[80px]" />
-          <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#2DFFC2] opacity-[0.05] blur-[80px]" />
-        </div>
-        {/* Top border gradient line */}
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, #9B6DFF60, #2DFFC240, transparent)' }} />
-        {/* Bottom border gradient line */}
-        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, #9B6DFF40, #2DFFC230, transparent)' }} />
-
+      {/* ========== QUICK REQUEST SECTION (REPLACED AI SLOP LOGO WITH CLEAN GAMEPAD) ========== */}
+      <section className="px-4 sm:px-6 lg:px-12 py-5 relative overflow-hidden bg-gradient-to-r from-[#17142d] via-[#141226] to-[#121024] border-b border-white/5">
         <div className="max-w-[1280px] mx-auto relative">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             {/* Left: Icon + Text */}
-            <div className="flex items-center gap-4">
-              {/* Icon box */}
+            <div className="flex items-center gap-3.5">
+              {/* Icon box - Gamepad Icon */}
               <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #9B6DFF20, #2DFFC215)', border: '1px solid rgba(155,109,255,0.35)' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9B6DFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
-                  </svg>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 text-[#7ee0d2]">
+                  <GamepadIcon className="w-5 h-5" />
                 </div>
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#2DFFC2] border-2 border-[#0D0B1A]" />
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#7ee0d2] border-2 border-[#0D0B1A]" />
               </div>
 
               {/* Text group */}
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="text-base font-bold text-white tracking-tight">Request Game Baru</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-[#9B6DFF]" style={{ background: 'rgba(155,109,255,0.12)', border: '1px solid rgba(155,109,255,0.25)' }}>Open</span>
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">Ajukan Usulan Game Baru</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider text-[#7ee0d2] bg-[#7ee0d2]/10 border border-[#7ee0d2]/20">
+                    Buka
+                  </span>
                 </div>
-                <p className="text-xs text-[#7C7898] leading-relaxed max-w-sm">
-                  Tidak menemukan game favoritmu di daftar? Ajukan request dan biarkan komunitas memilih.
+                <p className="text-xs text-[#8E8AAB] leading-relaxed max-w-lg">
+                  Tidak menemukan game favoritmu? Kirim usulan game dan biarkan komunitas memberikan suara untuk sesi stream berikutnya.
                 </p>
               </div>
             </div>
@@ -639,49 +599,45 @@ function VotingPage() {
             {/* Right: CTA Button */}
             <button
               onClick={() => setShowRequestModal(true)}
-              className="group relative flex-shrink-0 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
-              style={{ background: 'linear-gradient(135deg, #9B6DFF, #7B4FE0)', boxShadow: '0 4px 20px rgba(155,109,255,0.35), inset 0 1px 0 rgba(255,255,255,0.1)' }}
+              className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-[#0a0718] bg-[#7ee0d2] hover:bg-[#7ee0d2]/90 transition-all duration-200 shadow-sm active:scale-95"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
+              <PlusIcon />
               <span>Request Game</span>
-              {/* Shine effect */}
-              <span className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
-                <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%)' }} />
-              </span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* ========== FILTER SECTION ========== */}
-      <section className="bg-[#12102A] border-b border-[#2A2645] px-4 sm:px-6 lg:px-12 py-3 sticky top-[60px] z-20 backdrop-blur-md">
+      {/* ========== FILTER SECTION (CLEAN PILL TABS) ========== */}
+      <section className="bg-[#121024]/95 border-b border-white/5 px-4 sm:px-6 lg:px-12 py-3 sticky top-[60px] z-20 backdrop-blur-md">
         <div className="max-w-[1280px] mx-auto">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-1.5">
-              {filterTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilter(tab.key)}
-                  className={`
-                    px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap
-                    ${filter === tab.key ? 'font-bold shadow-lg' : 'hover:bg-[#1A1730]'}
-                  `}
-                  style={{
-                    backgroundColor: filter === tab.key ? tab.color : 'transparent',
-                    color: filter === tab.key ? '#0D0B1A' : '#A09BB8',
-                    boxShadow: filter === tab.key ? `0 2px 10px ${tab.color}40` : 'none',
-                  }}
-                >
-                  {tab.highlight && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#F5A623] mr-1.5 animate-pulse" />
-                  )}
-                  {tab.label}
-                  <span className="ml-1 opacity-60">({statusCounts[tab.key] || 0})</span>
-                </button>
-              ))}
+              {filterTabs.map((tab) => {
+                const isActive = filter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setFilter(tab.key)}
+                    className={`
+                      px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 whitespace-nowrap flex items-center gap-1.5
+                      ${isActive
+                        ? 'bg-[#7ee0d2]/15 text-[#7ee0d2] border border-[#7ee0d2]/40 font-semibold shadow-xs'
+                        : 'bg-white/[0.03] text-[#8e8aab] hover:text-white hover:bg-white/[0.06] border border-white/5'
+                      }
+                    `}
+                  >
+                    {tab.highlight && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    )}
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] ${isActive ? 'text-[#7ee0d2]/80' : 'text-[#8e8aab]/60'}`}>
+                      ({statusCounts[tab.key] || 0})
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Search & Sort */}
@@ -690,22 +646,22 @@ function VotingPage() {
               <div className="relative" ref={searchRef}>
                 <input
                   type="text"
-                  placeholder="Cari game..."
+                  placeholder="Cari judul game..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setShowSearchResults(true);
                   }}
                   onFocus={() => setShowSearchResults(true)}
-                  className="w-full lg:w-56 pl-9 pr-3 py-2 bg-[#1A1730] border border-[#2A2645] rounded-lg text-xs text-white placeholder-[#5C5878] focus:border-[#2DFFC2] focus:outline-none transition-colors"
+                  className="w-full lg:w-56 pl-9 pr-3 py-2 bg-[#141126] border border-white/10 rounded-xl text-xs text-white placeholder-[#8E8AAB]/60 focus:border-[#7ee0d2]/50 focus:outline-none transition-colors"
                 />
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5C5878]">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8AAB]">
                   <SearchIcon />
                 </div>
                 
                 {/* Search Suggestions Dropdown */}
                 {showSearchResults && searchSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1730] border border-[#2A2645] rounded-lg overflow-hidden shadow-xl z-30">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#141126] border border-white/10 rounded-xl overflow-hidden shadow-xl z-30 divide-y divide-white/5">
                     {searchSuggestions.map((game) => (
                       <button
                         key={game.id}
@@ -713,14 +669,14 @@ function VotingPage() {
                           setSearchQuery(game.title);
                           setShowSearchResults(false);
                         }}
-                        className="w-full px-3 py-2 text-left hover:bg-[#2A2645] transition-colors flex items-center gap-2"
+                        className="w-full px-3.5 py-2.5 text-left hover:bg-white/[0.04] transition-colors flex items-center gap-2.5"
                       >
-                        <span className="text-sm">🎮</span>
+                        <GamepadIcon className="w-4 h-4 text-[#8E8AAB] flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-white truncate">{game.title}</p>
-                          <p className="text-[10px] text-[#5C5878]">{game.genre}</p>
+                          <p className="text-xs text-white truncate font-medium">{game.title}</p>
+                          <p className="text-[10px] text-[#8E8AAB]">{game.genre || 'Game'}</p>
                         </div>
-                        <span className="text-[10px] font-mono text-[#2DFFC2]">{game.votes} votes</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#7ee0d2]">{game.votes} suara</span>
                       </button>
                     ))}
                   </div>
@@ -731,11 +687,11 @@ function VotingPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="pl-3 pr-8 py-2 bg-[#1A1730] border border-[#2A2645] rounded-lg text-xs text-white focus:border-[#2DFFC2] focus:outline-none cursor-pointer appearance-none"
+                className="pl-3 pr-8 py-2 bg-[#141126] border border-white/10 rounded-xl text-xs text-white focus:border-[#7ee0d2]/50 focus:outline-none cursor-pointer appearance-none"
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239B97C0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238E8AAB'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
                   backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 8px center',
+                  backgroundPosition: 'right 10px center',
                   backgroundSize: '12px',
                 }}
               >
@@ -748,6 +704,7 @@ function VotingPage() {
           </div>
         </div>
       </section>
+
       {/* ========== GAME GRID ========== */}
       <section className="px-4 sm:px-6 lg:px-12 py-6 lg:py-8">
         <div className="max-w-[1280px] mx-auto">
@@ -762,22 +719,22 @@ function VotingPage() {
 
           {/* Error State */}
           {!loading && error && (
-            <div className="bg-[#1A1730] border border-[#2A2645] rounded-xl p-8 text-center">
-              <p className="text-[#A09BB8]">Data tidak tersedia</p>
+            <div className="bg-[#141126] border border-white/10 rounded-xl p-8 text-center">
+              <p className="text-[#8E8AAB]">{error}</p>
             </div>
           )}
 
           {/* Empty State */}
           {!loading && !error && filteredGames.length === 0 && (
-            <div className="bg-[#1A1730] border border-[#2A2645] rounded-xl p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#2A2645] flex items-center justify-center mx-auto mb-3">
-                <GamepadIcon className="w-6 h-6 text-[#8B5CF6]" />
+            <div className="bg-[#141126] border border-white/10 rounded-xl p-10 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 text-[#7ee0d2]">
+                <GamepadIcon className="w-6 h-6" />
               </div>
-              <p className="text-white font-semibold mb-1">
+              <p className="text-white font-semibold text-sm mb-1">
                 {searchQuery ? 'Game tidak ditemukan' : 'Belum ada game untuk voting'}
               </p>
-              <p className="text-[#5C5878] text-xs">
-                {searchQuery ? 'Coba kata kunci lain atau hapus filter' : 'Request game baru atau tunggu Creator'}
+              <p className="text-[#8E8AAB] text-xs">
+                {searchQuery ? 'Coba gunakan kata kunci lain atau reset filter' : 'Kamu bisa mengajukan request game baru di atas'}
               </p>
             </div>
           )}
@@ -787,12 +744,12 @@ function VotingPage() {
             <>
               {/* Info Bar */}
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-[#5C5878] text-xs">
-                  Menampilkan {filteredGames.length} dari {games.length} game
+                <p className="text-[#8E8AAB] text-xs">
+                  Menampilkan <span className="text-white font-medium">{filteredGames.length}</span> dari {games.length} game
                 </p>
-                <div className="flex items-center gap-2 text-[10px] text-[#5C5878]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2DFFC2] animate-pulse" />
-                  <span>Real-time sync</span>
+                <div className="flex items-center gap-2 text-[11px] text-[#8E8AAB]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                  <span>Real-time sync aktif</span>
                 </div>
               </div>
 
@@ -800,7 +757,7 @@ function VotingPage() {
                 {filteredGames.map((game) => (
                   <div
                     key={game.id}
-                    className="transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
+                    className="transform transition-all duration-200"
                   >
                     <GameCard
                       game={game}
@@ -819,7 +776,6 @@ function VotingPage() {
         </div>
       </section>
 
-
       {/* ========== FOOTER ========== */}
       <Footer />
 
@@ -827,14 +783,14 @@ function VotingPage() {
       <Modal
         isOpen={showConfirmModal}
         onClose={() => { setShowConfirmModal(false); setConfirmData(null); }}
-        title="Konfirmasi Vote"
-        confirmText="Ya, Vote Sekarang"
+        title="Konfirmasi Pilihan Suara"
+        confirmText="Ya, Beri Suara"
         variant="success"
         onConfirm={confirmVote}
       >
-        <p className="text-[#A09BB8] text-sm">
-          Kamu akan memberikan vote untuk game <span className="text-white font-semibold">"{confirmData?.title}"</span>.
-          Vote tidak bisa dibatalkan setelah dikirim.
+        <p className="text-[#8E8AAB] text-sm leading-relaxed">
+          Kamu akan memberikan 1 suara untuk <span className="text-white font-semibold">"{confirmData?.title}"</span>.
+          Pilihan suara kamu tidak dapat diubah setelah dikonfirmasi.
         </p>
       </Modal>
 
@@ -842,18 +798,19 @@ function VotingPage() {
       <Modal
         isOpen={showRequestSuccessModal}
         onClose={() => setShowRequestSuccessModal(false)}
-        title="Request Terkirim!"
-        confirmText="Selesai"
+        title="Request Berhasil Dikirim"
+        confirmText="Tutup"
         variant="success"
         onConfirm={() => setShowRequestSuccessModal(false)}
         showClose={false}
       >
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full bg-[#2DFFC2]/20 flex items-center justify-center mx-auto mb-3">
-            <span className="text-2xl">✓</span>
+        <div className="text-center py-2">
+          <div className="w-12 h-12 rounded-full bg-[#7ee0d2]/15 border border-[#7ee0d2]/30 flex items-center justify-center mx-auto mb-3 text-[#7ee0d2]">
+            <CheckCircleIcon className="w-6 h-6" />
           </div>
-          <p className="text-[#A09BB8] text-sm">
-            Request game kamu sudah tercatat. Game akan muncul di voting setelah dimoderasi oleh Creator.
+          <p className="text-white font-semibold text-sm mb-1">Terima Kasih atas Usulanmu!</p>
+          <p className="text-[#8E8AAB] text-xs leading-relaxed max-w-xs mx-auto">
+            Usulan game kamu telah tercatat dan akan ditinjau oleh Creator sebelum dibuka untuk voting komunitas.
           </p>
         </div>
       </Modal>
@@ -862,137 +819,58 @@ function VotingPage() {
       <Modal
         isOpen={showRequestModal}
         onClose={() => setShowRequestModal(false)}
-        title="Request Game Baru"
-        confirmText="Kirim Request"
+        title="Ajukan Usulan Game Baru"
+        confirmText="Kirim Usulan"
         variant="default"
         onConfirm={handleSubmitRequest}
         loading={submittingRequest}
       >
-        <form onSubmit={handleSubmitRequest} className="space-y-5">
-
-          {/* Header info bar */}
-          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(155,109,255,0.08)', border: '1px solid rgba(155,109,255,0.2)' }}>
-            <div className="flex-shrink-0 mt-0.5">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B6DFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-            </div>
-            <p className="text-[11px] text-[#9B97C0] leading-relaxed">
-              Request kamu akan ditinjau oleh Creator sebelum ditambahkan ke daftar voting publik. Satu request per sesi.
-            </p>
+        <form onSubmit={handleSubmitRequest} className="space-y-4">
+          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-[#8E8AAB] leading-relaxed">
+            Usulan game akan diverifikasi oleh Creator sebelum tampil di daftar voting publik.
           </div>
 
           {/* Game Title Input */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-[#A09BB8] uppercase tracking-widest mb-2">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-              </svg>
-              Judul Game <span className="text-[#9B6DFF]">*</span>
+            <label className="block text-xs font-semibold text-white mb-1.5">
+              Judul Game <span className="text-[#7ee0d2]">*</span>
             </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5C5878]">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={requestForm.title}
-                onChange={(e) => setRequestForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder="Contoh: Elden Ring, Hollow Knight, Silent Hill 2..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm text-white placeholder-[#5C5878] transition-all duration-200 focus:outline-none"
-                style={{
-                  background: 'rgba(26,23,48,0.8)',
-                  border: '1px solid rgba(42,38,69,1)',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.border = '1px solid rgba(155,109,255,0.6)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(155,109,255,0.1), inset 0 1px 3px rgba(0,0,0,0.3)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.border = '1px solid rgba(42,38,69,1)';
-                  e.currentTarget.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.3)';
-                }}
-                required
-              />
-            </div>
+            <input
+              type="text"
+              value={requestForm.title}
+              onChange={(e) => setRequestForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Contoh: Resident Evil 4, Hollow Knight, Elden Ring..."
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-[#8E8AAB]/50 bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors"
+              required
+            />
           </div>
 
-          {/* Genre Selection Grid */}
+          {/* Genre Selection */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-[#A09BB8] uppercase tracking-widest mb-2">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 6h16M4 12h8m-8 6h16"/>
-              </svg>
-              Genre <span className="text-[#5C5878] font-normal normal-case tracking-normal ml-1">(opsional)</span>
+            <label className="block text-xs font-semibold text-white mb-1.5">
+              Genre <span className="text-[#8E8AAB] font-normal">(opsional)</span>
             </label>
-
-            {/* Genre pill buttons */}
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-1.5">
               {['Action', 'Adventure', 'RPG', 'Horror', 'Survival', 'Simulation', 'Indie', 'Lainnya'].map((genre) => (
                 <button
                   key={genre}
                   type="button"
                   onClick={() => setRequestForm((p) => ({ ...p, genre: p.genre === genre ? '' : genre }))}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-                  style={
-                    requestForm.genre === genre
-                      ? {
-                          background: 'linear-gradient(135deg, #9B6DFF, #7B4FE0)',
-                          color: '#fff',
-                          border: '1px solid transparent',
-                          boxShadow: '0 2px 10px rgba(155,109,255,0.4)',
-                        }
-                      : {
-                          background: 'rgba(26,23,48,0.6)',
-                          color: '#9B97C0',
-                          border: '1px solid rgba(42,38,69,0.8)',
-                        }
-                  }
+                  className={`
+                    px-3 py-1 rounded-lg text-xs transition-all duration-150
+                    ${requestForm.genre === genre
+                      ? 'bg-[#7ee0d2] text-[#0a0718] font-semibold shadow-xs'
+                      : 'bg-white/5 text-[#8E8AAB] hover:text-white border border-white/5'
+                    }
+                  `}
                 >
                   {genre}
                 </button>
               ))}
             </div>
-
-            {/* Hidden select for form value */}
-            <select
-              value={requestForm.genre}
-              onChange={(e) => setRequestForm((p) => ({ ...p, genre: e.target.value }))}
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden="true"
-            >
-              <option value="">Pilih Kategori...</option>
-              <option value="Action">Action</option>
-              <option value="Adventure">Adventure</option>
-              <option value="RPG">RPG</option>
-              <option value="Horror">Horror</option>
-              <option value="Survival">Survival</option>
-              <option value="Simulation">Simulation</option>
-              <option value="Indie">Indie</option>
-              <option value="Lainnya">Lainnya</option>
-            </select>
           </div>
-
-
-          {/* Disclaimer */}
-          <div className="flex items-center gap-2 pt-1">
-            <div className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(45,255,194,0.15)', border: '1px solid rgba(45,255,194,0.3)' }}>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2DFFC2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </div>
-            <p className="text-[10px] text-[#5C5878] leading-relaxed">
-              Setelah dimoderasi, game akan muncul di daftar voting dan komunitas bisa mulai vote.
-            </p>
-          </div>
-
         </form>
       </Modal>
-
     </div>
   );
 }
