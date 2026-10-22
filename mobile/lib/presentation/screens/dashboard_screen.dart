@@ -11,6 +11,7 @@ import '../providers/todo_provider.dart';
 import '../providers/schedule_provider.dart';
 import '../providers/game_provider.dart';
 import '../providers/audit_log_provider.dart';
+import '../providers/youtube_provider.dart';
 import '../widgets/countdown_widget.dart';
 import '../widgets/stat_card.dart';
 import 'schedule_screen.dart';
@@ -31,10 +32,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool _isBroadcasting = false;
   bool _isLoadingBroadcast = false;
 
-  // Set untuk mencatat tab mana saja yang sudah pernah dibuka (Lazy Loading)
   final Set<int> _visitedTabs = {0};
 
-  // Controller animasi pulsing halus untuk indikator Live ON AIR
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
 
@@ -58,7 +57,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     super.dispose();
   }
 
-  // Floating Toast Notification yang modern, rounded, dan melayang di atas navigasi
   void _showFloatingToast(
     BuildContext context, {
     required String message,
@@ -117,7 +115,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Sinkronkan toggle siaran dengan data live yang masuk dari scheduleProvider
     ref.listen(scheduleProvider, (previous, next) {
       final isAnyLive = next.schedules.any((s) => s.status.toLowerCase() == 'live');
       if (mounted && _isBroadcasting != isAnyLive) {
@@ -224,7 +221,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
         actions: [
-          // Touch Target 44x44 dp: Refresh Button
           SizedBox(
             width: 44,
             height: 44,
@@ -237,6 +233,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ref.read(scheduleProvider.notifier).fetchSchedules();
                 ref.read(gameProvider.notifier).loadAllData();
                 ref.read(auditLogProvider.notifier).fetchLogs();
+                ref.read(youtubeProvider.notifier).fetchStats();
                 _showFloatingToast(
                   context,
                   message: 'Data dashboard berhasil diperbarui',
@@ -246,7 +243,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               },
             ),
           ),
-          // Touch Target 44x44 dp: Logout Button
           SizedBox(
             width: 44,
             height: 44,
@@ -325,7 +321,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           const SizedBox(width: 4),
         ],
       ),
-      // Lazy IndexedStack: Hanya render widget yang tab-nya sudah pernah dibuka
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -379,6 +374,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final todoState = ref.watch(todoProvider);
     final scheduleState = ref.watch(scheduleProvider);
     final gameState = ref.watch(gameProvider);
+    final ytState = ref.watch(youtubeProvider);
 
     final upcomingSchedules = scheduleState.schedules
         .where((s) => s.status.toLowerCase() == 'upcoming')
@@ -408,6 +404,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     final pendingTasksList = todoState.todos.where((t) => !t.isCompleted).take(3).toList();
 
+    final subText = ytState.stats?.formattedSubscribers ?? '4,61 rb';
+    final videoCountText = ytState.stats != null ? '${ytState.stats!.totalVideos} Video' : '703 Video';
+
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
@@ -416,6 +415,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ref.read(scheduleProvider.notifier).fetchSchedules(),
           ref.read(gameProvider.notifier).loadAllData(),
           ref.read(auditLogProvider.notifier).fetchLogs(),
+          ref.read(youtubeProvider.notifier).fetchStats(),
         ]);
         if (mounted) {
           _showFloatingToast(
@@ -433,11 +433,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. BROADCASTING LIVE CARD (Dengan Micro-UX Pulsing Dot & Soft Glow)
             _buildBroadcastingCard(isDark),
             const SizedBox(height: 16),
 
-            // 2. COUNTDOWN WIDGET
             CountdownWidget(
               schedules: scheduleState.schedules,
               targetDate: nextStream?.scheduledAt,
@@ -448,7 +446,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             const SizedBox(height: 16),
 
-            // 3. STAT CARDS GRID (ChildAspectRatio 1.35 untuk bebas overflow 1080p)
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -457,6 +454,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               mainAxisSpacing: 12,
               childAspectRatio: 1.35,
               children: [
+                StatCard(
+                  title: 'SUBSCRIBERS',
+                  value: subText,
+                  icon: Icons.play_circle_fill,
+                  iconColor: AppColors.red(isDark),
+                  badgeText: 'YOUTUBE',
+                ),
                 StatCard(
                   title: 'TOTAL VOTES',
                   value: totalVotes.toString(),
@@ -485,11 +489,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   iconColor: urgentTasksCount > 0 ? AppColors.red(isDark) : AppColors.emerald(isDark),
                   badgeText: urgentTasksCount > 0 ? 'ATTENTION' : 'CLEAR',
                 ),
+                StatCard(
+                  title: 'TOTAL VIDEOS',
+                  value: videoCountText,
+                  icon: LucideIcons.video,
+                  iconColor: AppColors.accentPurple,
+                  badgeText: 'CONTENT',
+                ),
               ],
             ),
             const SizedBox(height: 16),
 
-            // 4. INTERNAL TASKS SECTION (Touch Area Min 44x44 dp & Taktil)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -534,7 +544,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           ),
                         ],
                       ),
-                      // Touch Target Minimum 44x44 dp untuk tombol "Lihat Semua"
                       InkWell(
                         borderRadius: BorderRadius.circular(8),
                         onTap: () {
@@ -637,7 +646,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             const SizedBox(height: 16),
 
-            // 5. AKTIVITAS TERKINI (Audit Logs Preview)
             _buildAuditLogsSection(isDark),
             const SizedBox(height: 24),
           ],
@@ -646,7 +654,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // BROADCASTING LIVE CARD WIDGET
   Widget _buildBroadcastingCard(bool isDark) {
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
@@ -683,7 +690,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Expanded(
             child: Row(
               children: [
-                // Animated Pulsing Beacon Dot saat Live vs Static Dot saat Off
                 if (_isBroadcasting)
                   AnimatedBuilder(
                     animation: _pulseAnimation,
@@ -901,7 +907,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // AKTIVITAS TERKINI (Audit Logs) Section
   Widget _buildAuditLogsSection(bool isDark) {
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
@@ -938,7 +943,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ],
               ),
-              // Touch Target 44x44 dp: Refresh Log
               SizedBox(
                 width: 44,
                 height: 44,

@@ -25,4 +25,5 @@ class Env {
   ];
 
   static const String firebaseDatabaseUrl = 'https://xvoca-project.firebaseio.com';
+  
 }
