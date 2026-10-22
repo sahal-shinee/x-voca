@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getContent, createContent, updateContent, deleteContent, toggleContentVisibility, toggleContentFeatured } from '../../services/contentService';
 import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
@@ -44,6 +44,8 @@ const SORT_OPTIONS = [
 function ContentManagementPage() {
   const toast = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
+  const prefillProcessedRef = useRef(false);
 
   // Stats state
   const [stats, setStats] = useState({
@@ -73,10 +75,12 @@ function ContentManagementPage() {
   const [editingContent, setEditingContent] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Check if routed with prefilled schedule data from SchedulePage
+  // Check if routed with prefilled schedule data from SchedulePage (runs strictly once)
   useEffect(() => {
-    if (location.state?.prefillSchedule) {
+    if (location.state?.prefillSchedule && !prefillProcessedRef.current) {
+      prefillProcessedRef.current = true;
       const p = location.state.prefillSchedule;
+
       setEditingContent({
         isNew: true,
         title: p.title || '',
@@ -92,9 +96,11 @@ function ContentManagementPage() {
       });
       setFormPanelOpen(true);
       toast.success(`Data siaran "${p.title}" berhasil dimuat ke formulir Content Guide.`);
-      window.history.replaceState({}, document.title);
+
+      // Cleanly clear React Router state so refresh or back navigation won't re-trigger
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, toast]);
+  }, [location.state, location.pathname, navigate]);
 
   // Delete confirmation state
   const [deleteModal, setDeleteModal] = useState({ open: false, content: null });

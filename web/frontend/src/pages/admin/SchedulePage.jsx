@@ -285,27 +285,27 @@ function SchedulePage() {
     setEndStreamModal({ open: false, schedule: null });
   };
 
-  // Handle Convert to Content Guide
-  const handleConvertClick = (schedule) => {
-    setConvertModal({ open: true, schedule, isPostEndStream: false });
+  // Handle direct navigation to Content Guide with prefill
+  const handleDirectConvertToContent = (schedule) => {
+    if (!schedule) return;
+    navigate('/admin/content', {
+      state: {
+        prefillSchedule: {
+          title: schedule.title || '',
+          game_tag: schedule.game_category || 'Gaming',
+          youtube_url: schedule.youtube_url || '',
+          thumbnail_url: schedule.thumbnail_url || '',
+          total_duration: schedule.estimated_duration || '2-3 Jam',
+        }
+      }
+    });
   };
 
   const handleConvertConfirm = () => {
     if (!convertModal.schedule) return;
     const s = convertModal.schedule;
     setConvertModal({ open: false, schedule: null, isPostEndStream: false });
-
-    navigate('/admin/content', {
-      state: {
-        prefillSchedule: {
-          title: s.title || '',
-          game_tag: s.game_category || 'Gaming',
-          youtube_url: s.youtube_url || '',
-          thumbnail_url: s.thumbnail_url || '',
-          total_duration: s.estimated_duration || '2-3 Jam',
-        }
-      }
-    });
+    handleDirectConvertToContent(s);
   };
 
   const handleConvertCancel = () => {
@@ -523,7 +523,7 @@ function SchedulePage() {
                 <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-32">KATEGORI</th>
                 <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-48">TANGGAL & WAKTU</th>
                 <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-28">STATUS</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-28">AKSI</th>
+                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider min-w-[210px]">AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -601,48 +601,51 @@ function SchedulePage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {/* End Stream Button - Only for LIVE schedules */}
                           {isLive && (
                             <button
                               onClick={() => handleEndStreamClick(schedule)}
-                              className="p-2 text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors"
                               title="Akhiri Siaran"
                             >
-                              <Power className="w-4 h-4" />
+                              <Power className="w-3.5 h-3.5" />
+                              <span>Akhiri</span>
                             </button>
                           )}
-                          {/* Jadikan Content Guide - Only for completed / archived schedules */}
+                          {/* Jadikan Content Guide - Prominent, Clear, User Friendly Button */}
                           {(schedule.status === 'done' || schedule.status === 'archived') && (
                             <button
-                              onClick={() => handleConvertClick(schedule)}
-                              className="p-2 text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
-                              title="Jadikan Content Guide"
+                              type="button"
+                              onClick={() => handleDirectConvertToContent(schedule)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap"
+                              title="Buat Content Guide dari siaran ini"
                             >
-                              <BookPlus className="w-4 h-4" />
+                              <BookPlus className="w-3.5 h-3.5" />
+                              <span>+ Content Guide</span>
                             </button>
                           )}
                           {/* Preview */}
                           <button
                             onClick={() => handlePreview(schedule)}
-                            className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
-                            title="Preview"
+                            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
+                            title="Preview Detail Siaran"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           {/* Edit */}
                           <button
                             onClick={() => handleEditSchedule(schedule)}
-                            className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
-                            title="Edit"
+                            className="p-1.5 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
+                            title="Edit Jadwal"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           {/* Delete */}
                           <button
                             onClick={() => handleDeleteClick(schedule)}
-                            className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
-                            title="Hapus"
+                            className="p-1.5 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
+                            title="Hapus Jadwal"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -873,6 +876,31 @@ function SchedulePage() {
                     <span>Buka YouTube</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
+                </div>
+              )}
+
+              {/* Conversion to Content Guide Banner for Completed Streams */}
+              {(s.status === 'done' || s.status === 'archived') && (
+                <div className="p-3.5 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div>
+                    <p className="text-xs font-bold text-accent-cyan uppercase tracking-wider font-mono">
+                      Siaran Telah Selesai
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Tambahkan rekaman siaran ini langsung ke Content Guide.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewModal({ open: false, schedule: null });
+                      handleDirectConvertToContent(s);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent-cyan text-bg-base text-xs font-bold font-mono tracking-wider uppercase hover:bg-accent-cyan/90 transition-all shadow-sm shrink-0"
+                  >
+                    <BookPlus className="w-4 h-4" />
+                    <span>Jadikan Content Guide</span>
+                  </button>
                 </div>
               )}
 

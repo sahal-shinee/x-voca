@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 
 /**
  * Toast Context - untuk global toast notifications
@@ -8,9 +8,18 @@ const ToastContext = createContext(null);
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = 'info', duration = 4000) => {
+  const addToast = useCallback((message, type = 'info', duration = 3500) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
+
+    setToasts((prev) => {
+      // Prevent duplicate identical message stacking
+      if (prev.some((t) => t.message === message)) {
+        return prev;
+      }
+      // Keep at most 3 active toasts
+      const next = [...prev, { id, message, type }];
+      return next.slice(-3);
+    });
 
     if (duration > 0) {
       setTimeout(() => {
@@ -31,8 +40,18 @@ export function ToastProvider({ children }) {
   const warning = useCallback((message, duration) => addToast(message, 'warning', duration), [addToast]);
   const info = useCallback((message, duration) => addToast(message, 'info', duration), [addToast]);
 
+  const contextValue = useMemo(() => ({
+    toasts,
+    addToast,
+    removeToast,
+    success,
+    error,
+    warning,
+    info
+  }), [toasts, addToast, removeToast, success, error, warning, info]);
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
