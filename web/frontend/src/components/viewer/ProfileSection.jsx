@@ -263,12 +263,27 @@ const ProfileSection = () => {
         @keyframes ab-eq { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
         @keyframes ab-drift { from { transform: translate(0,0) scale(1); } to { transform: translate(4%,-6%) scale(1.1); } }
         @keyframes ab-drift-rev { from { transform: translate(0,0) scale(1.05); } to { transform: translate(-5%,4%) scale(1); } }
+        @keyframes xion-breathe {
+          0%, 100% { transform: translateY(0px) scale(1.15); }
+          50% { transform: translateY(-8px) scale(1.20); }
+        }
+        @keyframes orbit-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer-sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(250%); }
+        }
+        .xion-float { animation: xion-breathe 4.5s ease-in-out infinite; }
+        .orbit-spin { animation: orbit-spin 22s linear infinite; }
+        .shimmer-bar { animation: shimmer-sweep 2.5s ease-in-out infinite; }
         .ab-spin { animation: ab-spin 50s linear infinite; }
         .ab-eq { animation: ab-eq 1s ease-in-out infinite; }
         .ab-drift { animation: ab-drift 20s ease-in-out infinite alternate; }
         .ab-drift-rev { animation: ab-drift-rev 24s ease-in-out infinite alternate; }
         @media (prefers-reduced-motion: reduce) {
-          .ab-spin, .ab-eq, .ab-drift, .ab-drift-rev { animation: none !important; }
+          .ab-spin, .ab-eq, .ab-drift, .ab-drift-rev, .xion-float, .orbit-spin, .shimmer-bar { animation: none !important; }
         }
       `}</style>
 
@@ -291,9 +306,9 @@ const ProfileSection = () => {
       <div className="max-w-[960px] mx-auto relative">
         {/* Section Tag */}
         <div ref={headerRef} className={`flex justify-center mb-3 transition-all duration-700 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[rgba(192,132,252,0.1)] border border-[rgba(192,132,252,0.2)]">
-            <span className="text-[#c084fc] text-xs">✦</span>
-            <span className="font-bold text-[#c084fc] text-[11px] tracking-wider uppercase font-sans">ABOUT XION</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+            <span className="font-semibold text-white/90 text-[11px] tracking-wider uppercase font-mono">ABOUT XION</span>
           </div>
         </div>
 
@@ -307,7 +322,7 @@ const ProfileSection = () => {
 
           {/* Card 1: Logo Xion — Visual Identity (4 cols) */}
           <div className="lg:col-span-4 flex flex-col rounded-2xl p-px bg-[rgba(61,53,96,0.6)] relative overflow-hidden group">
-            <div className="relative bg-[#191432] rounded-[15px] p-7 flex flex-col items-center justify-center h-full overflow-hidden gap-6">
+            <div className="relative bg-[#191432] rounded-[15px] p-7 flex flex-col items-center justify-between h-full overflow-hidden gap-6 min-h-[360px]">
               <Bracket pos="tl" />
               <Bracket pos="tr" />
               <Bracket pos="bl" />
@@ -317,18 +332,37 @@ const ProfileSection = () => {
               <div
                 aria-hidden="true"
                 className="absolute inset-[10%] rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(126,224,210,0.10) 0%, rgba(192,132,252,0.07) 50%, transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, rgba(126,224,210,0.14) 0%, rgba(192,132,252,0.08) 50%, transparent 70%)' }}
               />
 
-              {/* Logo with parallax tilt */}
+              {/* Top telemetry status */}
+              <div className="w-full flex items-center justify-between z-10">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#7ee0d2]">SANCTUARY OPS</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0e0924]/80 backdrop-blur-sm border border-white/[0.08]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                  <span className="font-medium text-[#a89ec0] text-[10px] tracking-wider uppercase font-mono">TELEM: OPTIMAL</span>
+                </div>
+              </div>
+
+              {/* Logo with parallax tilt & breathing float & orbital ring */}
               <div
                 ref={frameRef}
-                className="relative w-full max-w-[200px] sm:max-w-[210px] cursor-default"
+                className="relative w-full max-w-[270px] sm:max-w-[300px] flex items-center justify-center cursor-pointer group/logo my-auto py-4"
                 onMouseMove={handleFrameMove}
                 onMouseLeave={handleFrameLeave}
                 style={{ '--tx': 0, '--ty': 0 }}
               >
+                {/* Holographic orbital ring */}
                 <div
+                  aria-hidden="true"
+                  className="orbit-spin absolute w-[210px] h-[210px] sm:w-[230px] sm:h-[230px] rounded-full border border-dashed border-[#7ee0d2]/25 pointer-events-none"
+                >
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#7ee0d2] shadow-[0_0_8px_#7ee0d2]" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#7ee0d2]/60" />
+                </div>
+
+                <div
+                  className="xion-float relative z-10"
                   style={{
                     transform: 'perspective(500px) rotateY(calc(var(--tx, 0) * 1deg)) rotateX(calc(var(--ty, 0) * -1deg))',
                     transition: 'transform 0.35s ease-out',
@@ -338,13 +372,13 @@ const ProfileSection = () => {
                     src={logoXion}
                     alt="Logo Xion Regalia"
                     draggable={false}
-                    className="w-full h-auto object-contain select-none drop-shadow-[0_4px_28px_rgba(126,224,210,0.25)]"
+                    className="w-full h-auto object-contain select-none drop-shadow-[0_8px_36px_rgba(126,224,210,0.35)] transition-transform duration-300 group-hover/logo:scale-105"
                   />
                 </div>
               </div>
 
               {/* Real-time stream status badge */}
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0e0924]/90 backdrop-blur-md border border-white/10 shadow-lg">
+              <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#0e0924]/90 backdrop-blur-md border border-white/10 shadow-lg z-10">
                 {streamBadge.type === 'live' ? (
                   <>
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -369,12 +403,6 @@ const ProfileSection = () => {
                     <span className="font-semibold text-[#a89ec0] text-[10px] tracking-wider uppercase font-mono">{streamBadge.label}</span>
                   </>
                 )}
-              </div>
-
-              {/* Telemetry corner label */}
-              <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0e0924]/80 backdrop-blur-sm border border-white/[0.08]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
-                <span className="font-medium text-[#a89ec0] text-[10px] tracking-wider uppercase font-mono">TELEM: OPTIMAL</span>
               </div>
             </div>
           </div>
@@ -405,30 +433,39 @@ const ProfileSection = () => {
 
                 {/* Stats Grid: Total Sesi, Total Video, Debut */}
                 <div ref={statsRef} className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#fbbf24]/50 transition-colors">
-                    <p className="text-[#fbbf24] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
+                    <p className="text-[#fbbf24] text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       {subsCount >= 1000
                         ? `${(subsCount / 1000).toFixed(subsCount >= 10000 ? 0 : 1)}K`
                         : subsCount}
                     </p>
                     <p className="text-white text-xs font-semibold">Subscribers</p>
-                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">YouTube · Live</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] animate-pulse" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono">YouTube · Live</p>
+                    </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/50 transition-colors">
-                    <p className="text-[#7ee0d2] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
+                    <p className="text-[#7ee0d2] text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       {videosCount}
                     </p>
                     <p className="text-white text-xs font-semibold">Total Video</p>
-                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">YouTube · Arsip</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono">YouTube · Arsip</p>
+                    </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#c084fc]/50 transition-colors">
-                    <p className="text-[#c084fc] text-xl lg:text-2xl font-bold font-display leading-none mb-1">
+                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
+                    <p className="text-[#c084fc] text-xl lg:text-2xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       8 Feb
                     </p>
                     <p className="text-white text-xs font-semibold">Tanggal Debut</p>
-                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">{activeDaysCount} Hari Mengudara</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc]" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono">{activeDaysCount} Hari Mengudara</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -452,12 +489,17 @@ const ProfileSection = () => {
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-label={`Progress menuju ${MILESTONE.toLocaleString('id-ID')} subscribers`}
-                        className="h-2 rounded-full bg-[#120e26] overflow-hidden p-0.5 border border-white/5"
+                        className="relative h-2.5 rounded-full bg-[#120e26] overflow-hidden p-0.5 border border-white/10"
                       >
                         <div
-                          className="h-full rounded-full transition-all duration-1000"
+                          className="relative h-full rounded-full transition-all duration-1000 overflow-hidden"
                           style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #7ee0d2, #c084fc)' }}
-                        />
+                        >
+                          <div
+                            aria-hidden="true"
+                            className="shimmer-bar absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
+                          />
+                        </div>
                       </div>
                     </>
                   );

@@ -166,14 +166,16 @@ const TopNav = () => {
           {/* Logo & Brand */}
           <Link
             to="/"
-            className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
+            className="flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
             onClick={() => setIsMenuOpen(false)}
           >
-            <img
-              src={logoXion}
-              alt="Xion Regalia Logo"
-              className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-            />
+            <div className="relative flex items-center justify-center">
+              <img
+                src={logoXion}
+                alt="Xion Regalia Logo"
+                className="h-12 sm:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-110 drop-shadow-[0_2px_14px_rgba(126,224,210,0.25)]"
+              />
+            </div>
             <span className="font-bold text-white text-lg sm:text-[22px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
               X-VOCA
             </span>
