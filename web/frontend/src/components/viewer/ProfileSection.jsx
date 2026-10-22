@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import logoXion from '../../assets/logo_xion.png';
 import { useNextSchedule, useBroadcastingStatus } from '../../hooks/useFirebase';
-import { getSchedules } from '../../services/scheduleService';
 import { getContent } from '../../services/contentService';
+import { getYoutubeStats } from '../../services/youtubeService';
 
 // ========== ICONS ==========
 
@@ -167,18 +167,27 @@ const ProfileSection = () => {
   // Real-time hooks from Firebase & Database
   const { schedule: nextSchedule } = useNextSchedule();
   const { isLive } = useBroadcastingStatus();
-  const [totalSessions, setTotalSessions] = useState(0);
+  const [subscriberCount, setSubscriberCount] = useState(0);
   const [totalVideos, setTotalVideos] = useState(0);
 
-  // Fetch schedule count from DB
+  // Fetch YouTube subscriber count from backend proxy (public, cached 5 min)
   useEffect(() => {
-    getSchedules({ limit: 50 })
-      .then((res) => {
-        const list = res?.data || res || [];
-        const arr = Array.isArray(list) ? list : list?.schedules || list?.data || [];
-        if (arr.length > 0) setTotalSessions(arr.length);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    const fetchStats = () => {
+      getYoutubeStats()
+        .then((data) => {
+          if (!cancelled && data?.subscriberCount != null) {
+            setSubscriberCount(data.subscriberCount);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 5 * 60 * 1000); // re-fetch every 5 min
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   // Fetch total video count from ContentGuide
@@ -194,7 +203,7 @@ const ProfileSection = () => {
   // Days since debut — calculated dynamically
   const totalActiveDays = Math.max(0, Math.floor((new Date() - DEBUT_DATE) / (1000 * 60 * 60 * 24)));
   const activeDaysCount = useCountUp(totalActiveDays, 1500, statsVisible);
-  const sessionsCount = useCountUp(totalSessions, 1200, statsVisible);
+  const subsCount = useCountUp(subscriberCount, 1400, statsVisible);
   const videosCount = useCountUp(totalVideos, 1400, statsVisible);
 
   // Real-time next stream badge
@@ -393,10 +402,12 @@ const ProfileSection = () => {
                 <div ref={statsRef} className="grid grid-cols-3 gap-3 mb-6">
                   <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#fbbf24]/50 transition-colors">
                     <p className="text-[#fbbf24] text-2xl lg:text-3xl font-bold font-display leading-none mb-1">
-                      {sessionsCount}
+                      {subsCount >= 1000
+                        ? `${(subsCount / 1000).toFixed(subsCount >= 10000 ? 0 : 1)}K`
+                        : subsCount}
                     </p>
-                    <p className="text-white text-xs font-semibold">Sesi Siaran</p>
-                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">Database X-VOCA</p>
+                    <p className="text-white text-xs font-semibold">Subscribers</p>
+                    <p className="text-[#a89ec0] text-[10px] font-mono mt-0.5">YouTube · Live</p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/50 transition-colors">
@@ -417,27 +428,35 @@ const ProfileSection = () => {
                 </div>
               </div>
 
-              {/* Stargazer Milestone Progress */}
+              {/* Stargazer Milestone Progress — driven by real-time YouTube subscriber count */}
               <div className="pt-4 border-t border-white/[0.08]">
-                <div className="flex items-center justify-between mb-2 font-mono">
-                  <span className="text-[#a89ec0] text-[11px] font-semibold tracking-wider uppercase">
-                    Komunitas Stargazer Milestone · 5.000
-                  </span>
-                  <span className="text-[#7ee0d2] text-xs font-bold font-mono">93%</span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-valuenow={93}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Progress menuju 5000 stargazers"
-                  className="h-2 rounded-full bg-[#120e26] overflow-hidden p-0.5 border border-white/5"
-                >
-                  <div
-                    className="h-full rounded-full transition-all duration-1000"
-                    style={{ width: '93%', background: 'linear-gradient(90deg, #7ee0d2, #c084fc)' }}
-                  />
-                </div>
+                {(() => {
+                  const MILESTONE = 5000;
+                  const pct = Math.min(100, Math.round((subscriberCount / MILESTONE) * 100));
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-2 font-mono">
+                        <span className="text-[#a89ec0] text-[11px] font-semibold tracking-wider uppercase">
+                          Stargazer Milestone · {MILESTONE.toLocaleString('id-ID')}
+                        </span>
+                        <span className="text-[#7ee0d2] text-xs font-bold font-mono">{pct}%</span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Progress menuju ${MILESTONE.toLocaleString('id-ID')} subscribers`}
+                        className="h-2 rounded-full bg-[#120e26] overflow-hidden p-0.5 border border-white/5"
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-1000"
+                          style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #7ee0d2, #c084fc)' }}
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
