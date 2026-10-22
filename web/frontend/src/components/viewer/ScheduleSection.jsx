@@ -524,17 +524,17 @@ const ScheduleSection = () => {
               </p>
             </div>
 
-            {/* Schedule Counter Pill */}
-            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto backdrop-blur-md">
-              <div>
-                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Sesi Mendatang</p>
-                <p className="text-2xl font-bold text-white font-display">{schedules.length}</p>
-              </div>
-              <div className="pl-4 border-l border-white/10">
-                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi</p>
-                <p className="text-2xl font-bold text-accent-cyan font-display">±{totalBroadcastHours} Jam</p>
-              </div>
-              {schedules.length > 0 && (
+            {/* Schedule Counter Pill - Only shown when schedules exist */}
+            {schedules.length > 0 && (
+              <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto backdrop-blur-md">
+                <div>
+                  <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Sesi Mendatang</p>
+                  <p className="text-2xl font-bold text-white font-display">{schedules.length}</p>
+                </div>
+                <div className="pl-4 border-l border-white/10">
+                  <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi</p>
+                  <p className="text-2xl font-bold text-accent-cyan font-display">±{totalBroadcastHours} Jam</p>
+                </div>
                 <div className="flex gap-1.5 pl-3 border-l border-white/10 hidden md:flex">
                   {schedules.slice(0, 5).map((s) => (
                     <span
@@ -545,50 +545,52 @@ const ScheduleSection = () => {
                     />
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Timeline Bar & Navigation Controls */}
-        <div className="flex items-center justify-between gap-4 mb-6 px-1">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-accent-cyan" />
-            <span className="font-mono text-xs text-[#a89ec0] uppercase tracking-wider">
-              Zona Waktu: Asia/Jakarta (WIB)
-            </span>
-          </div>
-
-          {/* Navigation buttons: only shown if there are multiple cards */}
-          {schedules.length > 2 && (
+        {/* Timeline Bar & Navigation Controls - Only shown when schedules exist */}
+        {schedules.length > 0 && (
+          <div className="flex items-center justify-between gap-4 mb-6 px-1">
             <div className="flex items-center gap-2">
-              <button
-                onClick={scrollLeft}
-                disabled={!canScrollLeft}
-                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
-                  canScrollLeft
-                    ? 'bg-[#1b1536] border-[#3d3560] hover:border-accent-purple/50 text-white hover:bg-[#251e48]'
-                    : 'bg-white/[0.02] border-white/5 text-white/20 cursor-not-allowed'
-                }`}
-                aria-label="Geser kiri"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={scrollRight}
-                disabled={!canScrollRight}
-                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
-                  canScrollRight
-                    ? 'bg-[#1b1536] border-[#3d3560] hover:border-accent-purple/50 text-white hover:bg-[#251e48]'
-                    : 'bg-white/[0.02] border-white/5 text-white/20 cursor-not-allowed'
-                }`}
-                aria-label="Geser kanan"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <Clock className="w-4 h-4 text-accent-cyan" />
+              <span className="font-mono text-xs text-[#a89ec0] uppercase tracking-wider">
+                Zona Waktu: Asia/Jakarta (WIB)
+              </span>
             </div>
-          )}
-        </div>
+
+            {/* Navigation buttons: only shown if there are multiple cards */}
+            {schedules.length > 2 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={scrollLeft}
+                  disabled={!canScrollLeft}
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    canScrollLeft
+                      ? 'bg-[#1b1536] border-[#3d3560] hover:border-accent-purple/50 text-white hover:bg-[#251e48]'
+                      : 'bg-white/[0.02] border-white/5 text-white/20 cursor-not-allowed'
+                  }`}
+                  aria-label="Geser kiri"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={scrollRight}
+                  disabled={!canScrollRight}
+                  className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    canScrollRight
+                      ? 'bg-[#1b1536] border-[#3d3560] hover:border-accent-purple/50 text-white hover:bg-[#251e48]'
+                      : 'bg-white/[0.02] border-white/5 text-white/20 cursor-not-allowed'
+                  }`}
+                  aria-label="Geser kanan"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Cards Area */}
         <div className="relative">
@@ -611,59 +613,39 @@ const ScheduleSection = () => {
               </>
             )}
 
-            {/* Modern Standby / Empty State */}
+            {/* Clean, Professional Standby State */}
             {!loading && schedules.length === 0 && (
-              <div className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/[0.08] p-8 sm:p-12 text-center shadow-2xl backdrop-blur-md">
-                {/* Background decorative ambient lights */}
-                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-40 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-24 right-1/4 w-60 h-40 bg-accent-purple/10 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
-                  {/* Standby Pulse Badge */}
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-cyan/10 border border-accent-cyan/25 text-accent-cyan text-xs font-mono font-medium mb-5 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
-                    <span>SANCTUARY STANDBY • MENUNGGU JADWAL BARU</span>
+              <div className="w-full rounded-2xl bg-[#141026]/70 border border-white/[0.08] p-8 sm:p-12 text-center backdrop-blur-md">
+                <div className="max-w-md mx-auto flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-accent-cyan mb-4">
+                    <Calendar className="w-6 h-6 text-accent-cyan" />
                   </div>
 
-                  {/* Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-accent-cyan mb-5 shadow-inner">
-                    <Calendar className="w-8 h-8 text-accent-cyan" />
-                  </div>
-
-                  <h3 className="text-xl sm:text-2xl font-bold text-white font-display mb-2.5 tracking-tight">
+                  <h3 className="text-xl font-bold text-white mb-2 tracking-tight font-display">
                     Belum Ada Jadwal Siaran Mendatang
                   </h3>
-                  <p className="text-[#a89ec0] text-sm sm:text-base leading-relaxed mb-8">
-                    Seluruh sesi siaran sebelumnya telah selesai dan diarsipkan. Xion Regalia sedang mempersiapkan sesi siaran berikutnya. Anda dapat menjelajahi rekaman siaran di Panduan Konten atau mengajukan ide kolaborasi stream.
+
+                  <p className="text-[#a89ec0] text-sm leading-relaxed mb-6">
+                    Jadwal siaran langsung berikutnya akan segera diperbarui. Sembari menunggu, kamu dapat menonton rekaman siaran sebelumnya melalui Panduan Konten.
                   </p>
 
-                  {/* Action CTAs */}
-                  <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
                     <a
                       href="#content"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-cyan text-[#0c081e] font-semibold text-xs tracking-wider uppercase font-mono hover:bg-accent-cyan/90 active:scale-95 transition-all shadow-lg shadow-accent-cyan/20"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e] font-semibold text-xs tracking-wider uppercase font-mono transition-all active:scale-95 shadow-sm"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Lihat Panduan Konten</span>
+                      <span>Buka Panduan Konten</span>
                     </a>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsCollabModalOpen(true)}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-white hover:bg-white/[0.1] hover:border-accent-purple/40 text-xs font-semibold tracking-wider uppercase font-mono active:scale-95 transition-all"
-                    >
-                      <Users className="w-3.5 h-3.5 text-accent-lilac" />
-                      <span>Request Collab</span>
-                    </button>
 
                     <a
                       href="https://www.youtube.com/channel/UCtOvoDqWorYc6NqkuGmZgEg"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 hover:bg-red-500/20 text-xs font-semibold tracking-wider uppercase font-mono active:scale-95 transition-all"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium text-[#a89ec0] hover:text-white transition-colors"
                     >
-                      <YouTubeIcon size={14} />
                       <span>Kanal YouTube</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
                 </div>
@@ -901,10 +883,10 @@ const ScheduleSection = () => {
             <button
               type="button"
               onClick={() => setIsCollabModalOpen(true)}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-xs tracking-wider uppercase font-mono bg-gradient-to-r from-accent-cyan to-accent-lilac text-[#13111C] hover:opacity-90 active:scale-[0.98] transition-all duration-150 shadow-md flex items-center justify-center gap-2 flex-shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-medium text-xs tracking-wider uppercase font-mono bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/10 hover:border-white/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 flex-shrink-0"
             >
-              <Users className="w-4 h-4" />
-              <span>Request Collab</span>
+              <Users className="w-4 h-4 text-accent-lilac" />
+              <span>Ajukan Kolaborasi</span>
             </button>
           </div>
         </div>
