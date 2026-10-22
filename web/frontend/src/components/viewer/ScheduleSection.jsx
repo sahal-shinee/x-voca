@@ -351,22 +351,15 @@ const ScheduleSection = () => {
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  // Calculate total broadcast duration dynamically from all schedules
+  // Calculate total broadcast duration dynamically from active schedules
   const totalBroadcastHours = useMemo(() => {
     let minutes = 0;
     schedules.forEach((s) => {
       if (s.status === 'live' && s.live_started_at) {
         const elapsed = Math.max(0, Date.now() - new Date(s.live_started_at).getTime());
         minutes += Math.floor(elapsed / 60000);
-      } else if (s.status === 'done' || s.status === 'archived') {
-        if (s.live_started_at && s.auto_done_at) {
-          const diff = Math.max(0, new Date(s.auto_done_at).getTime() - new Date(s.live_started_at).getTime());
-          minutes += Math.floor(diff / 60000);
-        } else {
-          minutes += 150; // standard 2.5 hours per completed session
-        }
       } else {
-        // planned upcoming session
+        // upcoming stream default ~2 hours
         minutes += 120;
       }
     });
@@ -418,22 +411,21 @@ const ScheduleSection = () => {
 
         const transformed = rawData.map(transformScheduleData).filter(Boolean);
 
-        // Sort: Live first, Upcoming next (soonest first), Done last (most recent first)
-        const priority = { live: 1, upcoming: 2, done: 3, archived: 3 };
-        transformed.sort((a, b) => {
-          const pA = priority[a.status] || 4;
-          const pB = priority[b.status] || 4;
-          if (pA !== pB) return pA - pB;
+        // Filter: ONLY live and upcoming schedules.
+        // Finished or archived streams are excluded from the viewer schedule section.
+        const activeOnly = transformed.filter((s) => s.status === 'live' || s.status === 'upcoming');
+
+        // Sort: Live first, Upcoming next (soonest first)
+        activeOnly.sort((a, b) => {
+          if (a.status === 'live' && b.status !== 'live') return -1;
+          if (b.status === 'live' && a.status !== 'live') return 1;
 
           const dateA = safeParseDate(a.scheduled_at)?.getTime() || 0;
           const dateB = safeParseDate(b.scheduled_at)?.getTime() || 0;
-          if (a.status === 'done' || a.status === 'archived') {
-            return dateB - dateA;
-          }
           return dateA - dateB;
         });
 
-        setSchedules(transformed);
+        setSchedules(activeOnly);
       } catch (err) {
         console.error('Error fetching schedules:', err);
         setSchedules([]);
@@ -449,24 +441,16 @@ const ScheduleSection = () => {
   const getStatusBadge = (status) => {
     if (status === 'live') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="font-bold text-[11px] tracking-wider uppercase font-mono">LIVE NOW</span>
-        </span>
-      );
-    }
-    if (status === 'upcoming') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-cyan/15 border border-accent-cyan/30 text-accent-cyan">
-          <Clock className="w-3 h-3" />
-          <span className="font-bold text-[11px] tracking-wider uppercase font-mono">UPCOMING</span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 backdrop-blur-md shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+          <span className="font-bold text-[11px] tracking-wider uppercase font-mono">LIVE SEKARANG</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-status-done/15 border border-status-done/30 text-status-done">
-        <CheckCircle className="w-3 h-3" />
-        <span className="font-medium text-[11px] tracking-wider uppercase font-mono">SELESAI</span>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7ee0d2]/15 border border-[#7ee0d2]/35 text-[#7ee0d2] backdrop-blur-md shadow-sm">
+        <Clock className="w-3 h-3 text-[#7ee0d2]" />
+        <span className="font-bold text-[11px] tracking-wider uppercase font-mono">AKAN DATANG</span>
       </span>
     );
   };
@@ -536,18 +520,18 @@ const ScheduleSection = () => {
                 Jadwal Siaran & Streaming
               </h2>
               <p className="text-[#a89ec0] text-sm sm:text-base max-w-xl leading-relaxed">
-                Daftar siaran langsung, sesi reguler, dan arsip siaran Xion Regalia.
+                Jadwal siaran langsung dan sesi streaming interaktif mendatang dari Xion Regalia.
               </p>
             </div>
 
             {/* Schedule Counter Pill */}
-            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto">
+            <div className="px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-5 flex-shrink-0 self-start sm:self-auto backdrop-blur-md">
               <div>
-                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Total Sesi</p>
+                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Sesi Mendatang</p>
                 <p className="text-2xl font-bold text-white font-display">{schedules.length}</p>
               </div>
               <div className="pl-4 border-l border-white/10">
-                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi Siaran</p>
+                <p className="text-xs text-[#a89ec0] uppercase font-mono tracking-wider">Est. Durasi</p>
                 <p className="text-2xl font-bold text-accent-cyan font-display">±{totalBroadcastHours} Jam</p>
               </div>
               {schedules.length > 0 && (
@@ -556,9 +540,7 @@ const ScheduleSection = () => {
                     <span
                       key={s.id}
                       className={`w-2 h-2 rounded-full ${
-                        s.status === 'live' ? 'bg-red-500 animate-pulse' :
-                        s.status === 'upcoming' ? 'bg-accent-cyan' :
-                        'bg-status-done'
+                        s.status === 'live' ? 'bg-red-500 animate-pulse' : 'bg-accent-cyan'
                       }`}
                     />
                   ))}
@@ -629,16 +611,62 @@ const ScheduleSection = () => {
               </>
             )}
 
-            {/* Empty State */}
+            {/* Modern Standby / Empty State */}
             {!loading && schedules.length === 0 && (
-              <div className="w-full py-16 px-6 text-center rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-text-muted mb-4">
-                  <Calendar className="w-7 h-7" />
+              <div className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/[0.08] p-8 sm:p-12 text-center shadow-2xl backdrop-blur-md">
+                {/* Background decorative ambient lights */}
+                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-40 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 right-1/4 w-60 h-40 bg-accent-purple/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
+                  {/* Standby Pulse Badge */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-cyan/10 border border-accent-cyan/25 text-accent-cyan text-xs font-mono font-medium mb-5 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
+                    <span>SANCTUARY STANDBY • MENUNGGU JADWAL BARU</span>
+                  </div>
+
+                  {/* Icon */}
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-accent-cyan mb-5 shadow-inner">
+                    <Calendar className="w-8 h-8 text-accent-cyan" />
+                  </div>
+
+                  <h3 className="text-xl sm:text-2xl font-bold text-white font-display mb-2.5 tracking-tight">
+                    Belum Ada Jadwal Siaran Mendatang
+                  </h3>
+                  <p className="text-[#a89ec0] text-sm sm:text-base leading-relaxed mb-8">
+                    Seluruh sesi siaran sebelumnya telah selesai dan diarsipkan. Xion Regalia sedang mempersiapkan sesi siaran berikutnya. Anda dapat menjelajahi rekaman siaran di Panduan Konten atau mengajukan ide kolaborasi stream.
+                  </p>
+
+                  {/* Action CTAs */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+                    <a
+                      href="#content"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-cyan text-[#0c081e] font-semibold text-xs tracking-wider uppercase font-mono hover:bg-accent-cyan/90 active:scale-95 transition-all shadow-lg shadow-accent-cyan/20"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Lihat Panduan Konten</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCollabModalOpen(true)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-white hover:bg-white/[0.1] hover:border-accent-purple/40 text-xs font-semibold tracking-wider uppercase font-mono active:scale-95 transition-all"
+                    >
+                      <Users className="w-3.5 h-3.5 text-accent-lilac" />
+                      <span>Request Collab</span>
+                    </button>
+
+                    <a
+                      href="https://www.youtube.com/channel/UCtOvoDqWorYc6NqkuGmZgEg"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 hover:bg-red-500/20 text-xs font-semibold tracking-wider uppercase font-mono active:scale-95 transition-all"
+                    >
+                      <YouTubeIcon size={14} />
+                      <span>Kanal YouTube</span>
+                    </a>
+                  </div>
                 </div>
-                <h3 className="text-white text-base font-semibold mb-1">Belum Ada Jadwal Siaran</h3>
-                <p className="text-[#a89ec0] text-sm max-w-sm">
-                  Jadwal siaran terbaru akan segera diperbarui oleh Xion Regalia.
-                </p>
               </div>
             )}
 
@@ -649,61 +677,71 @@ const ScheduleSection = () => {
                 className={`
                   relative flex-shrink-0 w-full sm:w-[380px] lg:w-[400px]
                   rounded-2xl overflow-hidden flex flex-col snap-start
-                  transition-all duration-300 group hover:-translate-y-1
-                  ${schedule.status === 'live' ? 'shadow-[0_0_30px_rgba(239,68,68,0.25)]' : 'shadow-xl hover:shadow-2xl hover:border-accent-cyan/30'}
+                  transition-all duration-300 group hover:-translate-y-1.5
+                  bg-[#15102a]/85 border backdrop-blur-md
+                  ${schedule.status === 'live'
+                    ? 'border-red-500/40 shadow-[0_0_30px_rgba(239,68,68,0.25)]'
+                    : 'border-white/[0.08] hover:border-accent-cyan/40 shadow-xl hover:shadow-2xl'
+                  }
                 `}
-                style={{
-                  background: schedule.status === 'live'
-                    ? 'linear-gradient(155deg, #271634 0%, #1a1226 100%)'
-                    : '#17122e',
-                  border: `1px solid ${
-                    schedule.status === 'live'
-                      ? 'rgba(239,68,68,0.4)'
-                      : 'rgba(255,255,255,0.08)'
-                  }`,
-                }}
               >
                 {/* Top colored accent line */}
                 <div
-                  className="h-[3px] w-full"
+                  className="h-[2px] w-full"
                   style={{
                     background: schedule.status === 'live'
                       ? 'linear-gradient(90deg, #ef4444, #f87171, transparent)'
-                      : schedule.status === 'upcoming'
-                      ? 'linear-gradient(90deg, #7ee0d2, #c084fc, transparent)'
-                      : 'linear-gradient(90deg, #10b981, #6ee7b7, transparent)',
+                      : 'linear-gradient(90deg, #7ee0d2, #c084fc, transparent)',
                   }}
                 />
 
-                {/* Optional Stream Thumbnail Preview */}
-                {schedule.thumbnail_url && (
-                  <div className="relative w-full h-40 overflow-hidden bg-[#100d20]">
+                {/* 16:9 Thumbnail Preview / Header */}
+                <div className="relative w-full aspect-video overflow-hidden bg-[#0e0a1f]">
+                  {schedule.thumbnail_url ? (
                     <img
                       src={schedule.thumbnail_url}
                       alt={schedule.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#17122e] via-[#17122e]/40 to-transparent" />
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1435] via-[#120d26] to-[#0c081e] p-6 text-center">
+                      <Radio className="w-10 h-10 text-accent-cyan/30 mb-2 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="text-xs font-mono uppercase tracking-wider text-white/40">
+                        {schedule.tag || 'Siaran Langsung'}
+                      </span>
+                    </div>
+                  )}
 
-                <div className="p-6 flex flex-col flex-1">
-                  {/* Status badge + Game category row */}
-                  <div className="flex items-center justify-between gap-2 mb-4">
+                  {/* Dark Vignette Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#15102a] via-[#15102a]/30 to-black/20" />
+
+                  {/* Floating Badges */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10 pointer-events-none">
                     {getStatusBadge(schedule.status)}
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wider font-semibold bg-white/5 border border-white/10 text-[#a89ec0]">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-[11px] font-mono">
+                      {getPlatformIcon(schedule.platform)}
+                      <span className="text-white/90">{schedule.platform || 'YouTube'}</span>
+                    </div>
+                  </div>
+
+                  {/* Game category pill on bottom-left */}
+                  <div className="absolute bottom-3 left-3 z-10">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/15 text-[11px] font-mono uppercase tracking-wider font-semibold text-accent-cyan">
                       {schedule.tag}
                     </span>
                   </div>
+                </div>
 
+                {/* Content Container */}
+                <div className="p-6 flex flex-col flex-1">
                   {/* Title & Subtitle */}
                   <div className="mb-4">
-                    <h3 className="text-lg font-bold text-white font-display line-clamp-2 leading-snug group-hover:text-accent-cyan transition-colors">
+                    <h3 className="text-lg font-bold text-white font-display line-clamp-2 leading-snug group-hover:text-accent-cyan transition-colors duration-200">
                       {schedule.title}
                     </h3>
                     {schedule.subtitle && (
-                      <p className="text-xs text-[#a89ec0] mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-[#a89ec0] mt-1.5 line-clamp-2 leading-relaxed">
                         {schedule.subtitle}
                       </p>
                     )}
@@ -714,63 +752,60 @@ const ScheduleSection = () => {
                     <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-xl bg-accent-purple/10 border border-accent-purple/20 text-xs text-accent-lilac">
                       <Users className="w-3.5 h-3.5 text-accent-lilac flex-shrink-0" />
                       <span className="font-medium truncate">
-                        Tamu Collab: {schedule.collab_guest.startsWith('@') ? schedule.collab_guest : `@${schedule.collab_guest}`}
+                        Kolaborasi: {schedule.collab_guest.startsWith('@') ? schedule.collab_guest : `@${schedule.collab_guest}`}
                       </span>
                     </div>
                   )}
 
-                  {/* Meta info: Date & Platform */}
-                  <div className="space-y-2.5 mb-5 mt-auto pt-2">
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
-                      <Calendar className="w-3.5 h-3.5 text-[#a89ec0] flex-shrink-0" />
-                      <span className="font-medium text-white/90">{schedule.time}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-[#a89ec0]">
-                      <div className="flex items-center gap-1.5">
-                        {getPlatformIcon(schedule.platform)}
-                        <span>{schedule.platform || 'YouTube'}</span>
+                  {/* Meta info block */}
+                  <div className="space-y-2.5 mb-5 mt-auto pt-3 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-white/90 font-medium">
+                        <Calendar className="w-3.5 h-3.5 text-accent-cyan flex-shrink-0" />
+                        <span>{schedule.time}</span>
                       </div>
-                      <span className="text-[11px] text-white/50 font-mono">{formatScheduleDuration(schedule)}</span>
+                      <span className="text-[11px] font-mono text-[#a89ec0]">{formatScheduleDuration(schedule)}</span>
                     </div>
 
                     {/* Real-time Ticking Countdown for upcoming streams */}
                     {schedule.status === 'upcoming' && schedule.scheduled_at && (
-                      <div className="pt-1">
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-[#a89ec0]">Countdown:</span>
                         <LiveCountdown targetDate={schedule.scheduled_at} />
                       </div>
                     )}
 
+                    {/* Real-time Live Timer */}
                     {schedule.status === 'live' && (
-                      <div className="flex items-center gap-2 mt-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1.5 w-max">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                        <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider font-mono">
-                          Sedang Berlangsung
-                        </span>
+                      <div className="flex items-center justify-between pt-1 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                          <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider font-mono">
+                            Sedang Berlangsung
+                          </span>
+                        </div>
                         {schedule.live_started_at && (
-                          <div className="ml-2 pl-2 border-l border-red-500/30">
-                            <LiveTimer startTime={schedule.live_started_at} />
-                          </div>
+                          <LiveTimer startTime={schedule.live_started_at} />
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Card Action Footer with Real-time Utilities */}
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-2">
-                    {/* Utility Action Buttons: Copy link & Google Calendar */}
+                  {/* Card Action Footer */}
+                  <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-2">
+                    {/* Utility buttons */}
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={(e) => handleCopyLink(e, schedule)}
-                        className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-cyan/50 hover:bg-accent-cyan/10 text-[#a89ec0] hover:text-accent-cyan transition-all active:scale-95"
+                        className="p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:border-accent-cyan/40 hover:bg-accent-cyan/10 text-[#a89ec0] hover:text-accent-cyan transition-all active:scale-95"
                         title={copiedId === schedule.id ? "Tautan Berhasil Disalin!" : "Salin Tautan Siaran"}
                         aria-label="Salin tautan siaran"
                       >
                         {copiedId === schedule.id ? (
-                          <Check className="w-3.5 h-3.5 text-accent-cyan" />
+                          <Check className="w-4 h-4 text-accent-cyan" />
                         ) : (
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                         )}
                       </button>
 
@@ -779,37 +814,22 @@ const ScheduleSection = () => {
                           href={getGoogleCalendarUrl(schedule)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-accent-purple/50 hover:bg-accent-purple/10 text-[#a89ec0] hover:text-accent-lilac transition-all active:scale-95"
+                          className="p-2 rounded-xl bg-white/[0.04] border border-white/10 hover:border-accent-purple/40 hover:bg-accent-purple/10 text-[#a89ec0] hover:text-accent-lilac transition-all active:scale-95"
                           title="Simpan Jadwal ke Google Calendar"
                           aria-label="Simpan ke Google Calendar"
                         >
-                          <CalendarPlus className="w-3.5 h-3.5" />
+                          <CalendarPlus className="w-4 h-4" />
                         </a>
                       )}
                     </div>
 
-                    {/* Primary Link Action */}
-                    {schedule.status === 'done' ? (
-                      <a
-                        href={schedule.youtube_url || '#'}
-                        target={schedule.youtube_url ? '_blank' : '_self'}
-                        rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
-                          schedule.youtube_url
-                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
-                            : 'text-[#a89ec0] opacity-50 cursor-default'
-                        }`}
-                        onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
-                      >
-                        <span>{schedule.youtube_url ? 'Tonton Rekaman' : 'Arsip Rekaman'}</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    ) : schedule.status === 'live' ? (
+                    {/* Primary CTA */}
+                    {schedule.status === 'live' ? (
                       <a
                         href={schedule.youtube_url || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-xs font-semibold shadow-[0_0_12px_rgba(239,68,68,0.25)]"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold tracking-wider uppercase font-mono shadow-[0_0_16px_rgba(239,68,68,0.4)] transition-all active:scale-95"
                       >
                         <span>Tonton Siaran</span>
                         <Play className="w-3.5 h-3.5 fill-current" />
@@ -819,14 +839,14 @@ const ScheduleSection = () => {
                         href={schedule.youtube_url || '#'}
                         target={schedule.youtube_url ? '_blank' : '_self'}
                         rel={schedule.youtube_url ? 'noopener noreferrer' : ''}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-mono tracking-wider uppercase transition-all active:scale-95 ${
                           schedule.youtube_url
-                            ? 'text-accent-cyan hover:bg-accent-cyan/10 border border-transparent hover:border-accent-cyan/30'
-                            : 'text-[#a89ec0] opacity-50 cursor-default'
+                            ? 'bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/30 text-accent-cyan hover:border-accent-cyan/50'
+                            : 'bg-white/[0.04] border border-white/10 text-[#a89ec0] opacity-60 cursor-default'
                         }`}
                         onClick={(e) => { if (!schedule.youtube_url) e.preventDefault(); }}
                       >
-                        <span>{schedule.youtube_url ? 'Buka Tautan' : 'Jadwal Terdaftar'}</span>
+                        <span>{schedule.youtube_url ? 'Buka Siaran' : 'Jadwal Siaran'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}

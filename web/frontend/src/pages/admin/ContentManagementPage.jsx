@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getContent, createContent, updateContent, deleteContent, toggleContentVisibility, toggleContentFeatured } from '../../services/contentService';
 import ContentCard from '../../components/admin/ContentCard';
 import ContentFormPanel from '../../components/admin/ContentFormPanel';
@@ -42,6 +43,7 @@ const SORT_OPTIONS = [
 
 function ContentManagementPage() {
   const toast = useToast();
+  const location = useLocation();
 
   // Stats state
   const [stats, setStats] = useState({
@@ -70,6 +72,29 @@ function ContentManagementPage() {
   const [formPanelOpen, setFormPanelOpen] = useState(false);
   const [editingContent, setEditingContent] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  // Check if routed with prefilled schedule data from SchedulePage
+  useEffect(() => {
+    if (location.state?.prefillSchedule) {
+      const p = location.state.prefillSchedule;
+      setEditingContent({
+        isNew: true,
+        title: p.title || '',
+        game_tag: p.game_tag || 'Gaming',
+        youtube_url: p.youtube_url || '',
+        thumbnail_url: p.thumbnail_url || '',
+        content_type: 'video',
+        video_count: 1,
+        total_duration: p.total_duration || '2-3 Jam',
+        is_featured: false,
+        is_visible: true,
+        sort_order: 1,
+      });
+      setFormPanelOpen(true);
+      toast.success(`Data siaran "${p.title}" berhasil dimuat ke formulir Content Guide.`);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, toast]);
 
   // Delete confirmation state
   const [deleteModal, setDeleteModal] = useState({ open: false, content: null });

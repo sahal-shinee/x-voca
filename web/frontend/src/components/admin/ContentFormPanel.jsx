@@ -93,7 +93,7 @@ function ContentFormPanel({
   content = null,
   loading = false,
 }) {
-  const isEdit = !!content;
+  const isEdit = Boolean(content && content.id);
   const fileInputRef = useRef(null);
 
   // Form state
@@ -156,6 +156,17 @@ function ContentFormPanel({
         setCustomUrlInput(initialThumb);
       } else {
         setThumbMode('youtube');
+      }
+
+      // If no thumbnail was set but a YouTube URL is present, extract fallback thumbnail immediately
+      if (!initialThumb && content.youtube_url) {
+        const videoId = extractYouTubeVideoId(content.youtube_url);
+        if (videoId) {
+          const ytThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+          setThumbnailPreview(ytThumb);
+          setFormData((prev) => ({ ...prev, thumbnail_url: ytThumb }));
+          setThumbMode('youtube');
+        }
       }
     } else {
       setFormData({
@@ -375,11 +386,11 @@ function ContentFormPanel({
             <div className="flex items-center gap-1.5 mb-1">
               <Layers className="w-3.5 h-3.5 text-accent-cyan" />
               <span className="text-[10px] font-mono text-accent-cyan tracking-wider uppercase font-semibold">
-                {isEdit ? 'EDIT KATALOG' : 'TAMBAH KONTEN BARU'}
+                {isEdit ? 'EDIT KATALOG' : (content?.isNew ? 'KONVERSI JADWAL KE KATALOG' : 'TAMBAH KONTEN BARU')}
               </span>
             </div>
             <h2 className="text-lg font-bold text-text-primary font-display">
-              {isEdit ? 'Edit Konten Katalog' : 'Tambah Konten Katalog'}
+              {isEdit ? 'Edit Konten Katalog' : (content?.isNew ? 'Tambah Konten dari Jadwal' : 'Tambah Konten Katalog')}
             </h2>
             <p className="text-xs text-text-muted mt-0.5">
               Kurasi video atau seri playlist YouTube untuk portal penonton

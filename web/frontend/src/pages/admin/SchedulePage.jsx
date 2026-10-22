@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/dashboardService';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, endStream } from '../../services/scheduleService';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
@@ -24,7 +25,8 @@ import {
   Power,
   Tv,
   ExternalLink,
-  Users
+  Users,
+  BookPlus
 } from 'lucide-react';
 
 // YouTube Icon Component
@@ -80,6 +82,8 @@ const getStatusBadge = (status) => {
 };
 
 function SchedulePage() {
+  const navigate = useNavigate();
+
   // Summary cards state
   const [summaryStats, setSummaryStats] = useState({
     activeBroadcast: null,
@@ -108,6 +112,9 @@ function SchedulePage() {
   // End stream confirmation state
   const [endStreamModal, setEndStreamModal] = useState({ open: false, schedule: null });
   const [endStreamLoading, setEndStreamLoading] = useState(false);
+
+  // Convert to Content Guide modal state
+  const [convertModal, setConvertModal] = useState({ open: false, schedule: null, isPostEndStream: false });
 
   // Preview modal state
   const [previewModal, setPreviewModal] = useState({ open: false, schedule: null });
@@ -252,13 +259,21 @@ function SchedulePage() {
 
   const handleEndStreamConfirm = async () => {
     if (!endStreamModal.schedule) return;
+    const endedSchedule = endStreamModal.schedule;
 
     setEndStreamLoading(true);
     try {
-      await endStream(endStreamModal.schedule.id);
+      await endStream(endedSchedule.id);
       setEndStreamModal({ open: false, schedule: null });
       fetchSchedules(activeFilter);
       fetchSummaryStats();
+
+      // Offer to immediately convert finished stream to Content Guide
+      setConvertModal({
+        open: true,
+        schedule: endedSchedule,
+        isPostEndStream: true
+      });
     } catch (error) {
       console.error('Error ending stream:', error);
     } finally {
@@ -268,6 +283,33 @@ function SchedulePage() {
 
   const handleEndStreamCancel = () => {
     setEndStreamModal({ open: false, schedule: null });
+  };
+
+  // Handle Convert to Content Guide
+  const handleConvertClick = (schedule) => {
+    setConvertModal({ open: true, schedule, isPostEndStream: false });
+  };
+
+  const handleConvertConfirm = () => {
+    if (!convertModal.schedule) return;
+    const s = convertModal.schedule;
+    setConvertModal({ open: false, schedule: null, isPostEndStream: false });
+
+    navigate('/admin/content', {
+      state: {
+        prefillSchedule: {
+          title: s.title || '',
+          game_tag: s.game_category || 'Gaming',
+          youtube_url: s.youtube_url || '',
+          thumbnail_url: s.thumbnail_url || '',
+          total_duration: s.estimated_duration || '2-3 Jam',
+        }
+      }
+    });
+  };
+
+  const handleConvertCancel = () => {
+    setConvertModal({ open: false, schedule: null, isPostEndStream: false });
   };
 
   // Filter schedules by search
@@ -568,6 +610,16 @@ function SchedulePage() {
                               title="Akhiri Siaran"
                             >
                               <Power className="w-4 h-4" />
+                            </button>
+                          )}
+                          {/* Jadikan Content Guide - Only for completed / archived schedules */}
+                          {(schedule.status === 'done' || schedule.status === 'archived') && (
+                            <button
+                              onClick={() => handleConvertClick(schedule)}
+                              className="p-2 text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
+                              title="Jadikan Content Guide"
+                            >
+                              <BookPlus className="w-4 h-4" />
                             </button>
                           )}
                           {/* Preview */}
@@ -882,6 +934,51 @@ function SchedulePage() {
           <p className="text-text-muted text-xs">
             Stream akan otomatis berakhir setelah 5 jam jika tidak diakhiri manual.
           </p>
+        </div>
+      </Modal>
+
+      {/* ========== CONVERT TO CONTENT GUIDE MODAL ========== */}
+      <Modal
+        isOpen={convertModal.open}
+        onClose={handleConvertCancel}
+        title="Jadikan Content Guide"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex items-start gap-3">
+            <BookPlus className="w-5 h-5 text-accent-cyan flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-text-primary">
+                {convertModal.isPostEndStream
+                  ? 'Siaran Telah Selesai'
+                  : 'Buat Konten Katalog dari Jadwal Siaran'}
+              </p>
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                Apakah Anda ingin menambahkan siaran{' '}
+                <span className="font-semibold text-text-primary">
+                  "{convertModal.schedule?.title}"
+                </span>{' '}
+                ke formulir Content Guide? Data judul, kategori, URL video, dan thumbnail akan otomatis diisikan.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleConvertCancel}
+              className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-input rounded-xl transition-colors"
+            >
+              Nanti Saja
+            </button>
+            <button
+              type="button"
+              onClick={handleConvertConfirm}
+              className="px-4 py-2 text-sm font-semibold bg-accent-cyan text-bg-base hover:bg-accent-cyan/90 rounded-xl transition-colors flex items-center gap-2 shadow-md shadow-accent-cyan/20"
+            >
+              <BookPlus className="w-4 h-4" />
+              <span>Buka Form Content Guide</span>
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
