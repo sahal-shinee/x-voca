@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 // ========== GATE VISUAL DATA ==========
 
-// 72 garis skala untuk cincin radar sirkular berputar
+// 72 garis skala untuk cincin gerbang (dihitung sekali, di luar komponen)
 const TICKS = Array.from({ length: 72 }, (_, i) => {
   const a = (i * 5 * Math.PI) / 180;
   const major = i % 6 === 0;
@@ -19,7 +19,7 @@ const TICKS = Array.from({ length: 72 }, (_, i) => {
   };
 });
 
-// Status visual gerbang & radar yang responsif terhadap kondisi form
+// Status gerbang diturunkan dari state form yang nyata
 const GATE = {
   standby: { label: 'STANDBY', tone: 'text-text-muted', ring: 'opacity-30', pulse: false },
   typing: { label: 'CREDENTIALS PENDING', tone: 'text-accent-cyan', ring: 'opacity-40', pulse: false },
@@ -29,16 +29,8 @@ const GATE = {
   expired: { label: 'SESSION EXPIRED', tone: 'text-accent-gold', ring: 'opacity-60', pulse: false },
 };
 
-// Clean Vector Lock Icon (Pengganti Emoji 🔒)
-const LockVectorIcon = ({ className = 'w-4 h-4' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
-
 /**
- * LoginPage - Halaman login Creator/Admin dengan animasi radar sirkular berputar yang dinamis
+ * LoginPage - Halaman login Creator dengan form khas original dan animasi roda/radar sirkular berputar
  */
 function LoginPage() {
   const navigate = useNavigate();
@@ -52,7 +44,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [expiredMessage, setExpiredMessage] = useState('');
 
-  // UX & Animation State
+  // State khusus tampilan
   const [capsOn, setCapsOn] = useState(false);
   const [emailInvalid, setEmailInvalid] = useState(false);
   const [shake, setShake] = useState(false);
@@ -110,7 +102,7 @@ function LoginPage() {
     if (e.getModifierState) setCapsOn(e.getModifierState('CapsLock'));
   };
 
-  // Status gerbang untuk radar
+  // Status gerbang
   let gateKey = 'standby';
   if (loading) gateKey = 'verifying';
   else if (error) gateKey = 'denied';
@@ -168,7 +160,7 @@ function LoginPage() {
         style={{ background: 'radial-gradient(480px circle at var(--mx) var(--my), rgba(126,224,210,0.06), transparent 65%)' }}
       />
 
-      {/* ANIMASI RADAR SIRKULAR BERPUTAR: Warna & aktivitas responsif mengikuti form */}
+      {/* ANIMASI RODA / RADAR SIRKULAR BERPUTAR: Warna dan aktivitasnya mengikuti status form */}
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(150vw,900px)] aspect-square transition-all duration-500 ${gate.tone} ${gate.ring}`}
@@ -199,7 +191,7 @@ function LoginPage() {
           <circle cx="400" cy="400" r="260" stroke="currentColor" strokeWidth="1" opacity="0.25" />
           <path d="M400 120V160M400 640V680M120 400H160M640 400H680" stroke="currentColor" strokeWidth="1" opacity="0.5" />
         </svg>
-        {/* Busur pemindai: Berputar dinamis saat kredensial diverifikasi */}
+        {/* Busur pemindai: hanya tampil saat kredensial diverifikasi */}
         <svg
           viewBox="0 0 800 800"
           className={`lg-scan absolute inset-0 w-full h-full transition-opacity duration-300 ${loading ? 'opacity-100' : 'opacity-0'}`}
@@ -209,9 +201,9 @@ function LoginPage() {
         </svg>
       </div>
 
-      {/* Login Card */}
+      {/* Login Card (pembungkus luar untuk animasi getar) */}
       <div className={`relative w-full max-w-[480px] ${shake ? 'lg-shake' : ''}`}>
-        {/* Siku sudut bergaya HUD, warnanya ikut status gerbang radar */}
+        {/* Siku sudut bergaya HUD, warnanya ikut status gerbang */}
         <div aria-hidden="true" className={`pointer-events-none transition-colors duration-500 ${gate.tone}`}>
           <span className="absolute -top-1.5 -left-1.5 w-4 h-4 border-t-2 border-l-2 border-current rounded-tl-md"></span>
           <span className="absolute -top-1.5 -right-1.5 w-4 h-4 border-t-2 border-r-2 border-current rounded-tr-md"></span>
@@ -227,37 +219,34 @@ function LoginPage() {
             style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.55), transparent)' }}
           />
 
-          {/* Header Card - Bebas Emoji, Menggunakan Ikon Vektor */}
+          {/* Header Asli Tanpa Emoji */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="lg-blink text-xl text-accent-cyan">|</span>
-              <h1 className="text-xl font-bold text-text-primary tracking-wide">X-VOCA</h1>
-              <span className="text-accent-cyan/80 p-1 rounded-md bg-accent-cyan/10">
-                <LockVectorIcon className="w-3.5 h-3.5" />
-              </span>
+              <h1 className="text-xl font-bold text-text-primary">X-VOCA</h1>
             </div>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-input text-accent-cyan text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse"></span>
-              CREATOR PANEL
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-input text-accent-gold text-xs font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-gold"></span>
+              ● RESTRICTED ACCESS
             </span>
           </div>
 
-          {/* Heading */}
+          {/* Heading Asli */}
           <div className="mb-8">
             <h2 className="text-2xl lg:text-[28px] font-bold text-text-primary mb-2">
               Creator Login
             </h2>
             <p className="text-sm text-text-secondary">
-              Hanya untuk <span className="text-accent-cyan font-medium">Xion Regalia</span>
+              Hanya untuk <span className="text-accent-cyan">Xion Regalia</span>
             </p>
 
-            {/* Status gerbang radar */}
+            {/* Status gerbang: mencerminkan kondisi form secara real-time */}
             <div
               className="mt-4 flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase"
               role="status"
               aria-live="polite"
             >
-              <span className="text-text-muted">STATUS</span>
+              <span className="text-text-muted">GATE STATUS</span>
               <span className="h-px w-4 bg-border-subtle"></span>
               <span className={`inline-flex items-center gap-1.5 transition-colors duration-300 ${gate.tone}`}>
                 <span className={`w-1.5 h-1.5 rounded-full bg-current ${gate.pulse ? 'animate-pulse' : ''}`}></span>
@@ -278,7 +267,7 @@ function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
+          {/* Form Asli yang Disukai User */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
@@ -374,12 +363,13 @@ function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button Asli */}
             <button
               type="submit"
               disabled={loading}
               className="group relative overflow-hidden w-full py-3.5 bg-gradient-cta text-text-on-cta font-bold text-base rounded-lg hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-bg-card transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
             >
+              {/* Kilau berjalan saat sedang memproses */}
               {loading && (
                 <span
                   aria-hidden="true"
