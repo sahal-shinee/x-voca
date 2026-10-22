@@ -166,20 +166,17 @@ const TopNav = () => {
           {/* Logo & Brand */}
           <Link
             to="/"
-            className="flex items-center gap-3 sm:gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
+            className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
             onClick={() => setIsMenuOpen(false)}
           >
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-[#1b1536] border border-[rgba(126,224,210,0.35)] flex items-center justify-center p-1 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(126,224,210,0.35)] group-hover:border-[#7ee0d2] transition-all duration-300">
-              <img src={logoXion} alt="Xion Regalia Logo" className="w-full h-full object-contain" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-lg sm:text-[22px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
-                X-VOCA
-              </span>
-              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-[#1b1536] border border-[#c084fc]/35 text-[#c084fc] font-mono text-[9px] font-semibold tracking-widest uppercase shadow-[0_0_10px_rgba(192,132,252,0.12)]">
-                REGALIA OPS
-              </span>
-            </div>
+            <img
+              src={logoXion}
+              alt="Xion Regalia Logo"
+              className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            />
+            <span className="font-bold text-white text-lg sm:text-[22px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
+              X-VOCA
+            </span>
           </Link>
 
           {/* Center: Floating Segmented Pill Navigation */}
@@ -255,11 +252,11 @@ const TopNav = () => {
               href="https://saweria.co/xionregalia"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fbbf24]/10 border border-[#fbbf24]/30 hover:border-[#fbbf24]/60 hover:bg-[#fbbf24]/20 text-[#fbbf24] text-xs font-semibold tracking-wide transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(251,191,36,0.12)] group"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.08] text-white/80 hover:text-white text-xs font-medium tracking-wide transition-all duration-200 active:scale-95 group"
               title="Dukung Xion Regalia di Saweria"
             >
               <HeartHandIcon size={14} className="text-[#fbbf24] group-hover:scale-110 transition-transform duration-200" />
-              <span className="hidden sm:inline font-mono">Saweria</span>
+              <span className="hidden sm:inline">Saweria</span>
             </a>
 
             {/* Admin Portal Button */}
