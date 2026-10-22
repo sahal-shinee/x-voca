@@ -1,902 +1,383 @@
-// ========== EQUIPMENT SECTION ==========
+import { useState, useRef } from 'react';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+// ========== ICONS ==========
 
-// Custom hook for scroll reveal animation
-const useScrollReveal = (options = {}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef(null);
+const CpuIcon = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <rect x="9" y="9" width="6" height="6" />
+    <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" />
+  </svg>
+);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          if (options.once !== false) {
-            observer.unobserve(entry.target);
-          }
-        } else if (options.once === false) {
-          setIsVisible(false);
-        }
-      },
-      {
-        threshold: options.threshold || 0.1,
-        rootMargin: options.rootMargin || '0px',
+const MicIcon = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+  </svg>
+);
+
+const CopyIcon = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+const CheckIcon = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const RadioIcon = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="2" />
+    <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+  </svg>
+);
+
+// ========== SPEC DATA (100% AUTHENTIC) ==========
+
+const PC_SPECS = [
+  {
+    category: 'Prosesor (CPU)',
+    model: 'Intel Core i7-13620H',
+    detail: '10 Core (6 Performance + 4 Efficient) · 16 Threads · Up to 4.90 GHz Turbo',
+    tag: 'Komputasi Utama',
+  },
+  {
+    category: 'Kartu Grafis (GPU)',
+    model: 'NVIDIA GeForce RTX 4060',
+    detail: '8GB GDDR6 VRAM · Arsitektur Ada Lovelace · NVENC AV1 & H.264 Encoder',
+    tag: 'Encoding & Rendering',
+  },
+  {
+    category: 'Memori Utama (RAM)',
+    model: '64GB DDR5 Dual Channel',
+    detail: 'Bandwidth tinggi untuk multitasking siaran langsung dan game berat',
+    tag: 'Kapasitas Ekstra',
+  },
+  {
+    category: 'Penyimpanan (Storage)',
+    model: '1TB NVMe PCIe 4.0 SSD',
+    detail: 'Kecepatan baca tinggi untuk load time game cepat dan perekaman arsip',
+    tag: 'Ultra-Fast Access',
+  },
+];
+
+const AUDIO_SPECS = [
+  {
+    title: 'Mikrofon Siaran Utama',
+    value: 'Shure MV7+',
+    desc: 'Dynamic broadcast microphone kelas studio yang dirancang khusus untuk kejernihan vokal dan isolasi suara lingkungan.',
+  },
+  {
+    title: 'Konektivitas Dual Interface',
+    value: 'USB-C Digital & XLR Analog',
+    desc: 'Mendukung pengolahan digital onboard simultan maupun integrasi mixer analog profesional.',
+  },
+  {
+    title: 'Pemrosesan Sinyal Onboard (DSP)',
+    value: 'Digital Popper Stopper & Real-time Denoiser',
+    desc: 'Menghilangkan letupan plosif konsonan dan kebisingan latar tanpa latensi.',
+  },
+];
+
+const AUDIO_PRESETS = [
+  {
+    id: 'warm',
+    name: 'Warm Broadcast',
+    desc: 'Karakter vokal hangat dan tebal untuk obrolan santai larut malam.',
+    freq: '120Hz Boost · Neutral Mid',
+    bars: [40, 65, 85, 70, 50, 45, 30],
+  },
+  {
+    id: 'acoustic',
+    name: 'Clear Acoustic',
+    desc: 'Artikulasi jernih dan transparan untuk instrumen dan nyanyian akustik.',
+    freq: 'High-pass 80Hz · Air 10kHz',
+    bars: [25, 45, 70, 85, 95, 80, 60],
+  },
+  {
+    id: 'solace',
+    name: 'Midnight Solace',
+    desc: 'Isolasi suara intim dengan noise-gate agresif untuk suasana hening.',
+    freq: 'Deep Cardioid · -18dB Gate',
+    bars: [30, 50, 60, 55, 40, 35, 20],
+  },
+];
+
+const SOFTWARE_STACK = [
+  { name: 'OBS Studio 30+', role: 'Compositing & Multi-track Output' },
+  { name: 'NVIDIA Broadcast', role: 'AI Neural Audio Enhancement' },
+  { name: 'Shure MOTIV Mix', role: 'DSP Management & Gain Staging' },
+  { name: 'Discord Ops', role: 'Private Collaboration Routing' },
+];
+
+// ========== COMPONENT ==========
+
+export default function EquipmentSection() {
+  const [activePreset, setActivePreset] = useState('warm');
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  const selectedPreset = AUDIO_PRESETS.find((p) => p.id === activePreset) || AUDIO_PRESETS[0];
+
+  const handleCopySpecs = async () => {
+    const text = [
+      '=== SPESIFIKASI WORKSTATION & AUDIO XION REGALIA ===',
+      '',
+      '[KOMPUTASI & GRAFIS]',
+      '- CPU: Intel Core i7-13620H (10C/16T, up to 4.90 GHz)',
+      '- GPU: NVIDIA GeForce RTX 4060 (8GB GDDR6 VRAM)',
+      '- RAM: 64GB DDR5 Dual Channel',
+      '- Storage: 1TB NVMe PCIe 4.0 SSD',
+      '',
+      '[AUDIO & SIARAN]',
+      '- Mikrofon: Shure MV7+ Dynamic Podcast/Broadcast',
+      '- Antarmuka: Hybrid USB-C & XLR Dual Interface',
+      '- DSP Onboard: Digital Popper Stopper & Real-time Denoiser',
+      '',
+      '[PERANGKAT LUNAK]',
+      '- OBS Studio 30+ · NVIDIA Broadcast · Shure MOTIV Mix',
+    ].join('\n');
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
       }
-    );
-
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // fallback
     }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [options.threshold, options.rootMargin, options.once]);
-
-  return [ref, isVisible];
-};
-
-// Salin teks ke clipboard. Mengembalikan true/false agar UI bisa menampilkan hasilnya.
-// Ada fallback untuk konteks tanpa Clipboard API (mis. http non-localhost).
-const copyText = async (text) => {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (err) {
-    // lanjut ke fallback
-  }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch (err) {
-    return false;
-  }
-};
-
-// Format satu kartu menjadi teks biasa untuk disalin
-const cardToText = (card) =>
-  [
-    `${card.label} (${card.system})`,
-    ...card.items.map((item) => `- ${item.label}: ${item.title} - ${item.subtitle}`),
-    ...(card.specs || []).map((spec) => `- ${spec.label}: ${spec.value}`),
-    ...(card.features || []).map((feat) => `- ${feat.label}: ${feat.value}`),
-    ...(card.software ? [`- Software: ${card.software.join(', ')}`] : []),
-  ].join('\n');
-
-// Icon Components
-const PcIcon = ({ size = 16.5, className = '' }) => (
-  <svg
-    width={size}
-    height={size * 0.68}
-    viewBox="0 0 16.5 11.25"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <path d="M14.85 0H1.65C0.74 0 0 0.74 0 1.65V8.1C0 9.01 0.74 9.75 1.65 9.75H6.6L5.775 11.25H4.125V9.75H1.65C1.31 9.75 1.035 9.475 1.035 9.135V1.65C1.035 1.31 1.31 1.035 1.65 1.035H14.85C15.19 1.035 15.465 1.31 15.465 1.65V9.135C15.465 9.475 15.19 9.75 14.85 9.75H12.375V11.25H10.725L9.9 9.75H14.85C15.76 9.75 16.5 9.01 16.5 8.1V1.65C16.5 0.74 15.76 0 14.85 0Z" fill="currentColor"/>
-  </svg>
-);
-
-const MicrophoneIcon = ({ size = 8.75, className = '' }) => (
-  <svg
-    width={size}
-    height={size * 1.36}
-    viewBox="0 0 8.75 11.875"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <path d="M4.375 0C3.41 0 2.625 0.785 2.625 1.75V7C2.625 7.965 3.41 8.75 4.375 8.75C5.34 8.75 6.125 7.965 6.125 7V1.75C6.125 0.785 5.34 0 4.375 0Z" fill="currentColor"/>
-    <path d="M1.75 7V7.875C1.75 9.541 3.084 10.875 4.75 10.875H4.375C3.084 10.875 1.75 9.541 1.75 7.875V7Z" fill="currentColor"/>
-    <path d="M0.875 7.875H7.875V10.5C7.875 11.052 7.427 11.5 6.875 11.5H1.875C1.323 11.5 0.875 11.052 0.875 10.5V7.875Z" fill="currentColor"/>
-  </svg>
-);
-
-const EyeIcon = ({ size = 12.5, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 12.5 12.5"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <path d="M1.25 6.25C1.25 6.25 2.875 2.5 6.25 2.5C9.625 2.5 11.25 6.25 11.25 6.25C11.25 6.25 9.625 10 6.25 10C2.875 10 1.25 6.25 1.25 6.25Z" stroke="currentColor" strokeWidth="1.2"/>
-    <circle cx="6.25" cy="6.25" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-  </svg>
-);
-
-const CheckIcon = ({ size = 12, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 12 12"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const CopyIcon = ({ size = 14, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 14 14"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-    <path d="M10 4V3C10 2.448 9.552 2 9 2H3C2.448 2 2 2.448 2 3V9C2 9.552 2.448 10 3 10H4" stroke="currentColor" strokeWidth="1.2"/>
-  </svg>
-);
-
-const ChevronDownIcon = ({ size = 16, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 16 16"
-    fill="none"
-    aria-hidden="true"
-    className={className}
-  >
-    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-// Sparkle particle component
-const SparkleParticle = ({ style }) => (
-  <div
-    className="absolute w-1 h-1 rounded-full bg-white/20 animate-pulse motion-reduce:animate-none"
-    style={style}
-  />
-);
-
-// Progress Bar Component (bar terisi saat kartu dibuka, bukan sudah penuh sejak awal)
-const ProgressBar = ({ value, max, color, label, showLabel = false, active = true, delay = 0 }) => {
-  const percentage = (value / max) * 100;
+  };
 
   return (
-    <div className="w-full">
-      {showLabel && (
-        <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[10px] text-[#a89ec0] uppercase tracking-wide">{label}</span>
-          <span className="text-[10px] text-[#7ee0d2] font-medium">{value}/{max}</span>
-        </div>
-      )}
-      <div
-        role="progressbar"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        className="h-1.5 bg-[#1d1830] rounded-full overflow-hidden"
-      >
+    <section id="equipment" className="relative w-full py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-[#0d091a] text-white overflow-hidden">
+      {/* Background ambient pattern */}
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none opacity-40">
         <div
-          className="h-full rounded-full transition-all duration-1000 ease-out"
+          className="absolute inset-0"
           style={{
-            width: `${active ? percentage : 0}%`,
-            transitionDelay: `${delay}ms`,
-            background: color || 'linear-gradient(90deg, #7ee0d2, #4ade80)'
+            backgroundImage: 'radial-gradient(rgba(126,224,210,0.12) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
           }}
         />
+        <div className="absolute top-1/4 -left-48 w-96 h-96 rounded-full bg-[#7ee0d2]/5 blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-48 w-96 h-96 rounded-full bg-[#7ee0d2]/5 blur-[120px]" />
       </div>
-    </div>
-  );
-};
 
-// Status Badge Component
-const StatusBadge = ({ status, label }) => {
-  const statusConfig = {
-    online: { color: 'bg-[#4ade80]', text: 'text-[#4ade80]', border: 'border-[rgba(74,222,128,0.25)]', bg: 'bg-[rgba(74,222,128,0.08)]' },
-    warning: { color: 'bg-[#fbbf24]', text: 'text-[#fbbf24]', border: 'border-[rgba(251,191,36,0.25)]', bg: 'bg-[rgba(251,191,36,0.08)]' },
-    offline: { color: 'bg-[#ef4444]', text: 'text-[#ef4444]', border: 'border-[rgba(239,68,68,0.25)]', bg: 'bg-[rgba(239,68,68,0.08)]' },
-  };
-
-  const config = statusConfig[status] || statusConfig.online;
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${config.bg} border ${config.border} text-[10px] uppercase tracking-wider ${config.text} font-medium`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.color} ${status === 'online' ? 'animate-pulse motion-reduce:animate-none' : ''}`} />
-      {label}
-    </span>
-  );
-};
-
-// Tooltip Component (juga muncul saat fokus keyboard)
-const Tooltip = ({ children, content, position = 'top' }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  };
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onFocus={() => setIsVisible(true)}
-      onBlur={() => setIsVisible(false)}
-    >
-      {children}
-      {isVisible && (
-        <div
-          role="tooltip"
-          className={`absolute ${positionClasses[position]} z-50 px-2 py-1 text-[10px] text-white bg-[#2d2855] border border-[rgba(61,53,96,0.8)] rounded shadow-lg whitespace-nowrap`}
-        >
-          {content}
+      <div className="max-w-[1200px] mx-auto relative z-10">
+        {/* Section Header */}
+        <div className="flex flex-col items-center text-center mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+            <span className="text-[11px] font-mono tracking-widest uppercase text-[#94a3b8]">
+              STUDIO & WORKSTATION
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight font-display text-white">
+            Spesifikasi Peralatan & Sistem Siaran
+          </h2>
+          <p className="mt-3 text-sm sm:text-base text-[#94a3b8] max-w-2xl leading-relaxed">
+            Infrastruktur komputasi performa tinggi dan sistem audio kelas siaran untuk memastikan pengalaman streaming yang stabil, jernih, dan responsif.
+          </p>
         </div>
-      )}
-    </div>
-  );
-};
 
-// Animated Background Pattern
-const AnimatedBackground = () => {
-  const particles = Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    left: `${(i * 7.3) % 100}%`,
-    top: `${(i * 13.7) % 100}%`,
-    delay: `${(i * 0.4) % 3}s`,
-    duration: `${3 + (i % 3)}s`,
-    size: 2 + (i % 3),
-  }));
+        {/* Bento Grid: 2 Utama (PC 7-col + Audio 5-col) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-      {particles.map((particle) => (
-        <SparkleParticle
-          key={particle.id}
-          style={{
-            left: particle.left,
-            top: particle.top,
-            width: particle.size,
-            height: particle.size,
-            animationDelay: particle.delay,
-            animationDuration: particle.duration,
-          }}
-        />
-      ))}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#2d2855]/30 via-transparent to-[#1d1830]/40" />
-    </div>
-  );
-};
-
-// Equipment Card Component
-const EquipmentCard = ({ card, index, isVisible, isExpanded, onToggle }) => {
-  const [copied, setCopied] = useState(null); // 'item-0' | 'all' | 'err-item-0' | 'err-all'
-  const [settled, setSettled] = useState(false);
-  const cardRef = useRef(null);
-  const timerRef = useRef(0);
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  // Setelah animasi muncul selesai, hapus delay bertahap supaya efek hover terasa langsung
-  useEffect(() => {
-    if (!isVisible) return undefined;
-    const t = setTimeout(() => setSettled(true), index * 120 + 700);
-    return () => clearTimeout(t);
-  }, [isVisible, index]);
-
-  const flash = useCallback((key) => {
-    setCopied(key);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCopied(null), 2000);
-  }, []);
-
-  const handleCopy = useCallback(
-    async (text, key) => {
-      const ok = await copyText(text);
-      flash(ok ? key : `err-${key}`);
-    },
-    [flash]
-  );
-
-  // Sorot cahaya mengikuti kursor di dalam kartu (CSS variable, tanpa re-render)
-  const handleMove = (e) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    el.style.setProperty('--px', `${e.clientX - r.left}px`);
-    el.style.setProperty('--py', `${e.clientY - r.top}px`);
-  };
-
-  const accentColors = {
-    'accent-lilac': {
-      primary: '#c084fc',
-      glow: 'rgba(192,132,252,0.2)',
-      glowStrong: 'rgba(192,132,252,0.35)',
-      bg: 'rgba(192,132,252,0.1)',
-      border: 'rgba(192,132,252,0.35)',
-      gradient: 'from-[#c084fc]/10 to-transparent',
-    },
-    'accent-cyan-light': {
-      primary: '#7ee0d2',
-      glow: 'rgba(126,224,210,0.2)',
-      glowStrong: 'rgba(126,224,210,0.35)',
-      bg: 'rgba(126,224,210,0.1)',
-      border: 'rgba(126,224,210,0.35)',
-      gradient: 'from-[#7ee0d2]/10 to-transparent',
-    },
-    'accent-gold': {
-      primary: '#fbbf24',
-      glow: 'rgba(251,191,36,0.2)',
-      glowStrong: 'rgba(251,191,36,0.35)',
-      bg: 'rgba(251,191,36,0.1)',
-      border: 'rgba(251,191,36,0.35)',
-      gradient: 'from-[#fbbf24]/10 to-transparent',
-    },
-  };
-
-  const colors = accentColors[card.accentColor] || accentColors['accent-lilac'];
-
-  const tip = (key) => {
-    if (copied === key) return 'Tersalin!';
-    if (copied === `err-${key}`) return 'Gagal menyalin';
-    return 'Salin spesifikasi';
-  };
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMove}
-      className={`relative flex flex-col bg-[#1d1830] border rounded-2xl overflow-hidden transition-all duration-500 cursor-pointer group ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      } ${
-        isExpanded
-          ? 'shadow-2xl'
-          : 'hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5'
-      }`}
-      style={{
-        transitionDelay: settled ? '0ms' : `${index * 120}ms`,
-        borderColor: isExpanded ? colors.border : 'rgba(61,53,96,0.6)',
-      }}
-      onClick={onToggle}
-    >
-      {/* Top accent bar (samar saat tertutup, penuh saat terbuka) */}
-      <div
-        className="h-[3px] w-full transition-all duration-500"
-        style={{
-          background: `linear-gradient(90deg, ${colors.primary}, transparent 70%)`,
-          opacity: isExpanded ? 1 : 0.3,
-        }}
-      />
-
-      {/* Hover/expand glow overlay */}
-      <div
-        className={`absolute inset-0 opacity-0 transition-opacity duration-500 pointer-events-none ${
-          isExpanded ? 'opacity-100' : 'group-hover:opacity-60'
-        }`}
-        style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${colors.glow}, transparent 65%)`,
-        }}
-      />
-
-      {/* Sorot cahaya mengikuti kursor */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{
-          background: `radial-gradient(260px circle at var(--px, 50%) var(--py, 0%), ${colors.glow}, transparent 70%)`,
-        }}
-      />
-
-      {/* Header */}
-      <div className="relative z-10 px-5 pt-5 pb-4 border-b border-[rgba(61,53,96,0.4)]">
-        {/* Category row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
-              style={{ backgroundColor: colors.bg, color: colors.primary }}
-            >
-              {card.icon}
-            </div>
+          {/* CARD 1: WORKSTATION PC (7 Cols) */}
+          <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl bg-[#15102a] border border-white/[0.08] p-6 sm:p-7 hover:border-white/[0.15] transition-all duration-300">
             <div>
-              <span
-                className="font-bold text-[11px] tracking-widest uppercase font-sans block leading-tight"
-                style={{ color: colors.primary }}
-              >
-                {card.label}
-              </span>
-              <span className="text-[10px] text-[#5c5480] font-medium tracking-wider uppercase">
-                {card.system}
-              </span>
-            </div>
-          </div>
-          <StatusBadge status="online" label="Aktif" />
-        </div>
-
-        {/* Expand indicator (tombol sungguhan agar bisa dipakai dengan keyboard) */}
-        <button
-          type="button"
-          aria-expanded={isExpanded}
-          aria-controls={`eq-panel-${card.id}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          className="flex w-full items-center justify-between text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
-        >
-          <span className="text-[10px] text-[#5c5480]">
-            {isExpanded ? 'Klik untuk tutup' : 'Klik untuk detail'}
-          </span>
-          <span
-            className={`w-6 h-6 rounded-full bg-[#2d2855] border border-[rgba(61,53,96,0.6)] flex items-center justify-center transition-all duration-300 ${
-              isExpanded ? 'rotate-180 border-[rgba(126,224,210,0.3)]' : 'group-hover:border-[rgba(126,224,210,0.3)]'
-            }`}
-          >
-            <ChevronDownIcon size={13} className="text-[#7ee0d2]" />
-          </span>
-        </button>
-      </div>
-
-      {/* Main Items */}
-      <div className="relative z-10 px-5 py-4 space-y-4 flex-1">
-        {card.items.map((item, itemIndex) => {
-          const key = `item-${itemIndex}`;
-          return (
-            <div key={itemIndex}>
-              {itemIndex > 0 && (
-                <div className="border-t border-[rgba(61,53,96,0.35)] mb-4" />
-              )}
-              <div className="group/item">
-                <p className="font-medium text-[#5c5480] text-[10px] uppercase tracking-widest mb-1.5 font-sans">
-                  {item.label}
-                </p>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-[13px] leading-snug font-display group-hover/item:text-[#7ee0d2] transition-colors duration-200">
-                      {item.title}
-                    </p>
-                    <p className="text-[#a89ec0] text-[11px] mt-0.5 leading-relaxed">{item.subtitle}</p>
+              <div className="flex items-center justify-between pb-5 border-b border-white/[0.08] mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/30 flex items-center justify-center text-[#7ee0d2]">
+                    <CpuIcon />
                   </div>
-                  <Tooltip content={tip(key)} position="left">
-                    <button
-                      type="button"
-                      aria-label={`Salin spesifikasi ${item.title}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy(`${item.title} - ${item.subtitle}`, key);
-                      }}
-                      className="p-1.5 rounded-lg bg-[#2d2855] border border-[rgba(61,53,96,0.6)] opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-200 hover:border-[rgba(126,224,210,0.4)] hover:bg-[#3d3566] text-[#a89ec0] hover:text-[#7ee0d2] shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
-                    >
-                      {copied === key ? (
-                        <CheckIcon size={12} className="text-[#4ade80]" />
-                      ) : (
-                        <CopyIcon size={12} />
-                      )}
-                    </button>
-                  </Tooltip>
+                  <div>
+                    <h3 className="font-bold text-lg text-white font-display">Workstation Pemrosesan</h3>
+                    <p className="text-xs text-[#94a3b8] font-mono">Arsitektur Komputasi & Grafis</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold">Siaran Aktif</span>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Expanded content */}
-      <div
-        id={`eq-panel-${card.id}`}
-        aria-hidden={!isExpanded}
-        className={`relative z-10 overflow-hidden transition-all duration-500 ease-in-out ${
-          isExpanded ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'
-        }`}
-      >
-        <div
-          className="mx-5 mb-5 pt-4 border-t border-[rgba(61,53,96,0.4)]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Specs Grid */}
-          {card.specs && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {card.specs.map((spec, specIndex) => (
-                <div
-                  key={specIndex}
-                  className="px-3 py-2.5 bg-[#2d2855]/60 rounded-xl border border-[rgba(61,53,96,0.4)] transition-colors duration-200 hover:bg-[#2d2855] hover:border-[rgba(126,224,210,0.25)]"
-                >
-                  <p className="text-[9px] text-[#5c5480] uppercase tracking-wider mb-1">{spec.label}</p>
-                  <p className="text-[12px] font-semibold text-white leading-tight">{spec.value}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Verified Architecture & Feature Badges */}
-          {card.features && (
-            <div className="space-y-2 mb-4">
-              <p className="text-[10px] text-[#a89ec0] uppercase tracking-widest font-mono">Keunggulan & Arsitektur</p>
-              <div className="space-y-1.5">
-                {card.features.map((feat, fIdx) => (
-                  <div key={fIdx} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-[#241f46]/60 border border-white/[0.05]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] mt-1.5 flex-shrink-0" />
-                    <div className="text-xs">
-                      <span className="font-semibold text-white/90">{feat.label}: </span>
-                      <span className="text-[#a89ec0]">{feat.value}</span>
+              {/* Hardware Spec Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
+                {PC_SPECS.map((spec) => (
+                  <div
+                    key={spec.category}
+                    className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/30 transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-mono text-[#94a3b8] uppercase tracking-wider">
+                        {spec.category}
+                      </span>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-[#7ee0d2]">
+                        {spec.tag}
+                      </span>
                     </div>
+                    <p className="text-base font-bold text-white font-display mb-1">{spec.model}</p>
+                    <p className="text-xs text-[#94a3b8] leading-relaxed font-body">{spec.detail}</p>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Software Toolchain Stack */}
-          {card.software && (
-            <div className="mb-4">
-              <p className="text-[10px] text-[#a89ec0] uppercase tracking-widest font-mono mb-2">Perangkat Lunak Pendukung</p>
-              <div className="flex flex-wrap gap-1.5">
-                {card.software.map((sw, sIdx) => (
-                  <span key={sIdx} className="px-2.5 py-1 rounded-md bg-[#191436] border border-white/10 text-[11px] font-mono text-accent-lilac">
-                    {sw}
-                  </span>
+            {/* Performance Indicators */}
+            <div className="pt-4 border-t border-white/[0.08] grid grid-cols-3 gap-3 text-center">
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs font-mono text-[#94a3b8]">Encoding Engine</p>
+                <p className="text-sm font-bold text-white mt-0.5">NVENC AV1 / H.264</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs font-mono text-[#94a3b8]">Resolusi Siaran</p>
+                <p className="text-sm font-bold text-[#7ee0d2] mt-0.5">1080p 60 FPS</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs font-mono text-[#94a3b8]">Memori Alokasi</p>
+                <p className="text-sm font-bold text-white mt-0.5">64GB Dual Ch.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 2: AUDIO ENGINE - SHURE MV7+ (5 Cols) */}
+          <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl bg-[#15102a] border border-white/[0.08] p-6 sm:p-7 hover:border-white/[0.15] transition-all duration-300">
+            <div>
+              <div className="flex items-center justify-between pb-5 border-b border-white/[0.08] mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/30 flex items-center justify-center text-[#7ee0d2]">
+                    <MicIcon />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-white font-display">Audio & Akustik</h3>
+                    <p className="text-xs text-[#94a3b8] font-mono">Shure MV7+ Broadcast Rig</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                  <RadioIcon className="w-3.5 h-3.5 text-[#7ee0d2]" />
+                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold">Cardioid</span>
+                </div>
+              </div>
+
+              {/* Audio Highlights */}
+              <div className="space-y-3 mb-6">
+                {AUDIO_SPECS.map((item) => (
+                  <div key={item.title} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-white">{item.title}</span>
+                      <span className="text-[10px] font-mono text-[#7ee0d2]">{item.value}</span>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] leading-relaxed">{item.desc}</p>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
 
-          {/* Salin semua spesifikasi kartu ini */}
-          <button
-            type="button"
-            tabIndex={isExpanded ? 0 : -1}
-            onClick={() => handleCopy(cardToText(card), 'all')}
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-semibold tracking-wide transition-all duration-200 hover:brightness-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
-            style={{ color: colors.primary, borderColor: colors.border, backgroundColor: colors.bg }}
-          >
-            {copied === 'all' ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
-            {copied === 'all'
-              ? 'Spesifikasi tersalin'
-              : copied === 'err-all'
-              ? 'Gagal menyalin'
-              : 'Salin semua spesifikasi'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Equipment Section Component
-const EquipmentSection = () => {
-  const [sectionRef, sectionVisible] = useScrollReveal({ threshold: 0.05 });
-  const [cardsRef, cardsVisible] = useScrollReveal({ threshold: 0.05 });
-  const [expandedCards, setExpandedCards] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [copiedAll, setCopiedAll] = useState(null); // 'ok' | 'err' | null
-  const [updatedAt] = useState(() => new Date());
-  const tabRefs = useRef([]);
-  const copyAllTimer = useRef(0);
-
-  useEffect(() => () => clearTimeout(copyAllTimer.current), []);
-
-  const equipmentCards = [
-    {
-      id: 1,
-      icon: <PcIcon size={12} />,
-      label: 'PC & PEMROSESAN',
-      system: 'SIS 01',
-      accentColor: 'accent-lilac',
-      items: [
-        {
-          label: 'PROSESOR (CPU)',
-          title: 'Intel Core i7-13620H',
-          subtitle: '10 Inti (6P + 4E) / 16 Thread @ Up to 4.9GHz',
-        },
-        {
-          label: 'KARTU GRAFIS (GPU)',
-          title: 'NVIDIA GeForce RTX 4060',
-          subtitle: '8GB GDDR6 VRAM',
-        },
-      ],
-      specs: [
-        { label: 'Memori', value: '64GB DDR5' },
-        { label: 'VRAM', value: '8GB GDDR6' },
-        { label: 'Penyimpanan', value: '1TB NVMe SSD' },
-        { label: 'Operasional', value: 'Siaran & Rendering' },
-      ],
-      features: [
-        { label: 'Arsitektur CPU', value: '10 Core (6P+4E) / 16 Thread Hybrid Architecture' },
-        { label: 'Video Encoder', value: 'NVIDIA NVENC AV1/H.264 Hardware Encoder' },
-        { label: 'Kapasitas RAM', value: '64GB DDR5 Dual Channel High-Speed' },
-        { label: 'Penyimpanan', value: '1TB NVMe PCIe 4.0 Read Speed up to 5000MB/s' },
-      ],
-      software: ['OBS Studio 30+', 'NVIDIA Broadcast', 'Discord Ops'],
-    },
-    {
-      id: 2,
-      icon: <MicrophoneIcon size={10} />,
-      label: 'AUDIO & SIARAN',
-      system: 'AUDIO 02',
-      accentColor: 'accent-cyan-light',
-      items: [
-        {
-          label: 'MIKROFON UTAMA',
-          title: 'Shure MV7+',
-          subtitle: 'Dynamic Podcast & Broadcast Microphone',
-        },
-        {
-          label: 'INTERFACE & PENGOLAHAN',
-          title: 'Hybrid USB-C / XLR',
-          subtitle: 'Onboard DSP Reverb & Real-time Denoiser',
-        },
-      ],
-      specs: [
-        { label: 'Konektivitas', value: 'USB-C & XLR Hybrid' },
-        { label: 'Sample Rate', value: '48kHz / 24-bit' },
-        { label: 'Pola Tangkap', value: 'Cardioid Unidirectional' },
-        { label: 'Fitur Khusus', value: 'Digital Popper Stopper' },
-      ],
-      features: [
-        { label: 'Konektivitas Dual', value: 'USB-C Digital & XLR Analog Simultan' },
-        { label: 'DSP Processing', value: 'Onboard DSP Reverb, Compressor & Limiter' },
-        { label: 'Voice Isolation', value: 'Pola Cardioid Menghilangkan Gemuruh Ruangan' },
-        { label: 'Popper Stopper', value: 'Peredam Plosif Digital Terintegrasi' },
-      ],
-      software: ['Shure MOTIV Mix', 'Voicemeeter Banana', 'VST Plugins'],
-    },
-    {
-      id: 3,
-      icon: <EyeIcon size={10} />,
-      label: 'RIG & PELACAKAN',
-      system: 'MODEL 03',
-      accentColor: 'accent-gold',
-      items: [
-        {
-          label: 'MODEL LIVE2D RIG',
-          title: 'Obsidian Rig #03',
-          subtitle: 'ARKit 52 Blendshape + Fisika XYZ',
-        },
-        {
-          label: 'MESIN TANGKAP OPTIS',
-          title: 'iPhone 15 Pro TrueDepth',
-          subtitle: '60 FPS VTube Studio + Pelacakan Presisi',
-        },
-      ],
-      specs: [
-        { label: 'FPS Pelacakan', value: '60 FPS' },
-        { label: 'Blendshape', value: '52 Titik ARKit' },
-        { label: 'Latensi', value: '< 16ms' },
-        { label: 'Debut Siaran', value: '8 Februari 2025' },
-      ],
-      features: [
-        { label: 'Pelacakan Wajah', value: '52 Titik Blendshapes Apple ARKit' },
-        { label: 'Optical Capture', value: 'iPhone 15 Pro TrueDepth Sensor IR 60 FPS' },
-        { label: 'Fisika Karakter', value: 'Fisika 3-Axis XYZ untuk Rambut, Busana & Mata' },
-        { label: 'Koneksi Sinyal', value: 'Jalur Nirkabel Lokal Latensi Ultra Rendah' },
-      ],
-      software: ['VTube Studio', 'Live2D Cubism 5.0', 'Open See Face'],
-    },
-  ];
-
-  const filters = [
-    { id: 'all', label: 'Semua Sistem' },
-    { id: 'pc', label: 'Pemrosesan' },
-    { id: 'audio', label: 'Audio' },
-    { id: 'rig', label: 'Pelacakan' },
-  ];
-
-  const filteredCards = equipmentCards.filter((card) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'pc') return card.id === 1;
-    if (activeFilter === 'audio') return card.id === 2;
-    if (activeFilter === 'rig') return card.id === 3;
-    return true;
-  });
-
-  // Ringkasan dihitung langsung dari data di atas
-  const totalComponents = equipmentCards.reduce((n, c) => n + c.items.length, 0);
-  const totalSpecs = equipmentCards.reduce((n, c) => n + (c.specs ? c.specs.length : 0), 0);
-
-  // Kartu bisa dibuka lebih dari satu agar spesifikasi bisa dibandingkan
-  const toggleCard = (id) =>
-    setExpandedCards((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const allOpen = filteredCards.length > 0 && filteredCards.every((c) => expandedCards.includes(c.id));
-
-  const toggleAll = () =>
-    setExpandedCards((prev) =>
-      allOpen
-        ? prev.filter((id) => !filteredCards.some((c) => c.id === id))
-        : Array.from(new Set([...prev, ...filteredCards.map((c) => c.id)]))
-    );
-
-  const handleCopyAll = async () => {
-    const ok = await copyText(equipmentCards.map(cardToText).join('\n\n'));
-    setCopiedAll(ok ? 'ok' : 'err');
-    clearTimeout(copyAllTimer.current);
-    copyAllTimer.current = setTimeout(() => setCopiedAll(null), 2000);
-  };
-
-  // Navigasi tab dengan panah kiri/kanan
-  const handleFilterKey = (e, i) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    e.preventDefault();
-    const next = (i + (e.key === 'ArrowRight' ? 1 : filters.length - 1)) % filters.length;
-    setActiveFilter(filters[next].id);
-    if (tabRefs.current[next]) tabRefs.current[next].focus();
-  };
-
-  const headerButton =
-    'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide bg-[#1d1830] text-[#a89ec0] border border-[rgba(61,53,96,0.6)] transition-all duration-300 hover:border-[rgba(126,224,210,0.35)] hover:text-white hover:bg-[#2d2855]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]';
-
-  return (
-    <section id="equipment" className="relative px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-36 pb-12 lg:pb-20">
-      <style>{`
-        @keyframes eq-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-        .eq-fade { animation: eq-fade .4s ease-out both; }
-        @media (prefers-reduced-motion: reduce) { .eq-fade { animation: none !important; } }
-      `}</style>
-
-      <div
-        ref={sectionRef}
-        className={`max-w-6xl mx-auto transition-all duration-700 ${
-          sectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-        }`}
-      >
-        {/* Main Card */}
-        <div className="bg-[#130f24] border border-[rgba(61,53,96,0.7)] rounded-2xl p-5 sm:p-6 lg:p-8 relative overflow-hidden shadow-2xl">
-          {/* Animated Background */}
-          <AnimatedBackground />
-
-          {/* Grid halus ala lembar spesifikasi */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(168,158,192,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(168,158,192,0.05) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-              maskImage: 'radial-gradient(ellipse at top, black 20%, transparent 75%)',
-              WebkitMaskImage: 'radial-gradient(ellipse at top, black 20%, transparent 75%)',
-            }}
-          />
-
-          {/* Header */}
-          <div className="relative z-10 border-b border-[rgba(61,53,96,0.5)] pb-5 mb-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* Left: Icon + Title */}
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1d1830] border border-[rgba(126,224,210,0.3)] flex items-center justify-center shadow-inner shrink-0">
-                  <PcIcon size={20} className="text-[#7ee0d2]" />
+              {/* Interactive Mic Profile Switcher */}
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-mono uppercase tracking-wider text-[#94a3b8]">
+                    Profil Suara Interaktif
+                  </span>
+                  <span className="text-[10px] font-mono text-[#7ee0d2]">{selectedPreset.freq}</span>
                 </div>
-                <div>
-                  <h3 className="text-xl sm:text-[22px] font-bold text-white tracking-wide font-display leading-tight">
-                    Spesifikasi Peralatan
-                  </h3>
-                  <p className="mt-1 text-[10px] font-mono tracking-wider uppercase text-[#5c5480]">
-                    {equipmentCards.length} sistem · {totalComponents} komponen · {totalSpecs} spesifikasi
-                  </p>
+
+                {/* Preset Buttons */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {AUDIO_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setActivePreset(preset.id)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
+                        activePreset === preset.id
+                          ? 'bg-[#7ee0d2] text-[#0d091a] font-semibold shadow-sm'
+                          : 'bg-white/[0.04] text-[#94a3b8] hover:text-white hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      {preset.name.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-xs text-[#cbd5e1] mb-3 leading-relaxed">
+                  {selectedPreset.desc}
+                </p>
+
+                {/* Animated Frequency Bars Simulator */}
+                <div className="flex items-end justify-between gap-1.5 h-10 px-2 py-1.5 rounded-lg bg-[#0d091a] border border-white/5">
+                  {selectedPreset.bars.map((h, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+                      <div
+                        className="w-full rounded-sm bg-[#7ee0d2] transition-all duration-500 ease-out"
+                        style={{ height: `${h}%`, opacity: 0.4 + (h / 100) * 0.6 }}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Right: aksi untuk seluruh daftar */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={handleCopyAll} className={headerButton}>
-                  {copiedAll === 'ok' ? <CheckIcon size={12} className="text-[#4ade80]" /> : <CopyIcon size={12} />}
-                  {copiedAll === 'ok' ? 'Tersalin' : copiedAll === 'err' ? 'Gagal menyalin' : 'Salin semua'}
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleAll}
-                  disabled={filteredCards.length === 0}
-                  className={headerButton}
-                >
-                  <ChevronDownIcon
-                    size={12}
-                    className={`transition-transform duration-300 ${allOpen ? 'rotate-180' : ''}`}
-                  />
-                  {allOpen ? 'Tutup semua' : 'Buka semua'}
-                </button>
-              </div>
             </div>
-            <span className="sr-only" role="status">
-              {copiedAll === 'ok' ? 'Semua spesifikasi tersalin' : copiedAll === 'err' ? 'Gagal menyalin spesifikasi' : ''}
-            </span>
           </div>
+        </div>
 
-          {/* Filter Tabs */}
-          <div className="relative z-10 flex flex-wrap items-center gap-2 mb-5">
-            <div role="tablist" aria-label="Filter sistem peralatan" className="flex flex-wrap items-center gap-2">
-              {filters.map((filter, i) => (
-                <button
-                  key={filter.id}
-                  ref={(el) => {
-                    tabRefs.current[i] = el;
-                  }}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeFilter === filter.id}
-                  tabIndex={activeFilter === filter.id ? 0 : -1}
-                  onClick={() => setActiveFilter(filter.id)}
-                  onKeyDown={(e) => handleFilterKey(e, i)}
-                  className={`px-3.5 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] ${
-                    activeFilter === filter.id
-                      ? 'bg-[#7ee0d2] text-[#1d1830] shadow-lg shadow-[#7ee0d2]/25'
-                      : 'bg-[#1d1830] text-[#a89ec0] border border-[rgba(61,53,96,0.6)] hover:border-[rgba(126,224,210,0.35)] hover:text-white hover:bg-[#2d2855]/60'
-                  }`}
+        {/* CARD 3: SOFTWARE STACK & SPILL SPEK (Full Width) */}
+        <div className="rounded-2xl bg-[#15102a] border border-white/[0.08] p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+          <div className="flex-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#94a3b8] block mb-2">
+              Ekosistem Perangkat Lunak Pendukung
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {SOFTWARE_STACK.map((sw) => (
+                <div
+                  key={sw.name}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white"
                 >
-                  {filter.label}
-                </button>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+                  <span className="font-semibold">{sw.name}</span>
+                  <span className="text-[#94a3b8] hidden sm:inline text-[11px]">· {sw.role}</span>
+                </div>
               ))}
             </div>
-            <span className="ml-auto text-[10px] font-mono tracking-wider uppercase text-[#5c5480]" aria-live="polite">
-              Menampilkan {filteredCards.length} / {equipmentCards.length} sistem
-            </span>
           </div>
 
-          {/* Equipment Cards */}
-          <div ref={cardsRef}>
-            <div
-              key={activeFilter}
-              role="tabpanel"
-              className={`eq-fade grid gap-4 ${
-                filteredCards.length === 1
-                  ? 'grid-cols-1 sm:max-w-md sm:mx-auto'
-                  : filteredCards.length === 2
-                  ? 'grid-cols-1 sm:grid-cols-2'
-                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-              }`}
+          {/* Action: Copy Rig Specs */}
+          <div className="flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleCopySpecs}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-xs font-semibold tracking-wide transition-all duration-200 active:scale-95 cursor-pointer"
             >
-              {filteredCards.map((card, index) => (
-                <EquipmentCard
-                  key={card.id}
-                  card={card}
-                  index={index}
-                  isVisible={cardsVisible}
-                  isExpanded={expandedCards.includes(card.id)}
-                  onToggle={() => toggleCard(card.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Footer Info */}
-          <div className="relative z-10 mt-5 pt-4 border-t border-[rgba(61,53,96,0.4)]">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px] text-[#5c5480]">
-              <span>
-                Diperbarui:{' '}
-                {updatedAt.toLocaleDateString('id-ID', {
-                  weekday: 'short',
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse motion-reduce:animate-none" />
-                  Semua sistem beroperasi
-                </span>
-                <span className="text-[#7ee0d2]">|</span>
-                <span>Perbarui otomatis: 30d</span>
-              </span>
-            </div>
+              {copied ? (
+                <>
+                  <CheckIcon className="w-4 h-4 text-[#7ee0d2]" />
+                  <span className="text-[#7ee0d2]">Spesifikasi Berhasil Disalin!</span>
+                </>
+              ) : (
+                <>
+                  <CopyIcon className="w-4 h-4 text-[#94a3b8]" />
+                  <span>Salin Spesifikasi Lengkap</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
+
       </div>
     </section>
   );
-};
-
-export default EquipmentSection;
+}
