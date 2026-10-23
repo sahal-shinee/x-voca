@@ -48,6 +48,7 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
     '/admin/voting': 'Game Voting',
     '/admin/collab-requests': 'Collab Requests',
     '/admin/content': 'Content Guide',
+    '/admin/todos': 'Todo List',
     '/admin/settings': 'Settings',
   };
 
