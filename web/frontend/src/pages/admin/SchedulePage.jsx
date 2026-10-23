@@ -202,6 +202,22 @@ function SchedulePage() {
     fetchSchedules(activeFilter);
   }, [fetchSummaryStats, fetchSchedules, activeFilter]);
 
+  // Handle URL query parameters (e.g. ?action=create&game=Title from Voting Moderation)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'create') {
+      const game = params.get('game') || '';
+      setEditingSchedule({
+        title: game ? `Stream: ${game}` : '',
+        game_category: game,
+        stream_platform: 'YouTube',
+        countdown_enabled: true,
+      });
+      setFormPanelOpen(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Handle filter change
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
