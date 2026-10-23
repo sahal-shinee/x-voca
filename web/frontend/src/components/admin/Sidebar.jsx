@@ -1,32 +1,28 @@
 import { useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useDashboardStats } from '../../hooks/useDashboardStats';
 import {
   LayoutDashboard,
   Calendar,
   Gamepad2,
   Users,
   BookOpen,
+  CheckSquare,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  CheckSquare,
 } from 'lucide-react';
 
 /**
  * Modern Studio Command Deck Sidebar
- * Redesigned for high interactivity, tactile micro-animations,
- * and zero AI-slop template cliches.
+ * Clean, tactile, interactive, and zero AI-slop template clichés.
  */
 export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth();
-  const { stats } = useDashboardStats();
 
-  const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'X';
-  const userName = user?.name || 'Xion Regalia';
-  const userRole = user?.role ? user.role.toUpperCase() : 'CREATOR OPS';
+  const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'A';
+  const userName = user?.name || 'Admin';
 
   // Hotkey listener: [ or Ctrl+B / Cmd+B to toggle sidebar collapse
   useEffect(() => {
@@ -56,70 +52,42 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
   }, [onToggleCollapse]);
 
   const menuItems = [
-    {
-      path: '/admin/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      path: '/admin/schedules',
-      label: 'Jadwal Stream',
-      icon: Calendar,
-      badge: stats?.upcomingSchedules > 0 ? stats.upcomingSchedules : null,
-      badgeType: 'cyan',
-    },
-    {
-      path: '/admin/voting',
-      label: 'Game Voting',
-      icon: Gamepad2,
-      isLive: true,
-    },
-    {
-      path: '/admin/collab-requests',
-      label: 'Collab Requests',
-      icon: Users,
-    },
-    {
-      path: '/admin/content',
-      label: 'Content Guide',
-      icon: BookOpen,
-    },
-    {
-      path: '/admin/todos',
-      label: 'Todo List',
-      icon: CheckSquare,
-      badge: stats?.pendingTodos > 0 ? stats.pendingTodos : null,
-      badgeType: 'purple',
-    },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/admin/schedules', label: 'Jadwal Stream', icon: Calendar },
+    { path: '/admin/voting', label: 'Game Voting', icon: Gamepad2 },
+    { path: '/admin/collab-requests', label: 'Collab Requests', icon: Users },
+    { path: '/admin/content', label: 'Content Guide', icon: BookOpen },
+    { path: '/admin/todos', label: 'Todo List', icon: CheckSquare },
   ];
 
-  const NavItem = ({ path, label, icon: Icon, badge, badgeType, isLive }) => (
+  const NavItem = ({ path, label, icon: Icon }) => (
     <NavLink
       to={path}
       onClick={onCloseMobile}
       title={collapsed ? label : undefined}
       className={({ isActive }) => `
         group relative flex items-center
-        ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2 gap-3'}
+        ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2.5 gap-3'}
         rounded-xl text-sm font-medium
         transition-all duration-200 ease-out select-none
+        active:scale-[0.97]
         ${
           isActive
-            ? 'text-accent-cyan font-semibold bg-gradient-to-r from-accent-cyan/15 via-accent-cyan/8 to-transparent border border-accent-cyan/25 shadow-sm'
+            ? 'text-accent-cyan font-semibold bg-gradient-to-r from-accent-cyan/15 via-accent-cyan/5 to-transparent border border-accent-cyan/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]'
             : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface/80 border border-transparent'
         }
       `}
     >
       {({ isActive }) => (
         <>
-          {/* Active Glowing Notch Indicator */}
-          {isActive && (
+          {/* Integrated Glowing Accent Bar (Inside item padding) */}
+          {isActive && !collapsed && (
             <span
               className="
-                absolute left-0 top-1/2 -translate-y-1/2
-                w-1 h-5 rounded-r-full
-                bg-accent-cyan shadow-[0_0_10px_rgba(94,234,212,0.9)]
-                transition-all duration-300
+                absolute left-1.5 top-1/2 -translate-y-1/2
+                w-1 h-4 rounded-full
+                bg-accent-cyan shadow-[0_0_8px_rgba(94,234,212,0.85)]
+                transition-all duration-200
               "
             />
           )}
@@ -132,97 +100,32 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               group-hover:scale-110
               ${
                 isActive
-                  ? 'text-accent-cyan bg-accent-cyan/20 ring-1 ring-accent-cyan/40 shadow-inner'
+                  ? 'text-accent-cyan bg-accent-cyan/20 ring-1 ring-accent-cyan/40 shadow-[0_0_12px_rgba(94,234,212,0.3)]'
                   : 'text-text-muted group-hover:text-text-primary group-hover:bg-bg-card'
               }
             `}
           >
             <Icon className="w-4 h-4 transition-transform duration-200 group-hover:rotate-6" />
-
-            {/* Live Indicator Dot on Icon when Collapsed */}
-            {isLive && collapsed && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
-              </span>
-            )}
-
-            {/* Number Dot Badge when Collapsed */}
-            {badge && collapsed && (
-              <span
-                className={`
-                  absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full
-                  text-[9px] font-mono font-bold flex items-center justify-center text-white
-                  ${badgeType === 'purple' ? 'bg-accent-purple shadow-sm' : 'bg-accent-cyan text-bg-base shadow-sm'}
-                `}
-              >
-                {badge > 99 ? '99+' : badge}
-              </span>
-            )}
           </div>
 
-          {/* Expanded Label & Badges */}
+          {/* Label (when expanded) with subtle slide on hover */}
           {!collapsed && (
-            <div className="flex-1 flex items-center justify-between min-w-0 transition-transform duration-200 group-hover:translate-x-0.5">
-              <span className="truncate leading-none pt-0.5 tracking-tight">
-                {label}
-              </span>
-
-              <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                {isLive && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider bg-status-live/15 text-status-live border border-status-live/30 uppercase">
-                    <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-pulse" />
-                    LIVE
-                  </span>
-                )}
-
-                {badge && (
-                  <span
-                    className={`
-                      px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold min-w-[20px] text-center
-                      ${
-                        badgeType === 'purple'
-                          ? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
-                          : 'bg-accent-cyan/20 text-accent-cyan border border-accent-cyan/30'
-                      }
-                    `}
-                  >
-                    {badge}
-                  </span>
-                )}
-              </div>
-            </div>
+            <span className="truncate leading-none pt-0.5 tracking-tight transition-transform duration-200 group-hover:translate-x-1">
+              {label}
+            </span>
           )}
 
-          {/* Floating Glassmorphic Tooltip (Collapsed Mode) */}
+          {/* Floating Tooltip in Collapsed Mode */}
           {collapsed && (
             <div className="
-              absolute left-full ml-3 px-3 py-1.5
+              absolute left-full ml-3.5 px-3 py-1.5
               bg-bg-card/95 backdrop-blur-md border border-border-subtle
               rounded-xl text-xs font-medium text-text-primary
-              whitespace-nowrap opacity-0 invisible -translate-x-2
-              group-hover:opacity-100 group-hover:visible group-hover:translate-x-0
-              transition-all duration-200 z-50 shadow-2xl pointer-events-none
-              flex items-center gap-2
+              whitespace-nowrap opacity-0 invisible scale-95
+              group-hover:opacity-100 group-hover:visible group-hover:scale-100
+              transition-all duration-200 ease-out z-50 shadow-2xl pointer-events-none
             ">
-              <span className="font-medium">{label}</span>
-              {isLive && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-status-live/15 text-status-live border border-status-live/30">
-                  <span className="w-1 h-1 rounded-full bg-status-live animate-pulse" />
-                  LIVE
-                </span>
-              )}
-              {badge && (
-                <span
-                  className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
-                    badgeType === 'purple'
-                      ? 'bg-accent-purple/20 text-accent-purple'
-                      : 'bg-accent-cyan/20 text-accent-cyan'
-                  }`}
-                >
-                  {badge}
-                </span>
-              )}
+              {label}
             </div>
           )}
         </>
@@ -254,7 +157,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
           to="/admin/dashboard"
           onClick={onCloseMobile}
           title={collapsed ? 'X-VOCA Studio Dashboard' : undefined}
-          className="group flex items-center gap-3 min-w-0"
+          className="group flex items-center gap-3 min-w-0 active:scale-[0.98] transition-transform"
         >
           {/* Logo Monogram Badge */}
           <div className="relative flex-shrink-0">
@@ -262,8 +165,8 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               w-9 h-9 rounded-xl
               bg-gradient-to-br from-accent-cyan/20 via-accent-purple/15 to-transparent
               border border-accent-cyan/40 flex items-center justify-center
-              shadow-sm group-hover:shadow-[0_0_15px_rgba(94,234,212,0.35)]
-              group-hover:border-accent-cyan
+              shadow-sm group-hover:shadow-[0_0_15px_rgba(94,234,212,0.4)]
+              group-hover:border-accent-cyan group-hover:scale-105
               transition-all duration-300
             ">
               <span className="text-xs font-bold font-mono bg-gradient-to-r from-accent-cyan to-accent-purple bg-clip-text text-transparent">
@@ -283,13 +186,13 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                 </span>
               </div>
 
-              {/* Dynamic Soundwave Visualizer Bars */}
+              {/* Dynamic Soundwave Equalizer Bars (Real CSS wave animation) */}
               <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="flex items-end gap-[3px] h-3 px-1 py-0.5 rounded bg-bg-surface/80 border border-border-subtle/60">
-                  <span className="w-[2.5px] h-1.5 bg-accent-cyan rounded-full animate-pulse" />
-                  <span className="w-[2.5px] h-2.5 bg-accent-cyan rounded-full animate-pulse [animation-delay:150ms]" />
-                  <span className="w-[2.5px] h-2 bg-accent-purple rounded-full animate-pulse [animation-delay:300ms]" />
-                  <span className="w-[2.5px] h-1 bg-accent-purple rounded-full animate-pulse [animation-delay:450ms]" />
+                <div className="flex items-end gap-[3px] h-3.5 px-1 py-0.5 rounded bg-bg-surface/80 border border-border-subtle/60">
+                  <span className="w-[2.5px] bg-accent-cyan rounded-full animate-eq-1" />
+                  <span className="w-[2.5px] bg-accent-cyan rounded-full animate-eq-2" />
+                  <span className="w-[2.5px] bg-accent-purple rounded-full animate-eq-3" />
+                  <span className="w-[2.5px] bg-accent-purple rounded-full animate-eq-4" />
                 </div>
                 <span className="text-[9px] font-mono text-text-muted tracking-wider uppercase">
                   Deck Active
@@ -304,8 +207,8 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               absolute left-full ml-3 px-3 py-1.5
               bg-bg-card/95 backdrop-blur-md border border-border-subtle
               rounded-xl text-xs font-semibold text-text-primary
-              whitespace-nowrap opacity-0 invisible -translate-x-2
-              group-hover:opacity-100 group-hover:visible group-hover:translate-x-0
+              whitespace-nowrap opacity-0 invisible scale-95
+              group-hover:opacity-100 group-hover:visible group-hover:scale-100
               transition-all duration-200 z-50 shadow-2xl pointer-events-none
             ">
               X-VOCA Studio
@@ -314,33 +217,35 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
         </Link>
       </div>
 
-      {/* ── 2. USER PROFILE DECK (Tactile Studio Identity) ── */}
+      {/* ── 2. USER PROFILE DECK (Clean & Non-redundant) ── */}
       <div className="p-3">
         <Link
           to="/admin/settings"
           onClick={onCloseMobile}
-          title={collapsed ? `${userName} (${userRole}) - Buka Pengaturan` : undefined}
+          title={collapsed ? `${userName} - Buka Pengaturan` : undefined}
           className={`
-            relative group/user flex items-center gap-3 p-2 rounded-2xl
+            relative group/user flex items-center gap-3 p-2.5 rounded-2xl
             bg-gradient-to-b from-bg-surface/90 to-bg-card/40
-            border border-border-subtle/80 hover:border-accent-cyan/40
+            border border-border-subtle hover:border-accent-cyan/40
             hover:shadow-[0_4px_20px_-4px_rgba(94,234,212,0.15)]
-            transition-all duration-200 cursor-pointer block
+            active:scale-[0.98] transition-all duration-200 block
             ${collapsed ? 'p-1.5 justify-center' : ''}
           `}
         >
-          {/* Avatar with Dual-Ring Gradient & Status Pulse */}
+          {/* Avatar: Clean Solid Circle */}
           <div className="relative flex-shrink-0">
-            <div className="p-[1.5px] rounded-xl bg-gradient-to-tr from-accent-cyan via-accent-purple to-accent-cyan/40 shadow-sm group-hover/user:scale-105 transition-transform duration-200">
-              <div className="w-8 h-8 rounded-[10px] bg-bg-surface flex items-center justify-center font-bold font-mono text-xs text-text-primary">
-                {userInitial}
-              </div>
+            <div className="
+              w-9 h-9 rounded-full
+              bg-gradient-to-tr from-accent-cyan/20 to-accent-purple/20
+              border border-accent-cyan/35 flex items-center justify-center
+              font-bold font-mono text-sm text-accent-cyan shadow-sm
+              group-hover/user:scale-105 group-hover/user:border-accent-cyan
+              transition-all duration-200
+            ">
+              {userInitial}
             </div>
             {/* Live presence dot */}
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-done opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-status-done ring-2 ring-bg-nav" />
-            </span>
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-status-done ring-2 ring-bg-nav" />
           </div>
 
           {!collapsed && (
@@ -349,14 +254,12 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                 <p className="text-xs font-semibold text-text-primary truncate group-hover/user:text-accent-cyan transition-colors">
                   {userName}
                 </p>
-                <span className="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded bg-accent-purple/15 text-accent-purple border border-accent-purple/30 uppercase flex-shrink-0">
-                  {userRole}
-                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-text-muted opacity-0 group-hover/user:opacity-100 group-hover/user:translate-x-0.5 transition-all duration-200 flex-shrink-0" />
               </div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-done flex-shrink-0 animate-pulse" />
-                <span className="text-[10px] font-mono text-text-muted tracking-wide truncate">
-                  STUDIO OPERATOR
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-done flex-shrink-0" />
+                <span className="text-[10px] font-mono text-text-muted truncate">
+                  Administrator
                 </span>
               </div>
             </div>
@@ -368,17 +271,14 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               absolute left-full ml-3.5 px-3 py-2
               bg-bg-card/95 backdrop-blur-md border border-border-subtle
               rounded-xl text-xs text-text-primary
-              whitespace-nowrap opacity-0 invisible -translate-x-2
-              group-hover/user:opacity-100 group-hover/user:visible group-hover/user:translate-x-0
-              transition-all duration-200 z-50 shadow-2xl pointer-events-none min-w-[150px]
+              whitespace-nowrap opacity-0 invisible scale-95
+              group-hover/user:opacity-100 group-hover/user:visible group-hover/user:scale-100
+              transition-all duration-200 z-50 shadow-2xl pointer-events-none min-w-[130px]
             ">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-status-done" />
-                <span className="font-semibold text-text-primary">{userName}</span>
-              </div>
-              <div className="text-[10px] font-mono text-text-muted flex items-center justify-between">
-                <span>{userRole}</span>
-                <span className="text-accent-cyan">Pengaturan ↗</span>
+              <div className="font-semibold text-text-primary">{userName}</div>
+              <div className="text-[10px] font-mono text-text-muted mt-0.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-done" />
+                <span>Administrator</span>
               </div>
             </div>
           )}
@@ -386,7 +286,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
       </div>
 
       {/* ── 3. NAVIGATION MENU ── */}
-      <nav className="flex-1 py-2 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 py-1 overflow-y-auto scrollbar-hide">
         {!collapsed && (
           <div className="px-5 mb-2 flex items-center justify-between">
             <span className="text-[10px] font-mono font-semibold text-text-muted uppercase tracking-widest">
@@ -423,25 +323,26 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
             title={collapsed ? 'Settings' : undefined}
             className={({ isActive }) => `
               group relative flex items-center
-              ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2 gap-3'}
+              ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2.5 gap-3'}
               rounded-xl text-sm font-medium
               transition-all duration-200 ease-out select-none
+              active:scale-[0.97]
               ${
                 isActive
-                  ? 'text-accent-cyan font-semibold bg-gradient-to-r from-accent-cyan/15 via-accent-cyan/8 to-transparent border border-accent-cyan/25 shadow-sm'
+                  ? 'text-accent-cyan font-semibold bg-gradient-to-r from-accent-cyan/15 via-accent-cyan/5 to-transparent border border-accent-cyan/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface/80 border border-transparent'
               }
             `}
           >
             {({ isActive }) => (
               <>
-                {isActive && (
+                {isActive && !collapsed && (
                   <span
                     className="
-                      absolute left-0 top-1/2 -translate-y-1/2
-                      w-1 h-5 rounded-r-full
-                      bg-accent-cyan shadow-[0_0_10px_rgba(94,234,212,0.9)]
-                      transition-all duration-300
+                      absolute left-1.5 top-1/2 -translate-y-1/2
+                      w-1 h-4 rounded-full
+                      bg-accent-cyan shadow-[0_0_8px_rgba(94,234,212,0.85)]
+                      transition-all duration-200
                     "
                   />
                 )}
@@ -452,7 +353,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                     group-hover:scale-110
                     ${
                       isActive
-                        ? 'text-accent-cyan bg-accent-cyan/20 ring-1 ring-accent-cyan/40 shadow-inner'
+                        ? 'text-accent-cyan bg-accent-cyan/20 ring-1 ring-accent-cyan/40 shadow-[0_0_12px_rgba(94,234,212,0.3)]'
                         : 'text-text-muted group-hover:text-text-primary group-hover:bg-bg-card'
                     }
                   `}
@@ -461,10 +362,9 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                 </div>
 
                 {!collapsed && (
-                  <div className="flex-1 flex items-center justify-between min-w-0 transition-transform duration-200 group-hover:translate-x-0.5">
-                    <span className="truncate leading-none pt-0.5 tracking-tight">Settings</span>
-                    <span className="text-[10px] font-mono text-text-muted/60">Prefs</span>
-                  </div>
+                  <span className="truncate leading-none pt-0.5 tracking-tight transition-transform duration-200 group-hover:translate-x-1">
+                    Settings
+                  </span>
                 )}
 
                 {collapsed && (
@@ -472,9 +372,9 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                     absolute left-full ml-3 px-3 py-1.5
                     bg-bg-card/95 backdrop-blur-md border border-border-subtle
                     rounded-xl text-xs font-medium text-text-primary
-                    whitespace-nowrap opacity-0 invisible -translate-x-2
-                    group-hover:opacity-100 group-hover:visible group-hover:translate-x-0
-                    transition-all duration-200 z-50 shadow-2xl pointer-events-none
+                    whitespace-nowrap opacity-0 invisible scale-95
+                    group-hover:opacity-100 group-hover:visible group-hover:scale-100
+                    transition-all duration-200 ease-out z-50 shadow-2xl pointer-events-none
                   ">
                     Settings
                   </div>
@@ -490,9 +390,10 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
             title={collapsed ? 'Keluar' : undefined}
             className={`
               w-auto flex items-center rounded-xl text-sm font-medium
-              ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2 gap-3'}
+              ${collapsed ? 'justify-center p-2.5 my-1 mx-2' : 'px-3 py-2.5 my-1 mx-2.5 gap-3'}
               text-text-muted hover:text-status-live hover:bg-status-live/10 hover:border-status-live/30
               border border-transparent transition-all duration-200 group relative select-none
+              active:scale-[0.97]
             `}
           >
             <div className="
@@ -500,11 +401,11 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               w-7 h-7 rounded-lg text-text-muted group-hover:text-status-live
               group-hover:bg-status-live/15 transition-all duration-200
             ">
-              <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+              <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
             </div>
 
             {!collapsed && (
-              <span className="text-sm truncate leading-none pt-0.5 transition-transform duration-200 group-hover:translate-x-0.5">
+              <span className="text-sm truncate leading-none pt-0.5 transition-transform duration-200 group-hover:translate-x-1">
                 Keluar
               </span>
             )}
@@ -514,9 +415,9 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                 absolute left-full ml-3 px-3 py-1.5
                 bg-bg-card/95 backdrop-blur-md border border-status-live/30
                 rounded-xl text-xs font-medium text-status-live
-                whitespace-nowrap opacity-0 invisible -translate-x-2
-                group-hover:opacity-100 group-hover:visible group-hover:translate-x-0
-                transition-all duration-200 z-50 shadow-2xl pointer-events-none
+                whitespace-nowrap opacity-0 invisible scale-95
+                group-hover:opacity-100 group-hover:visible group-hover:scale-100
+                transition-all duration-200 ease-out z-50 shadow-2xl pointer-events-none
               ">
                 Keluar dari Sesi
               </div>
@@ -534,20 +435,20 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               hidden lg:flex w-full items-center rounded-xl py-2 px-2.5
               text-text-muted hover:text-text-primary hover:bg-bg-surface
               border border-border-subtle/60 hover:border-border-subtle
-              transition-all duration-200 group
+              active:scale-[0.97] transition-all duration-200 group
               ${collapsed ? 'justify-center' : 'justify-between'}
             `}
           >
             <div className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-lg bg-bg-surface/80 flex items-center justify-center text-text-muted group-hover:text-accent-cyan group-hover:scale-105 transition-all">
-                {collapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-                ) : (
-                  <ChevronLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                )}
+                <ChevronLeft
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                    collapsed ? 'rotate-180 text-accent-cyan' : 'group-hover:-translate-x-0.5'
+                  }`}
+                />
               </div>
               {!collapsed && (
-                <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary">
+                <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">
                   Perkecil Panel
                 </span>
               )}
