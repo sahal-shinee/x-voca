@@ -207,7 +207,7 @@ export function CollabRequestRow({
 
       {/* 4. STATUS WORKFLOW (Interactive Pill / Dropdown) */}
       <td className="py-3.5 px-4 align-top">
-        <div className="w-32">
+        <div className="w-36 min-w-[140px]">
           <CustomSelect
             value={status}
             onChange={handleStatusChange}
