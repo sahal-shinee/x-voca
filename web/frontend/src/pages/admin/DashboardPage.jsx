@@ -4,6 +4,7 @@ import { authAPI } from '../../services/api';
 import { getStats, getAuditLogs } from '../../services/dashboardService';
 import { getSchedules } from '../../services/scheduleService';
 import { useBroadcastingStatus } from '../../hooks/useFirebase';
+import { useToast } from '../../components/common/Toast';
 import StatCard from '../../components/common/StatCard';
 import ActionCard from '../../components/common/ActionCard';
 import Toggle from '../../components/common/Toggle';
@@ -28,10 +29,10 @@ import {
   AlertCircle,
   Trophy,
   Flame,
-  CheckCircle2,
-  Sparkles,
   ExternalLink,
-  ShieldAlert
+  ShieldAlert,
+  Loader2,
+  X
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ const LOG_FILTERS = [
 
 function UpcomingStreamSkeleton() {
   return (
-    <div className="bg-bg-surface rounded-lg p-3.5 border border-border-subtle">
+    <div className="bg-bg-surface/80 rounded-xl p-3.5 border border-border-subtle">
       <div className="h-4 w-3/4 bg-bg-card rounded animate-pulse mb-2" />
       <div className="h-3 w-1/2 bg-bg-card rounded animate-pulse" />
     </div>
@@ -129,12 +130,17 @@ function UpcomingStreamSkeleton() {
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { isReady: fbIsReady } = useBroadcastingStatus();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [userName, setUserName] = useState('Admin');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [loadingBroadcasting, setLoadingBroadcasting] = useState(false);
+
+  // Broadcast toggle confirmation modal
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [pendingBroadcastVal, setPendingBroadcastVal] = useState(false);
 
   const [stats, setStats] = useState({
     totalVotes: 0,
@@ -173,6 +179,9 @@ function DashboardPage() {
     }
   }, [fbIsReady, loadingBroadcasting]);
 
+  // Combined live state: either manual toggle is active, Firebase reports ready, or there is an active stream
+  const isLiveState = Boolean(isBroadcasting || fbIsReady || stats.activeBroadcast);
+
   // ── Live clock ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const tick = setInterval(() => setCurrentDateTime(new Date()), 1000);
@@ -191,15 +200,31 @@ function DashboardPage() {
     }
   }, []);
 
-  // ── Toggle broadcasting ────────────────────────────────────────────────────
-  const handleToggleBroadcasting = async (newValue) => {
+  // ── Initiate toggle broadcasting (open modal for confirmation) ─────────────
+  const requestToggleBroadcasting = (newVal) => {
+    setPendingBroadcastVal(newVal);
+    setShowBroadcastModal(true);
+  };
+
+  // ── Execute broadcasting status change upon confirmation ───────────────────
+  const confirmToggleBroadcasting = async () => {
+    const targetVal = pendingBroadcastVal;
+    setShowBroadcastModal(false);
     setLoadingBroadcasting(true);
+
     try {
-      await authAPI.toggleBroadcasting(newValue);
-      setIsBroadcasting(newValue);
+      await authAPI.toggleBroadcasting(targetVal);
+      setIsBroadcasting(targetVal);
+
+      if (targetVal) {
+        toast.success('Status siaran berhasil diaktifkan: LIVE ON AIR!');
+      } else {
+        toast.info('Status siaran dinonaktifkan (STANDBY).');
+      }
     } catch (error) {
       console.error('Error toggling broadcasting:', error);
-      setIsBroadcasting(!newValue);
+      toast.error('Gagal memperbarui status siaran. Silakan coba lagi.');
+      setIsBroadcasting(!targetVal);
     } finally {
       setLoadingBroadcasting(false);
     }
@@ -353,25 +378,25 @@ function DashboardPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
 
-      {/* ── 1. Welcome & Command Center Header ───────────────────────────── */}
-      <div className="relative rounded-2xl border border-border-subtle bg-bg-card/95 p-5 sm:p-6 overflow-hidden shadow-lg">
-        {/* Subtle accent glow */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-cyan via-accent-purple to-transparent" />
+      {/* ── 1. Welcome & Broadcasting Hero Section ─────────────────────────── */}
+      <div className="relative rounded-2xl border border-border-subtle bg-bg-card/90 backdrop-blur-md p-5 sm:p-6 overflow-hidden shadow-lg">
+        {/* Ambient Top Glow */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent-cyan via-accent-purple to-transparent" />
 
-        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-          {/* Left: Avatar + Welcome Text */}
+        <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          {/* Left: Avatar + Creator Greeting */}
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center border border-accent-cyan/30 flex-shrink-0 shadow-inner">
-              <span className="text-2xl font-bold text-accent-cyan">
+              <span className="text-2xl font-bold font-mono text-accent-cyan">
                 {userName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse" />
-                <span className="text-[11px] font-mono text-accent-cyan font-bold tracking-widest uppercase">
-                  Pusat Kendali Kreator
+                <span className="text-xs font-mono text-accent-cyan font-bold tracking-wider uppercase">
+                  Panel Kreator Xion Regalia
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
@@ -385,55 +410,95 @@ function DashboardPage() {
             </div>
           </div>
 
-          {/* Right: Broadcasting Status Toggle */}
-          <div className="flex items-center gap-3.5 px-4 py-3 bg-bg-surface/90 rounded-xl border border-border-subtle backdrop-blur-sm self-stretch md:self-auto justify-between md:justify-start">
-            <div className="flex items-center gap-3">
+          {/* Right: Modern Broadcasting Status Card */}
+          <div className={`
+            flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border backdrop-blur-md transition-all duration-300 self-stretch lg:self-auto
+            ${isLiveState
+              ? 'bg-status-live/10 border-status-live/30 shadow-[0_0_24px_rgba(244,63,94,0.15)]'
+              : 'bg-bg-surface/90 border-border-subtle hover:border-border-active'}
+          `}>
+            <div className="flex items-center gap-3.5">
               <div className={`
-                w-9 h-9 rounded-xl flex items-center justify-center transition-colors
-                ${isBroadcasting ? 'bg-status-live/15 border border-status-live/30' : 'bg-bg-card border border-border-subtle'}
+                w-10 h-10 rounded-xl flex items-center justify-center transition-colors relative flex-shrink-0
+                ${isLiveState ? 'bg-status-live/20 border border-status-live/40 text-status-live' : 'bg-bg-card border border-border-subtle text-text-muted'}
               `}>
-                <Radio className={`w-4 h-4 ${isBroadcasting ? 'text-status-live animate-pulse' : 'text-text-muted'}`} />
+                <Radio className={`w-5 h-5 ${isLiveState ? 'animate-pulse' : ''}`} />
+                {isLiveState && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-status-live" />
+                  </span>
+                )}
               </div>
+
               <div>
-                <p className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Broadcasting</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isBroadcasting ? 'bg-status-live animate-ping' : 'bg-text-muted'}`} />
-                  <p className={`text-xs font-bold font-mono tracking-wider ${isBroadcasting ? 'text-status-live' : 'text-text-secondary'}`}>
-                    {isBroadcasting ? 'READY (LIVE)' : 'OFFLINE'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider font-semibold">
+                    Status Siaran
+                  </span>
+                  <span className={`
+                    px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider border
+                    ${isLiveState
+                      ? 'bg-status-live/20 text-status-live border-status-live/30 animate-pulse'
+                      : 'bg-bg-card text-text-muted border-border-subtle'}
+                  `}>
+                    {isLiveState ? 'LIVE ON AIR' : 'STANDBY (OFFLINE)'}
+                  </span>
                 </div>
+                <p className="text-xs text-text-secondary mt-0.5 max-w-xs truncate">
+                  {isLiveState
+                    ? (stats.activeBroadcast?.title
+                        ? `Tayang: ${stats.activeBroadcast.title}`
+                        : 'Sinyal streaming aktif di portal publik')
+                    : 'Siaran nonaktif. Menampilkan jadwal berikutnya.'}
+                </p>
               </div>
             </div>
 
-            <Toggle
-              checked={isBroadcasting}
-              onChange={handleToggleBroadcasting}
-              disabled={loadingBroadcasting}
-              aria-label="Toggle Broadcasting"
-              className="ml-3"
-            />
+            <div className="flex items-center gap-3">
+              {isLiveState && stats.activeBroadcast?.youtube_url && (
+                <a
+                  href={stats.activeBroadcast.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors"
+                  title="Tonton di YouTube"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Stream</span>
+                </a>
+              )}
+
+              <Toggle
+                checked={isLiveState}
+                onChange={requestToggleBroadcasting}
+                disabled={loadingBroadcasting}
+                aria-label="Toggle Broadcasting"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. Action Alert Strip (Perlu Perhatian Admin) ────────────────── */}
-      {hasPendingItems ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-bg-card/90 border border-amber-500/30 rounded-xl shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+      {/* ── 2. Action Alert Strip (Only rendered when there are pending actions) ── */}
+      {hasPendingItems && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-bg-card/90 border border-amber-500/30 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
               <ShieldAlert className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-xs font-semibold text-text-primary">Perlu Perhatian Admin</div>
-              <div className="text-[11px] text-text-muted">Terdapat tugas dan pengajuan yang menunggu tindakan Anda</div>
+              <div className="text-xs font-bold text-text-primary">Perlu Tindakan Admin</div>
+              <div className="text-[11px] text-text-muted">Terdapat pengajuan atau tugas yang membutuhkan respon Anda</div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {stats.pendingCollabs > 0 && (
               <button
+                type="button"
                 onClick={() => navigate('/admin/collab-requests')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 rounded-lg text-xs font-medium text-accent-purple transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 rounded-xl text-xs font-semibold text-accent-purple transition-all"
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>{stats.pendingCollabs} Collab Request</span>
@@ -443,8 +508,9 @@ function DashboardPage() {
 
             {stats.pendingGames > 0 && (
               <button
+                type="button"
                 onClick={() => navigate('/admin/voting')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/30 rounded-lg text-xs font-medium text-accent-cyan transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/30 rounded-xl text-xs font-semibold text-accent-cyan transition-all"
               >
                 <Gamepad2 className="w-3.5 h-3.5" />
                 <span>{stats.pendingGames} Request Game</span>
@@ -454,8 +520,9 @@ function DashboardPage() {
 
             {stats.urgentTodos > 0 && (
               <button
+                type="button"
                 onClick={() => navigate('/admin/todos')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-lg text-xs font-medium text-rose-400 transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-xl text-xs font-semibold text-rose-400 transition-all"
               >
                 <Flame className="w-3.5 h-3.5" />
                 <span>{stats.urgentTodos} Todo Urgent</span>
@@ -464,54 +531,54 @@ function DashboardPage() {
             )}
           </div>
         </div>
-      ) : (
-        <div className="flex items-center justify-between p-3 bg-bg-card/60 border border-border-subtle rounded-xl text-xs text-text-muted">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span>Semua antrean operasional bersih & normal. Tidak ada pengajuan tertunda.</span>
-          </div>
-          <span className="font-mono text-[11px] text-text-muted hidden sm:inline">Status: Optimal</span>
-        </div>
       )}
 
-      {/* ── 3. High-Contrast Stat Cards ──────────────────────────────────── */}
+      {/* ── 3. High-Contrast Interactive Stat Cards ─────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={BarChart3}
-          label="Total Vote Bulan Ini"
+          label="Total Suara Komunitas"
           value={stats.totalVotes}
-          trend={{ value: stats.votesGrowth }}
-          subtitle={stats.activePeriod ? `Periode: ${stats.activePeriod}` : 'Voting komunitas'}
+          trend={
+            stats.totalVotes === 0
+              ? { label: 'Periode Baru', neutral: true }
+              : { value: stats.votesGrowth }
+          }
+          subtitle={stats.activePeriod ? `Periode aktif: ${stats.activePeriod}` : 'Voting pilihan game'}
           loading={statsLoading}
           variant="highlight"
+          onClick={() => navigate('/admin/voting')}
         />
         <StatCard
           icon={Calendar}
-          label="Jadwal Upcoming"
+          label="Jadwal Siaran"
           value={String(stats.upcomingSchedules).padStart(2, '0')}
-          subtitle="Siaran 7 hari ke depan"
+          subtitle="Sesi streaming 7 hari ke depan"
           loading={statsLoading}
           variant="purple"
+          onClick={() => navigate('/admin/schedules')}
         />
         <StatCard
           icon={CheckSquare}
-          label="Tugas Pending"
+          label="Tugas & Catatan"
           value={String(stats.pendingTodos).padStart(2, '0')}
-          subtitle={stats.urgentTodos > 0 ? `${stats.urgentTodos} prioritas urgent` : 'Semua prioritas aman'}
+          subtitle={stats.urgentTodos > 0 ? `${stats.urgentTodos} prioritas mendesak` : 'Semua prioritas aman'}
           loading={statsLoading}
           variant="gold"
+          onClick={() => navigate('/admin/todos')}
         />
         <StatCard
           icon={PlayCircle}
-          label="Content Aktif"
+          label="Katalog Konten"
           value={stats.activeContent}
-          subtitle="Visible di publik"
+          subtitle="Panduan & arsip siaran publik"
           loading={statsLoading}
           variant="default"
+          onClick={() => navigate('/admin/content')}
         />
       </div>
 
-      {/* ── 4. Community Spotlight: Top Voted Game ───────────────────────── */}
+      {/* ── 4. Community Spotlight: Top Voted Game ───────────────────────────── */}
       {stats.topVotedGame && (
         <div className="relative rounded-2xl border border-accent-gold/30 bg-gradient-to-r from-accent-gold/10 via-bg-card to-bg-card p-4 sm:p-5 overflow-hidden shadow-md">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -522,9 +589,9 @@ function DashboardPage() {
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[11px] font-mono text-accent-gold font-bold uppercase tracking-wider">
-                    Game Favorit Komunitas Bulan Ini
+                    Game Teratas Pilihan Komunitas
                   </span>
-                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/30">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-gold/20 text-accent-gold border border-accent-gold/30">
                     TOP VOTE
                   </span>
                 </div>
@@ -532,14 +599,15 @@ function DashboardPage() {
                   {stats.topVotedGame.title}
                 </h3>
                 <p className="text-xs text-text-muted mt-0.5">
-                  Mendapatkan <span className="text-accent-gold font-semibold font-mono">{stats.topVotedGame.vote_count} suara</span> ({stats.topVotedGame.percentage}% dari total suara pemilih)
+                  Memperoleh <span className="text-accent-gold font-semibold font-mono">{stats.topVotedGame.vote_count} suara</span> ({stats.topVotedGame.percentage}% dari total suara pemilih aktif)
                 </p>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={() => navigate(`/admin/schedules?action=create&game=${encodeURIComponent(stats.topVotedGame.title)}`)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-gold/20 hover:bg-accent-gold/30 border border-accent-gold/40 text-accent-gold rounded-xl font-semibold text-xs transition-all active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-gold/20 hover:bg-accent-gold/30 border border-accent-gold/40 text-accent-gold rounded-xl font-semibold text-xs transition-all active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center shadow-sm"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Jadwalkan Stream Game Ini</span>
@@ -549,65 +617,64 @@ function DashboardPage() {
         </div>
       )}
 
-      {/* ── 5. Quick Actions ─────────────────────────────────────────────── */}
+      {/* ── 5. Quick Actions ─────────────────────────────────────────────────── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-mono text-text-muted uppercase tracking-widest flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
-            Quick Actions
-          </h2>
-          <span className="text-[11px] text-text-muted hidden sm:inline">Pintas Cepat Manajemen</span>
+        <div className="flex items-center justify-between mb-3.5">
+          <div>
+            <h2 className="text-sm font-bold text-text-primary tracking-tight">Pintasan Manajemen</h2>
+            <p className="text-xs text-text-muted">Akses cepat ke modul operasional harian</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
           <ActionCard
             icon={Plus}
             title="Tambah Jadwal"
-            description="Sinkronisasi sesi siaran baru"
+            description="Buat dan jadwalkan sesi live baru"
             accentColor="purple"
             onClick={() => navigate('/admin/schedules?action=create')}
           />
           <ActionCard
             icon={Gamepad2}
-            title="Moderasi Voting"
-            description="Approve & reject game request"
+            title="Moderasi Suara"
+            description="Tinjau usulan judul game pemilih"
             accentColor="cyan"
             badge={stats.pendingGames > 0 ? stats.pendingGames : null}
             onClick={() => navigate('/admin/voting')}
           />
           <ActionCard
             icon={BookOpen}
-            title="Tambah Content"
-            description="Kurasi arsip dan playlist baru"
+            title="Tambah Konten"
+            description="Publikasi arsip dan panduan tontonan"
             accentColor="gold"
             onClick={() => navigate('/admin/content?action=create')}
           />
           <ActionCard
             icon={Users}
             title="Collab Requests"
-            description="Tinjau request kolaborasi streamer"
+            description="Kelola permohonan streaming gabungan"
             accentColor="purple"
             badge={stats.pendingCollabs > 0 ? stats.pendingCollabs : null}
             onClick={() => navigate('/admin/collab-requests')}
           />
           <ActionCard
             icon={ListTodo}
-            title="Todo Baru"
-            description="Tambah tugas ke daftar kerja"
-            accentColor="gold"
+            title="Tugas Baru"
+            description="Catat rencana tugas operasional"
+            accentColor="emerald"
             badge={stats.urgentTodos > 0 ? 'Urgent' : null}
             onClick={() => navigate('/admin/todos')}
           />
         </div>
       </div>
 
-      {/* ── 6. Upcoming Streams + Activity Log ───────────────────────────── */}
+      {/* ── 6. Upcoming Streams + Activity Log ───────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── 6.1 Upcoming Streams ────────────────────────────────────────── */}
-        <div className="bg-bg-card rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
+        {/* ── 6.1 Upcoming Streams ────────────────────────────────────────────── */}
+        <div className="bg-bg-card/90 rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between bg-bg-surface/30">
+          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between bg-bg-surface/40">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
                 <Calendar className="w-4 h-4" />
@@ -618,6 +685,7 @@ function DashboardPage() {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => navigate('/admin/schedules')}
               className="flex items-center gap-1 text-xs font-semibold text-accent-purple hover:text-accent-cyan transition-colors"
             >
@@ -636,16 +704,17 @@ function DashboardPage() {
               </div>
             ) : upcomingStreams.length === 0 ? (
               <div className="py-10 flex flex-col items-center justify-center text-center px-4">
-                <div className="w-12 h-12 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-center text-text-muted mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-bg-surface border border-border-subtle flex items-center justify-center text-text-muted mb-3">
                   <Calendar className="w-6 h-6 opacity-40" />
                 </div>
                 <p className="text-sm font-semibold text-text-primary">Belum ada jadwal upcoming</p>
                 <p className="text-xs text-text-muted mt-1 max-w-xs mb-4">
-                  Sinkronisasi sesi streaming berikutnya agar tampil di halaman publik.
+                  Jadwalkan sesi live stream berikutnya agar muncul di portal penonton.
                 </p>
                 <button
+                  type="button"
                   onClick={() => navigate('/admin/schedules?action=create')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 text-accent-purple rounded-xl text-xs font-semibold transition-all"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent-purple/15 hover:bg-accent-purple/25 border border-accent-purple/30 text-accent-purple rounded-xl text-xs font-semibold transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Jadwalkan Stream Baru</span>
@@ -654,6 +723,7 @@ function DashboardPage() {
             ) : (
               upcomingStreams.map((stream, idx) => (
                 <button
+                  type="button"
                   key={stream.id}
                   onClick={() => navigate('/admin/schedules')}
                   className="w-full text-left bg-bg-surface/80 rounded-xl p-3 border border-border-subtle hover:border-accent-purple/40 hover:bg-bg-surface transition-all duration-150 group"
@@ -691,9 +761,9 @@ function DashboardPage() {
         </div>
 
         {/* ── 6.2 Activity Log (Audit Log) ─────────────────────────────────── */}
-        <div className="lg:col-span-2 bg-bg-card rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
+        <div className="lg:col-span-2 bg-bg-card/90 rounded-2xl border border-border-subtle overflow-hidden flex flex-col shadow-sm">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-bg-surface/30">
+          <div className="px-5 py-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-bg-surface/40">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
                 <Activity className="w-4 h-4" />
@@ -708,8 +778,9 @@ function DashboardPage() {
               {/* Filter dropdown */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setShowFilterDropdown((v) => !v); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>{activeFilterLabel}</span>
@@ -721,6 +792,7 @@ function DashboardPage() {
                   >
                     {LOG_FILTERS.map((f) => (
                       <button
+                        type="button"
                         key={f.value}
                         onClick={() => { setAuditLogFilter(f.value); setShowFilterDropdown(false); }}
                         className={`
@@ -739,9 +811,10 @@ function DashboardPage() {
 
               {/* Refresh */}
               <button
+                type="button"
                 onClick={handleRefreshAuditLogs}
                 disabled={auditLogsLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-subtle rounded-xl hover:bg-bg-surface transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${auditLogsLoading ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
@@ -825,9 +898,10 @@ function DashboardPage() {
             </span>
             <div className="flex items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => { const p = Math.max(1, auditLogsPage - 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
                 disabled={auditLogsPage <= 1 || auditLogsLoading}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -836,9 +910,10 @@ function DashboardPage() {
                 {auditLogsPage} / {totalPages || 1}
               </span>
               <button
+                type="button"
                 onClick={() => { const p = Math.min(totalPages, auditLogsPage + 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
                 disabled={auditLogsPage >= totalPages || auditLogsLoading}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -848,6 +923,76 @@ function DashboardPage() {
         </div>
 
       </div>
+
+      {/* ── 7. Broadcasting Confirmation Modal ─────────────────────────────── */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-scale-up">
+            <button
+              type="button"
+              onClick={() => setShowBroadcastModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className={`
+                w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border
+                ${pendingBroadcastVal
+                  ? 'bg-status-live/15 border-status-live/30 text-status-live'
+                  : 'bg-amber-500/15 border-amber-500/30 text-amber-400'}
+              `}>
+                <Radio className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="pr-4">
+                <h3 className="text-base font-bold text-text-primary">
+                  {pendingBroadcastVal ? 'Aktifkan Sinyal Siaran?' : 'Hentikan Sinyal Siaran?'}
+                </h3>
+                <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">
+                  {pendingBroadcastVal
+                    ? 'Status siaran di web publik dan Firebase akan diubah menjadi LIVE ON AIR. Pengunjung akan melihat badge siaran langsung aktif.'
+                    : 'Status siaran akan dikembalikan ke STANDBY. Tanda siaran langsung di portal publik akan dinonaktifkan.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmToggleBroadcasting}
+                disabled={loadingBroadcasting}
+                className={`
+                  inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-md active:scale-95
+                  ${pendingBroadcastVal
+                    ? 'bg-status-live hover:bg-status-live/90 text-white shadow-rose-500/20'
+                    : 'bg-bg-surface border border-border-subtle hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30 text-text-primary'}
+                `}
+              >
+                {loadingBroadcasting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>{pendingBroadcastVal ? 'Ya, Mulai Siaran' : 'Ya, Hentikan Siaran'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
