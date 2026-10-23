@@ -384,11 +384,11 @@ function CollabRequestsPage() {
 
         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
           {/* View Mode Switcher */}
-          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl">
+          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
             <button
               type="button"
               onClick={() => setViewMode('cards')}
-              className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'cards'
                   ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
@@ -402,7 +402,7 @@ function CollabRequestsPage() {
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'table'
                   ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
@@ -420,7 +420,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={refetch}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
             title="Muat ulang data usulan"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -432,7 +432,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={handleExportCSV}
             disabled={requests.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
             title="Unduh laporan usulan kolaborasi (.csv)"
           >
             <Download className="w-3.5 h-3.5 text-accent-purple" />
@@ -443,10 +443,10 @@ function CollabRequestsPage() {
           <button
             type="button"
             onClick={() => setAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-accent-cyan/10"
+            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-accent-cyan/10"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>+ Catat Collab</span>
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Catat Collab</span>
           </button>
         </div>
       </div>

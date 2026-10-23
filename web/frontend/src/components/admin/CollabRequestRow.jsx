@@ -134,7 +134,7 @@ export function CollabRequestRow({
   return (
     <tr className="border-b border-border-subtle/60 hover:bg-bg-surface/50 transition-colors duration-150 group">
       {/* 1. STREAMER INFO */}
-      <td className="py-3.5 px-4 align-top">
+      <td className="py-4 px-4 align-middle">
         <div className="flex items-center gap-3">
           <div
             className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-sm select-none ${currentStatusConfig.avatarStyle}`}
@@ -154,7 +154,7 @@ export function CollabRequestRow({
       </td>
 
       {/* 2. SALURAN / SOSMED */}
-      <td className="py-3.5 px-4 align-top">
+      <td className="py-4 px-4 align-middle">
         {requested_streamer_social ? (
           <div className="flex items-center gap-1.5 flex-wrap max-w-[190px]">
             <span
@@ -183,7 +183,7 @@ export function CollabRequestRow({
       </td>
 
       {/* 3. PESAN VIEWER */}
-      <td className="py-3.5 px-4 align-top max-w-[260px]">
+      <td className="py-4 px-4 align-middle max-w-[260px]">
         {message ? (
           <div className="space-y-1">
             <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 italic">
@@ -206,7 +206,7 @@ export function CollabRequestRow({
       </td>
 
       {/* 4. STATUS WORKFLOW (Interactive Pill / Dropdown) */}
-      <td className="py-3.5 px-4 align-top">
+      <td className="py-4 px-4 align-middle">
         <div className="w-36 min-w-[140px]">
           <CustomSelect
             value={status}
@@ -225,7 +225,7 @@ export function CollabRequestRow({
       </td>
 
       {/* 5. CATATAN ADMIN (Notes Live) */}
-      <td className="py-3.5 px-4 align-top max-w-[220px]">
+      <td className="py-4 px-4 align-middle max-w-[220px]">
         {review_notes ? (
           <div
             onClick={() => onOpenNoteModal(request)}
@@ -255,7 +255,7 @@ export function CollabRequestRow({
       </td>
 
       {/* 6. AKSI CEPAT */}
-      <td className="py-3.5 px-4 align-top text-right">
+      <td className="py-4 px-4 align-middle text-right">
         <div className="flex items-center justify-end gap-1.5">
           {/* Tombol Jadwalkan Stream */}
           <button
