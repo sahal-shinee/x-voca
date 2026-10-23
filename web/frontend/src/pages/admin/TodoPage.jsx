@@ -9,23 +9,21 @@ import {
   Check,
   AlertTriangle,
   Search,
-  Filter,
   Calendar,
   Tag,
-  ArrowUpRight,
-  CheckCircle2,
-  Circle,
   Loader2,
-  Sparkles,
-  AlertCircle,
   Layers,
   BarChart3,
-  ChevronDown,
   ExternalLink,
   Link as LinkIcon,
   RefreshCw,
   Flame,
-  CheckCheck
+  CheckCheck,
+  LayoutGrid,
+  List,
+  CheckCircle2,
+  ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
 import { todoService } from '../../services/todoService';
 import { useToast } from '../../components/common/Toast';
@@ -34,36 +32,36 @@ import CustomSelect from '../../components/common/CustomSelect';
 // ========== CONSTANTS ==========
 const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', badge: 'bg-rose-500/15 text-rose-300 border border-rose-500/30' },
-  { value: 'high', label: 'High', badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' },
+  { value: 'high',   label: 'High',   badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' },
   { value: 'medium', label: 'Medium', badge: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30' },
-  { value: 'low', label: 'Low', badge: 'bg-slate-500/15 text-slate-300 border border-slate-500/30' },
+  { value: 'low',    label: 'Low',    badge: 'bg-slate-500/15 text-slate-300 border border-slate-500/30' },
 ];
 
 const STATUS_CONFIG = {
   pending: {
     label: 'Pending',
     badge: 'bg-amber-400/15 text-amber-300 border border-amber-400/30',
-    indicator: 'bg-amber-400'
+    indicator: 'bg-amber-400',
   },
   in_progress: {
     label: 'Dalam Pengerjaan',
     badge: 'bg-cyan-400/15 text-cyan-300 border border-cyan-400/30',
-    indicator: 'bg-cyan-400'
+    indicator: 'bg-cyan-400',
   },
   completed: {
     label: 'Selesai',
     badge: 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30',
-    indicator: 'bg-emerald-400'
-  }
+    indicator: 'bg-emerald-400',
+  },
 };
 
 const CATEGORIES = [
-  { id: 'all', name: 'Semua Kategori', color: '#7ee0d2' },
-  { id: 'stream', name: 'Stream & Jadwal', color: '#7ee0d2', badge: 'bg-[#7ee0d2]/15 text-[#7ee0d2] border border-[#7ee0d2]/30' },
-  { id: 'content', name: 'Konten & Video', color: '#c084fc', badge: 'bg-[#c084fc]/15 text-[#c084fc] border border-[#c084fc]/30' },
-  { id: 'tech', name: 'Aset & Teknis', color: '#60a5fa', badge: 'bg-[#60a5fa]/15 text-[#60a5fa] border border-[#60a5fa]/30' },
-  { id: 'social', name: 'Sosmed & Komunitas', color: '#f472b6', badge: 'bg-[#f472b6]/15 text-[#f472b6] border border-[#f472b6]/30' },
-  { id: 'admin', name: 'Umum & Evaluasi', color: '#fbbf24', badge: 'bg-[#fbbf24]/15 text-[#fbbf24] border border-[#fbbf24]/30' },
+  { id: 'all',     name: 'Semua Kategori',     color: '#7ee0d2' },
+  { id: 'stream',  name: 'Stream & Jadwal',   color: '#7ee0d2', badge: 'bg-[#7ee0d2]/15 text-[#7ee0d2] border border-[#7ee0d2]/30' },
+  { id: 'content', name: 'Konten & Video',    color: '#c084fc', badge: 'bg-[#c084fc]/15 text-[#c084fc] border border-[#c084fc]/30' },
+  { id: 'tech',    name: 'Aset & Teknis',     color: '#60a5fa', badge: 'bg-[#60a5fa]/15 text-[#60a5fa] border border-[#60a5fa]/30' },
+  { id: 'social',  name: 'Sosmed & Komunitas',color: '#f472b6', badge: 'bg-[#f472b6]/15 text-[#f472b6] border border-[#f472b6]/30' },
+  { id: 'admin',   name: 'Umum & Evaluasi',   color: '#fbbf24', badge: 'bg-[#fbbf24]/15 text-[#fbbf24] border border-[#fbbf24]/30' },
 ];
 
 // Helper to convert date to YYYY-MM-DD for <input type="date" />
@@ -107,7 +105,7 @@ const getDeadlineInfo = (deadlineStr, status) => {
     return {
       text: target.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       badge: 'bg-bg-surface text-text-muted border border-border-subtle',
-      isOverdue: false
+      isOverdue: false,
     };
   }
 
@@ -115,26 +113,26 @@ const getDeadlineInfo = (deadlineStr, status) => {
     return {
       text: `Terlambat ${Math.abs(diffDays)} hari`,
       badge: 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold',
-      isOverdue: true
+      isOverdue: true,
     };
   } else if (diffDays === 0) {
     return {
       text: 'Hari ini',
       badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold',
       isOverdue: false,
-      isToday: true
+      isToday: true,
     };
   } else if (diffDays === 1) {
     return {
       text: 'Besok',
       badge: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40',
-      isOverdue: false
+      isOverdue: false,
     };
   } else {
     return {
       text: target.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       badge: 'bg-bg-surface text-text-secondary border border-border-subtle',
-      isOverdue: false
+      isOverdue: false,
     };
   }
 };
@@ -152,7 +150,7 @@ const getTodoCategory = (todo) => {
       if (todo.tags) catId = todo.tags;
     }
   }
-  return CATEGORIES.find(c => c.id === catId) || CATEGORIES[1];
+  return CATEGORIES.find((c) => c.id === catId) || CATEGORIES[1];
 };
 
 function TodoPage() {
@@ -161,17 +159,27 @@ function TodoPage() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // View Mode: 'list' (Studio List) vs 'kanban' (Kanban Board)
+  const [viewMode, setViewMode] = useState('list');
+
   // Filters & Search
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'in_progress' | 'completed'
+  const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('deadline'); // 'deadline' | 'priority' | 'newest'
+  const [sortBy, setSortBy] = useState('deadline');
+
+  // Quick-Add Inline state
+  const [quickTitle, setQuickTitle] = useState('');
+  const [quickCategory, setQuickCategory] = useState('stream');
+  const [quickPriority, setQuickPriority] = useState('medium');
+  const [isQuickAdding, setIsQuickAdding] = useState(false);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingTodo, setEditingTodo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingTodo, setDeletingTodo] = useState(null);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -180,7 +188,7 @@ function TodoPage() {
     priority: 'medium',
     status: 'pending',
     deadline: '',
-    resource_info: ''
+    resource_info: '',
   });
 
   // Fetch todos from API
@@ -216,7 +224,7 @@ function TodoPage() {
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (showModal || deletingTodo) {
+    if (showModal || deletingTodo || showClearModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -224,19 +232,19 @@ function TodoPage() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showModal, deletingTodo]);
+  }, [showModal, deletingTodo, showClearModal]);
 
   // Compute Stats
   const stats = useMemo(() => {
     const total = todos.length;
-    const pending = todos.filter(t => t.status === 'pending').length;
-    const inProgress = todos.filter(t => t.status === 'in_progress').length;
-    const completed = todos.filter(t => t.status === 'completed').length;
+    const pending = todos.filter((t) => t.status === 'pending').length;
+    const inProgress = todos.filter((t) => t.status === 'in_progress').length;
+    const completed = todos.filter((t) => t.status === 'completed').length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const overdue = todos.filter(t => {
+    const overdue = todos.filter((t) => {
       if (t.status === 'completed' || !t.deadline) return false;
       const d = new Date(t.deadline);
       d.setHours(0, 0, 0, 0);
@@ -252,33 +260,28 @@ function TodoPage() {
   const filteredTodos = useMemo(() => {
     let result = [...todos];
 
-    // Status Filter
     if (statusFilter !== 'all') {
-      result = result.filter(t => t.status === statusFilter);
+      result = result.filter((t) => t.status === statusFilter);
     }
 
-    // Category Filter
     if (categoryFilter !== 'all') {
-      result = result.filter(t => {
+      result = result.filter((t) => {
         const cat = getTodoCategory(t);
         return cat.id === categoryFilter;
       });
     }
 
-    // Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(t =>
+      result = result.filter((t) =>
         t.title?.toLowerCase().includes(q) ||
         t.description?.toLowerCase().includes(q) ||
         t.resource_info?.toLowerCase().includes(q)
       );
     }
 
-    // Sort
     const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 };
     result.sort((a, b) => {
-      // Keep completed items at bottom when sorting by deadline or priority
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
 
@@ -293,24 +296,22 @@ function TodoPage() {
           if (diff !== 0) return diff;
         }
       }
-      // Fallback: newest created
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
     return result;
   }, [todos, statusFilter, categoryFilter, searchQuery, sortBy]);
 
-  // ========== CRUD ACTIONS ==========
-
-  // 1-Click Toggle: switches pending/in_progress -> completed, or completed -> pending
+  // Actions
   const handleToggle = async (todo) => {
     const isNowCompleted = todo.status !== 'completed';
     const nextStatus = isNowCompleted ? 'completed' : 'pending';
 
-    // Optimistic update
-    setTodos(prev => prev.map(t =>
-      t.id === todo.id ? { ...t, status: nextStatus, completed_at: isNowCompleted ? new Date() : null } : t
-    ));
+    setTodos((prev) =>
+      prev.map((t) =>
+        t.id === todo.id ? { ...t, status: nextStatus, completed_at: isNowCompleted ? new Date() : null } : t
+      )
+    );
 
     try {
       await todoService.toggleComplete(todo.id, isNowCompleted);
@@ -323,14 +324,14 @@ function TodoPage() {
     }
   };
 
-  // Change status directly (pending <-> in_progress <-> completed)
   const handleStatusChange = async (todo, nextStatus) => {
     if (todo.status === nextStatus) return;
 
-    // Optimistic update
-    setTodos(prev => prev.map(t =>
-      t.id === todo.id ? { ...t, status: nextStatus, completed_at: nextStatus === 'completed' ? new Date() : null } : t
-    ));
+    setTodos((prev) =>
+      prev.map((t) =>
+        t.id === todo.id ? { ...t, status: nextStatus, completed_at: nextStatus === 'completed' ? new Date() : null } : t
+      )
+    );
 
     try {
       await todoService.updateStatus(todo.id, nextStatus);
@@ -344,7 +345,31 @@ function TodoPage() {
     }
   };
 
-  // Save (Create or Update)
+  // Quick Add task inline
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+
+    setIsQuickAdding(true);
+    try {
+      await todoService.create({
+        title: quickTitle.trim(),
+        tags: [quickCategory],
+        priority: quickPriority,
+        status: 'pending',
+      });
+      toast.success('Tugas baru berhasil ditambahkan!');
+      setQuickTitle('');
+      fetchTodos(true);
+    } catch (error) {
+      console.error('Error quick adding todo:', error);
+      toast.error('Gagal menambahkan tugas cepat');
+    } finally {
+      setIsQuickAdding(false);
+    }
+  };
+
+  // Save Modal (Create or Update)
   const handleSave = async (e) => {
     e?.preventDefault();
     if (!formData.title.trim()) {
@@ -361,7 +386,7 @@ function TodoPage() {
         status: formData.status,
         deadline: formData.deadline || null,
         tags: [formData.category],
-        resource_info: formData.resource_info.trim() || null
+        resource_info: formData.resource_info.trim() || null,
       };
 
       if (editingTodo) {
@@ -382,7 +407,6 @@ function TodoPage() {
     }
   };
 
-  // Delete
   const handleDeleteConfirm = async () => {
     if (!deletingTodo) return;
 
@@ -397,7 +421,25 @@ function TodoPage() {
     }
   };
 
-  // Open Create Modal
+  // Clear all completed todos
+  const handleClearCompleted = async () => {
+    const completedTodos = todos.filter((t) => t.status === 'completed');
+    if (completedTodos.length === 0) return;
+
+    setIsSubmitting(true);
+    try {
+      await Promise.all(completedTodos.map((t) => todoService.delete(t.id)));
+      toast.success(`${completedTodos.length} tugas selesai telah dibersihkan.`);
+      setShowClearModal(false);
+      fetchTodos(true);
+    } catch (error) {
+      console.error('Error clearing completed todos:', error);
+      toast.error('Gagal membersihkan tugas selesai');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const openCreate = () => {
     setEditingTodo(null);
     setFormData({
@@ -407,12 +449,11 @@ function TodoPage() {
       priority: 'medium',
       status: 'pending',
       deadline: '',
-      resource_info: ''
+      resource_info: '',
     });
     setShowModal(true);
   };
 
-  // Open Edit Modal
   const openEdit = (todo) => {
     setEditingTodo(todo);
     const cat = getTodoCategory(todo);
@@ -423,7 +464,7 @@ function TodoPage() {
       priority: todo.priority || 'medium',
       status: todo.status || 'pending',
       deadline: formatDateForInput(todo.deadline),
-      resource_info: todo.resource_info || ''
+      resource_info: todo.resource_info || '',
     });
     setShowModal(true);
   };
@@ -434,226 +475,542 @@ function TodoPage() {
     setIsSubmitting(false);
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* ========== HEADER ========== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-6 rounded-full bg-accent-cyan" />
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Todo List</h1>
-          </div>
-          <p className="text-sm text-text-secondary mt-1">
-            Kelola checklist tugas, persiapan stream, dan target operasional
-          </p>
-        </div>
+  // Helper render clean task card
+  const renderTaskCard = (todo) => {
+    const isCompleted = todo.status === 'completed';
+    const isInProgress = todo.status === 'in_progress';
+    const category = getTodoCategory(todo);
+    const priorityInfo = PRIORITIES.find((p) => p.value === todo.priority) || PRIORITIES[2];
+    const deadlineInfo = getDeadlineInfo(todo.deadline, todo.status);
 
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-cyan text-bg-base rounded-xl hover:bg-accent-cyan/90 transition-all font-semibold text-sm shadow-lg shadow-accent-cyan/20 active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Todo</span>
-        </button>
-      </div>
-
-      {/* ========== STATS CARDS & PROGRESS ========== */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Total Card */}
-        <div className="bg-bg-card/90 backdrop-blur-md border border-border-subtle rounded-xl p-4 transition-all hover:border-accent-purple/40">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-text-muted">Total Tugas</span>
-            <div className="w-8 h-8 rounded-lg bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
-              <Layers className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold font-mono text-text-primary">{stats.total}</div>
-        </div>
-
-        {/* Pending Card */}
-        <div
-          onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-          className={`cursor-pointer bg-bg-card/90 backdrop-blur-md border rounded-xl p-4 transition-all hover:border-amber-400/50 ${
-            statusFilter === 'pending' ? 'border-amber-400/60 bg-amber-400/5 shadow-md shadow-amber-400/10' : 'border-border-subtle'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-amber-300">Pending</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold font-mono text-amber-400">{stats.pending}</div>
-        </div>
-
-        {/* In Progress Card */}
-        <div
-          onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
-          className={`cursor-pointer bg-bg-card/90 backdrop-blur-md border rounded-xl p-4 transition-all hover:border-cyan-400/50 ${
-            statusFilter === 'in_progress' ? 'border-cyan-400/60 bg-cyan-400/5 shadow-md shadow-cyan-400/10' : 'border-border-subtle'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-cyan-300">Dikerjakan</span>
-            <div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400">
-              <RefreshCw className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold font-mono text-cyan-400">{stats.inProgress}</div>
-        </div>
-
-        {/* Completed Card */}
-        <div
-          onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
-          className={`cursor-pointer bg-bg-card/90 backdrop-blur-md border rounded-xl p-4 transition-all hover:border-emerald-400/50 ${
-            statusFilter === 'completed' ? 'border-emerald-400/60 bg-emerald-400/5 shadow-md shadow-emerald-400/10' : 'border-border-subtle'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-emerald-300">Selesai</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400">
-              <CheckCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400">{stats.completed}</div>
-        </div>
-
-        {/* Overdue Alert Card */}
-        <div className="bg-bg-card/90 backdrop-blur-md border border-border-subtle rounded-xl p-4 col-span-2 lg:col-span-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-rose-300">Terlambat</span>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              stats.overdue > 0 ? 'bg-rose-500/20 border border-rose-500/40 text-rose-400 animate-pulse' : 'bg-bg-surface text-text-muted border border-border-subtle'
-            }`}>
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className={`text-2xl font-bold font-mono ${stats.overdue > 0 ? 'text-rose-400' : 'text-text-primary'}`}>
-            {stats.overdue}
-          </div>
-        </div>
-      </div>
-
-      {/* ========== COMPLETION PROGRESS BAR ========== */}
-      <div className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan flex-shrink-0">
-            <BarChart3 className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="text-xs text-text-muted font-medium">Progres Penyelesaian</div>
-            <div className="text-sm font-semibold text-text-primary">
-              {stats.completed} dari {stats.total} tugas selesai ({stats.percent}%)
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 max-w-md w-full">
-          <div className="w-full h-2.5 bg-bg-surface rounded-full overflow-hidden border border-border-subtle">
+    return (
+      <div
+        key={todo.id}
+        className={`group relative rounded-2xl border p-4 transition-all duration-200 ${
+          isCompleted
+            ? 'bg-bg-card/50 border-border-subtle/60 opacity-80'
+            : isInProgress
+            ? 'bg-bg-card border-cyan-500/40 shadow-sm'
+            : 'bg-bg-card border-border-subtle hover:border-accent-cyan/40 shadow-sm'
+        }`}
+      >
+        <div className="flex items-start gap-3 sm:gap-3.5">
+          {/* Checkbox */}
+          <button
+            type="button"
+            onClick={() => handleToggle(todo)}
+            title={isCompleted ? 'Tandai belum selesai' : 'Tandai selesai'}
+            className="mt-0.5 flex-shrink-0 group/btn focus:outline-none"
+            aria-label={isCompleted ? 'Mark as pending' : 'Mark as completed'}
+          >
             <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${stats.percent}%`,
-                background: 'linear-gradient(90deg, #7ee0d2, #5bc4b8, #c084fc)'
-              }}
-            />
-          </div>
-        </div>
-      </div>
+              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
+                isCompleted
+                  ? 'bg-emerald-500 border-emerald-500 shadow-sm'
+                  : isInProgress
+                  ? 'border-cyan-400 bg-cyan-400/10 group-hover/btn:border-cyan-300'
+                  : 'border-border-subtle bg-bg-surface group-hover/btn:border-accent-cyan'
+              }`}
+            >
+              {isCompleted ? (
+                <Check className="w-3.5 h-3.5 text-bg-base stroke-[3]" />
+              ) : isInProgress ? (
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-transparent group-hover/btn:bg-accent-cyan/40 transition-all" />
+              )}
+            </div>
+          </button>
 
-      {/* ========== CONTROLS: SEARCH, STATUS TABS, CATEGORY PILLS ========== */}
-      <div className="space-y-3 bg-bg-card/70 border border-border-subtle rounded-xl p-4">
-        {/* Top row: Search + Status Tabs + Sort */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari tugas, deskripsi, referensi..."
-              className="w-full pl-9 pr-8 py-2 bg-bg-input border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            <h3
+              className={`text-sm sm:text-base font-semibold leading-snug transition-colors ${
+                isCompleted
+                  ? 'line-through text-text-muted'
+                  : 'text-text-primary group-hover:text-accent-cyan'
+              }`}
+            >
+              {todo.title}
+            </h3>
 
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-bg-surface p-1 rounded-xl border border-border-subtle overflow-x-auto">
-            {[
-              { key: 'all', label: 'Semua', count: stats.total },
-              { key: 'pending', label: 'Pending', count: stats.pending },
-              { key: 'in_progress', label: 'Dikerjakan', count: stats.inProgress },
-              { key: 'completed', label: 'Selesai', count: stats.completed },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setStatusFilter(tab.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  statusFilter === tab.key
-                    ? 'bg-accent-cyan text-bg-base font-semibold shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-card'
+            {todo.description && (
+              <p
+                className={`text-xs sm:text-sm mt-1 leading-relaxed ${
+                  isCompleted ? 'text-text-muted/70 line-through' : 'text-text-secondary'
                 }`}
               >
-                {tab.label} <span className="opacity-70 ml-1">({tab.count})</span>
-              </button>
-            ))}
+                {todo.description}
+              </p>
+            )}
+
+            {/* Badges bar */}
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-border-subtle/50 text-xs">
+              {/* Category */}
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium ${category.badge}`}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: category.color }} />
+                {category.name}
+              </span>
+
+              {/* Priority */}
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium ${priorityInfo.badge}`}>
+                {priorityInfo.value === 'urgent' && <Flame className="w-3 h-3" />}
+                {priorityInfo.label}
+              </span>
+
+              {/* Status Select */}
+              <div className="w-32">
+                <CustomSelect
+                  value={todo.status || 'pending'}
+                  onChange={(e) => handleStatusChange(todo, e.target.value)}
+                  options={[
+                    { value: 'pending',     label: 'Pending' },
+                    { value: 'in_progress', label: 'Pengerjaan' },
+                    { value: 'completed',   label: 'Selesai' },
+                  ]}
+                  size="sm"
+                  aria-label="Ubah Status Todo"
+                />
+              </div>
+
+              {/* Deadline */}
+              {deadlineInfo && (
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] ${deadlineInfo.badge}`}>
+                  <Calendar className="w-3 h-3 flex-shrink-0" />
+                  <span>{deadlineInfo.text}</span>
+                </span>
+              )}
+
+              {/* Resource */}
+              {todo.resource_info && (
+                <a
+                  href={todo.resource_info.startsWith('http') ? todo.resource_info : `https://${todo.resource_info}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-accent-cyan hover:underline bg-accent-cyan/10 px-2 py-0.5 rounded-md border border-accent-cyan/20"
+                  title={todo.resource_info}
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  <span className="max-w-[120px] truncate">Tautan Referensi</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              )}
+
+              {/* Completed time */}
+              {isCompleted && todo.completed_at && (
+                <span className="text-[11px] text-text-muted ml-auto hidden sm:inline font-mono">
+                  Selesai: {safeFormatDate(todo.completed_at, { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-text-muted hidden sm:inline">Urutkan:</span>
-            <div className="w-48">
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => openEdit(todo)}
+              className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
+              title="Edit Todo"
+              aria-label="Edit"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeletingTodo(todo)}
+              className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+              title="Hapus Todo"
+              aria-label="Hapus"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in pb-12">
+
+      {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+              <CheckSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+                Todo List
+              </h1>
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                Kelola checklist tugas, persiapan stream, dan target operasional studio
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          {/* Dual View Mode Switcher */}
+          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+                viewMode === 'list'
+                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+              title="Tampilan Daftar Checklist"
+              aria-label="Tampilan Daftar Checklist"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-mono">Daftar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('kanban')}
+              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+                viewMode === 'kanban'
+                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+              title="Tampilan Papan Kanban"
+              aria-label="Tampilan Papan Kanban"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-mono">Kanban</span>
+            </button>
+          </div>
+
+          {/* Refresh Manual */}
+          <button
+            type="button"
+            onClick={() => fetchTodos()}
+            disabled={loading}
+            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            title="Muat ulang daftar todo"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          {/* Bersihkan Selesai Button (If completed > 0) */}
+          {stats.completed > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowClearModal(true)}
+              className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors"
+              title="Bersihkan semua tugas yang sudah selesai"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Bersihkan Selesai ({stats.completed})</span>
+            </button>
+          )}
+
+          {/* Tambah Todo Button */}
+          <button
+            type="button"
+            onClick={openCreate}
+            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-accent-cyan/10"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Tambah Todo</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── 2. Integrated Metric Ribbon & Smart Progress Strip ────────────────── */}
+      <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+        {/* Metric Cards Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Total Tugas */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`
+              p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
+              ${statusFilter === 'all'
+                ? 'bg-accent-purple/10 border-accent-purple ring-1 ring-accent-purple/30'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-accent-purple/40'}
+            `}
+          >
+            <div className="flex items-center justify-between text-xs text-text-muted mb-1">
+              <span>Total Tugas</span>
+              <Layers className="w-4 h-4 text-accent-purple" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-text-primary">
+              {stats.total}
+            </div>
+          </button>
+
+          {/* Pending */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+            className={`
+              p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
+              ${statusFilter === 'pending'
+                ? 'bg-amber-400/10 border-amber-400 ring-1 ring-amber-400/30'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-amber-400/40'}
+            `}
+          >
+            <div className="flex items-center justify-between text-xs text-amber-400 mb-1">
+              <span>Pending</span>
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-amber-400">
+              {stats.pending}
+            </div>
+          </button>
+
+          {/* Dikerjakan */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
+            className={`
+              p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
+              ${statusFilter === 'in_progress'
+                ? 'bg-cyan-400/10 border-cyan-400 ring-1 ring-cyan-400/30'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-cyan-400/40'}
+            `}
+          >
+            <div className="flex items-center justify-between text-xs text-cyan-400 mb-1">
+              <span>Dikerjakan</span>
+              <RefreshCw className="w-4 h-4" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-cyan-400">
+              {stats.inProgress}
+            </div>
+          </button>
+
+          {/* Selesai */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+            className={`
+              p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
+              ${statusFilter === 'completed'
+                ? 'bg-emerald-400/10 border-emerald-400 ring-1 ring-emerald-400/30'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-emerald-400/40'}
+            `}
+          >
+            <div className="flex items-center justify-between text-xs text-emerald-400 mb-1">
+              <span>Selesai</span>
+              <CheckCheck className="w-4 h-4" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+              {stats.completed}
+            </div>
+          </button>
+
+          {/* Terlambat */}
+          <div className="p-3.5 rounded-xl border border-border-subtle bg-bg-surface/50 text-left col-span-2 sm:col-span-1">
+            <div className="flex items-center justify-between text-xs text-rose-400 mb-1">
+              <span>Terlambat</span>
+              <AlertTriangle className={`w-4 h-4 ${stats.overdue > 0 ? 'animate-pulse' : ''}`} />
+            </div>
+            <div className={`text-xl sm:text-2xl font-bold font-mono ${stats.overdue > 0 ? 'text-rose-400' : 'text-text-primary'}`}>
+              {stats.overdue}
+            </div>
+          </div>
+        </div>
+
+        {/* Integrated Progress Strip */}
+        <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 text-xs">
+            <BarChart3 className="w-3.5 h-3.5 text-accent-cyan" />
+            <span className="text-text-muted">Progres Penyelesaian:</span>
+            <strong className="text-text-primary font-mono">
+              {stats.completed} dari {stats.total} tugas ({stats.percent}%)
+            </strong>
+          </div>
+          <div className="w-full sm:max-w-sm h-2 bg-bg-surface rounded-full overflow-hidden border border-border-subtle">
+            <div
+              className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-accent-cyan to-accent-purple"
+              style={{ width: `${stats.percent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. Quick-Add Inline Bar ──────────────────────────────────────────── */}
+      <form
+        onSubmit={handleQuickAdd}
+        className="bg-bg-card border border-border-subtle rounded-2xl p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+      >
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            placeholder="Tambah tugas cepat (ketik lalu tekan Enter)..."
+            className="w-full pl-3.5 pr-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Category Select */}
+          <div className="w-36">
+            <CustomSelect
+              value={quickCategory}
+              onChange={(e) => setQuickCategory(e.target.value)}
+              options={CATEGORIES.filter((c) => c.id !== 'all').map((c) => ({
+                value: c.id,
+                label: c.name,
+              }))}
+              size="sm"
+              aria-label="Kategori Cepat"
+            />
+          </div>
+
+          {/* Priority Select */}
+          <div className="w-28">
+            <CustomSelect
+              value={quickPriority}
+              onChange={(e) => setQuickPriority(e.target.value)}
+              options={PRIORITIES.map((p) => ({
+                value: p.value,
+                label: p.label,
+              }))}
+              size="sm"
+              aria-label="Prioritas Cepat"
+            />
+          </div>
+
+          {/* Quick Submit Button */}
+          <button
+            type="submit"
+            disabled={!quickTitle.trim() || isQuickAdding}
+            className="h-8 px-4 text-xs font-bold bg-accent-cyan text-bg-base rounded-xl hover:bg-accent-cyan/90 transition-all disabled:opacity-40 flex-shrink-0"
+          >
+            {isQuickAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '+ Tambah'}
+          </button>
+        </div>
+      </form>
+
+      {/* ── 4. Controller: Search, Filter Tabs, Categories & Sort ────────────── */}
+      <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+        {/* Row 1: Search, Status Tabs, Sort */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+            {[
+              { key: 'all',         label: 'SEMUA',       count: stats.total },
+              { key: 'pending',     label: 'PENDING',     count: stats.pending },
+              { key: 'in_progress', label: 'DIKERJAKAN',  count: stats.inProgress },
+              { key: 'completed',   label: 'SELESAI',     count: stats.completed },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={`
+                    px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
+                    ${isActive
+                      ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                      : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
+                  `}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    isActive ? 'bg-bg-base/20 text-bg-base' : 'bg-bg-card text-text-secondary'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search + Sort */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* Search */}
+            <div className="relative flex-1 sm:w-60">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari judul, deskripsi..."
+                className="w-full pl-9 pr-8 py-2 text-xs bg-bg-surface border border-border-subtle rounded-xl text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
+              />
+              <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Sort */}
+            <div className="w-44">
               <CustomSelect
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 options={[
                   { value: 'deadline', label: 'Batas Waktu Terdekat' },
                   { value: 'priority', label: 'Prioritas Tertinggi' },
-                  { value: 'newest', label: 'Terbaru Dibuat' },
+                  { value: 'newest',   label: 'Terbaru Dibuat' },
                 ]}
                 size="sm"
-                aria-label="Urutkan"
+                aria-label="Urutkan Todo"
               />
             </div>
+
+            {/* Reset */}
+            {(statusFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setCategoryFilter('all');
+                  setSearchQuery('');
+                }}
+                className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors"
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Bottom row: Category Pills */}
-        <div className="pt-2 border-t border-border-subtle/50 flex items-center gap-2 overflow-x-auto">
+        {/* Row 2: Category Pills */}
+        <div className="pt-2 border-t border-border-subtle flex items-center gap-2 overflow-x-auto scrollbar-none">
           <span className="text-xs text-text-muted font-medium flex-shrink-0 flex items-center gap-1">
             <Tag className="w-3 h-3" /> Kategori:
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {CATEGORIES.map(cat => {
+            {CATEGORIES.map((cat) => {
               const count = cat.id === 'all'
                 ? todos.length
-                : todos.filter(t => getTodoCategory(t).id === cat.id).length;
+                : todos.filter((t) => getTodoCategory(t).id === cat.id).length;
 
               const isActive = categoryFilter === cat.id;
 
               return (
                 <button
                   key={cat.id}
+                  type="button"
                   onClick={() => setCategoryFilter(cat.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/40 shadow-sm'
-                      : 'bg-bg-surface/80 border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-surface'
+                      ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/40 shadow-sm font-semibold'
+                      : 'bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-surface/80'
                   }`}
                 >
                   {cat.id !== 'all' && (
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: cat.color }} />
                   )}
                   <span>{cat.name}</span>
-                  <span className="text-[10px] opacity-70">({count})</span>
+                  <span className="text-[10px] opacity-75 font-mono">({count})</span>
                 </button>
               );
             })}
@@ -661,214 +1018,195 @@ function TodoPage() {
         </div>
       </div>
 
-      {/* ========== TODO LIST ITEMS ========== */}
-      <div className="space-y-2.5">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-bg-card border border-border-subtle rounded-xl">
-            <Loader2 className="w-8 h-8 text-accent-cyan animate-spin mb-3" />
-            <p className="text-sm text-text-muted">Memuat daftar tugas...</p>
+      {/* ── 5. Main Content: List View vs Kanban Board ───────────────────────── */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-bg-card border border-border-subtle rounded-2xl">
+          <Loader2 className="w-8 h-8 text-accent-cyan animate-spin mb-3" />
+          <p className="text-sm text-text-muted">Memuat daftar tugas...</p>
+        </div>
+      ) : filteredTodos.length === 0 ? (
+        <div className="text-center py-16 bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan mx-auto mb-4">
+            <CheckSquare className="w-7 h-7" />
           </div>
-        ) : filteredTodos.length === 0 ? (
-          <div className="text-center py-16 bg-bg-card border border-border-subtle rounded-2xl p-6">
-            <div className="w-14 h-14 rounded-2xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan mx-auto mb-4">
-              <CheckSquare className="w-7 h-7" />
-            </div>
-            <h3 className="text-base font-semibold text-text-primary mb-1">
-              {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
-                ? 'Tidak ada todo yang sesuai filter'
-                : 'Belum ada todo'}
-            </h3>
-            <p className="text-xs sm:text-sm text-text-muted max-w-sm mx-auto mb-5">
-              {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
-                ? 'Coba atur ulang kata kunci pencarian atau ubah filter status/kategori.'
-                : 'Mulai buat tugas pertama Anda untuk mengorganisir jadwal dan persiapan stream.'}
-            </p>
-            {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' ? (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setStatusFilter('all');
-                  setCategoryFilter('all');
-                }}
-                className="px-4 py-2 bg-bg-surface border border-border-subtle hover:border-accent-cyan/40 rounded-xl text-xs font-medium text-text-primary transition-all"
-              >
-                Reset Semua Filter
-              </button>
-            ) : (
-              <button
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan text-bg-base font-semibold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:bg-accent-cyan/90 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Todo Baru
-              </button>
-            )}
-          </div>
-        ) : (
-          filteredTodos.map(todo => {
-            const isCompleted = todo.status === 'completed';
-            const isInProgress = todo.status === 'in_progress';
-            const category = getTodoCategory(todo);
-            const priorityInfo = PRIORITIES.find(p => p.value === todo.priority) || PRIORITIES[2];
-            const deadlineInfo = getDeadlineInfo(todo.deadline, todo.status);
-            const statusInfo = STATUS_CONFIG[todo.status] || STATUS_CONFIG.pending;
-
-            return (
-              <div
-                key={todo.id}
-                className={`group relative rounded-xl border p-4 transition-all duration-200 ${
-                  isCompleted
-                    ? 'bg-bg-card/40 border-border-subtle/60 opacity-80'
-                    : isInProgress
-                    ? 'bg-bg-card/90 border-cyan-500/30 hover:border-cyan-500/60 shadow-sm'
-                    : 'bg-bg-card/90 border-border-subtle hover:border-accent-cyan/40 shadow-sm'
-                }`}
-              >
-                <div className="flex items-start gap-3 sm:gap-4">
-                  {/* Interactive Status Toggle Checkbox */}
-                  <button
-                    onClick={() => handleToggle(todo)}
-                    title={isCompleted ? 'Tandai belum selesai' : 'Tandai selesai'}
-                    className="mt-0.5 flex-shrink-0 group/btn focus:outline-none"
-                    aria-label={isCompleted ? 'Mark as pending' : 'Mark as completed'}
-                  >
-                    <div
-                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
-                        isCompleted
-                          ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/30'
-                          : isInProgress
-                          ? 'border-cyan-400 bg-cyan-400/10 group-hover/btn:border-cyan-300'
-                          : 'border-border-subtle bg-bg-surface group-hover/btn:border-accent-cyan'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <Check className="w-3.5 h-3.5 text-bg-base stroke-[3]" />
-                      ) : isInProgress ? (
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-transparent group-hover/btn:bg-accent-cyan/40 transition-all" />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Main Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <h3
-                        className={`text-sm sm:text-base font-semibold leading-snug transition-colors ${
-                          isCompleted
-                            ? 'line-through text-text-muted'
-                            : 'text-text-primary group-hover:text-accent-cyan'
-                        }`}
-                      >
-                        {todo.title}
-                      </h3>
-                    </div>
-
-                    {/* Description */}
-                    {todo.description && (
-                      <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${
-                        isCompleted ? 'text-text-muted/70 line-through' : 'text-text-secondary'
-                      }`}>
-                        {todo.description}
-                      </p>
-                    )}
-
-                    {/* Metadata & Badges Bar */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-border-subtle/40 text-xs">
-                      {/* Category Badge */}
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium ${category.badge}`}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: category.color }} />
-                        {category.name}
-                      </span>
-
-                      {/* Priority Badge */}
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${priorityInfo.badge}`}>
-                        {priorityInfo.value === 'urgent' && <Flame className="w-3 h-3" />}
-                        {priorityInfo.label}
-                      </span>
-
-                      {/* Status Selector Button */}
-                      <div className="w-32">
-                        <CustomSelect
-                          value={todo.status || 'pending'}
-                          onChange={(e) => handleStatusChange(todo, e.target.value)}
-                          options={[
-                            { value: 'pending', label: 'Pending' },
-                            { value: 'in_progress', label: 'Pengerjaan' },
-                            { value: 'completed', label: 'Selesai' },
-                          ]}
-                          size="sm"
-                          aria-label="Ubah Status Todo"
-                        />
-                      </div>
-
-                      {/* Deadline Info */}
-                      {deadlineInfo && (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] ${deadlineInfo.badge}`}>
-                          <Calendar className="w-3 h-3 flex-shrink-0" />
-                          <span>{deadlineInfo.text}</span>
-                        </span>
-                      )}
-
-                      {/* Resource Link (if present) */}
-                      {todo.resource_info && (
-                        <a
-                          href={todo.resource_info.startsWith('http') ? todo.resource_info : `https://${todo.resource_info}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-accent-cyan hover:underline bg-accent-cyan/10 px-2 py-0.5 rounded-md border border-accent-cyan/20"
-                          title={todo.resource_info}
-                        >
-                          <LinkIcon className="w-3 h-3" />
-                          <span className="max-w-[120px] truncate">Tautan Referensi</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      )}
-
-                      {/* Completed At Tag */}
-                      {isCompleted && todo.completed_at && (
-                        <span className="text-[11px] text-text-muted ml-auto hidden sm:inline">
-                          Selesai: {safeFormatDate(todo.completed_at, { day: 'numeric', month: 'short' })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions: Edit & Delete */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => openEdit(todo)}
-                      className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
-                      title="Edit Todo"
-                      aria-label="Edit"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeletingTodo(todo)}
-                      className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                      title="Hapus Todo"
-                      aria-label="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+          <h3 className="text-base font-semibold text-text-primary mb-1">
+            {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+              ? 'Tidak ada todo yang sesuai filter'
+              : 'Belum ada todo'}
+          </h3>
+          <p className="text-xs sm:text-sm text-text-muted max-w-sm mx-auto mb-5">
+            {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+              ? 'Coba atur ulang kata kunci pencarian atau ubah filter status/kategori.'
+              : 'Mulai buat tugas pertama Anda untuk mengorganisir jadwal dan persiapan stream.'}
+          </p>
+          {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('all');
+                setCategoryFilter('all');
+              }}
+              className="px-4 py-2 bg-bg-surface border border-border-subtle hover:border-accent-cyan/40 rounded-xl text-xs font-semibold text-text-primary transition-all"
+            >
+              Reset Semua Filter
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan text-bg-base font-bold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:opacity-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Todo Baru</span>
+            </button>
+          )}
+        </div>
+      ) : viewMode === 'list' ? (
+        // ── List View ──
+        <div className="space-y-3">
+          {filteredTodos.map((todo) => renderTaskCard(todo))}
+        </div>
+      ) : (
+        // ── Kanban Board View (3 Columns) ──
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+          {/* Column 1: Pending */}
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
+                  Menunggu (Pending)
+                </h3>
               </div>
-            );
-          })
-        )}
-      </div>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                {filteredTodos.filter((t) => t.status === 'pending').length}
+              </span>
+            </div>
 
-      {/* ========== FORM MODAL (TAMBAH / EDIT) ========== */}
+            <div className="space-y-3 min-h-[160px]">
+              {filteredTodos.filter((t) => t.status === 'pending').length === 0 ? (
+                <div className="py-8 text-center text-text-muted text-xs">
+                  Tidak ada tugas pending
+                </div>
+              ) : (
+                filteredTodos
+                  .filter((t) => t.status === 'pending')
+                  .map((todo) => (
+                    <div key={todo.id} className="space-y-2">
+                      {renderTaskCard(todo)}
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(todo, 'in_progress')}
+                        className="w-full py-1 text-center text-[11px] font-mono text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/15 rounded-lg border border-cyan-400/20 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <span>Mulai Kerjakan</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* Column 2: In Progress */}
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
+                  Dalam Pengerjaan
+                </h3>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">
+                {filteredTodos.filter((t) => t.status === 'in_progress').length}
+              </span>
+            </div>
+
+            <div className="space-y-3 min-h-[160px]">
+              {filteredTodos.filter((t) => t.status === 'in_progress').length === 0 ? (
+                <div className="py-8 text-center text-text-muted text-xs">
+                  Tidak ada tugas sedang dikerjakan
+                </div>
+              ) : (
+                filteredTodos
+                  .filter((t) => t.status === 'in_progress')
+                  .map((todo) => (
+                    <div key={todo.id} className="space-y-2">
+                      {renderTaskCard(todo)}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(todo, 'pending')}
+                          className="py-1 text-center text-[11px] font-mono text-text-muted hover:text-text-primary bg-bg-surface rounded-lg border border-border-subtle transition-colors flex items-center justify-center gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Pending</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(todo, 'completed')}
+                          className="py-1 text-center text-[11px] font-mono text-emerald-400 bg-emerald-400/5 hover:bg-emerald-400/15 rounded-lg border border-emerald-400/20 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Selesai</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* Column 3: Completed */}
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
+                  Telah Selesai
+                </h3>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                {filteredTodos.filter((t) => t.status === 'completed').length}
+              </span>
+            </div>
+
+            <div className="space-y-3 min-h-[160px]">
+              {filteredTodos.filter((t) => t.status === 'completed').length === 0 ? (
+                <div className="py-8 text-center text-text-muted text-xs">
+                  Belum ada tugas diselesaikan
+                </div>
+              ) : (
+                filteredTodos
+                  .filter((t) => t.status === 'completed')
+                  .map((todo) => (
+                    <div key={todo.id} className="space-y-2">
+                      {renderTaskCard(todo)}
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(todo, 'pending')}
+                        className="w-full py-1 text-center text-[11px] font-mono text-text-muted hover:text-amber-400 bg-bg-surface rounded-lg border border-border-subtle transition-colors flex items-center justify-center gap-1"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Buka Kembali Tugas</span>
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 6. Form Modal (Tambah / Edit) ────────────────────────────────────── */}
       {showModal && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
           <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Pinned Header */}
+            {/* Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
               <div>
                 <h2 className="text-lg font-bold text-text-primary">
@@ -888,7 +1226,7 @@ function TodoPage() {
               </button>
             </div>
 
-            {/* Scrollable Form Body */}
+            {/* Form Body */}
             <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 overscroll-contain">
               {/* Title */}
               <div>
@@ -899,29 +1237,29 @@ function TodoPage() {
                   type="text"
                   required
                   value={formData.title}
-                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Contoh: Buat thumbnail & overlay stream collab..."
-                  className="w-full px-4 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all"
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-all"
                 />
               </div>
 
-              {/* Category Selection */}
+              {/* Category */}
               <div>
                 <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                   Kategori
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {CATEGORIES.filter(c => c.id !== 'all').map(cat => {
+                  {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => {
                     const isSelected = formData.category === cat.id;
                     return (
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
+                        onClick={() => setFormData((prev) => ({ ...prev, category: cat.id }))}
                         className={`px-3 py-2 rounded-xl text-xs font-medium border text-left flex items-center gap-2 transition-all ${
                           isSelected
                             ? 'bg-accent-cyan/15 border-accent-cyan text-accent-cyan font-semibold shadow-sm'
-                            : 'bg-bg-input border-border-subtle text-text-secondary hover:border-accent-cyan/40 hover:text-text-primary'
+                            : 'bg-bg-surface border border-border-subtle text-text-secondary hover:border-accent-cyan/40 hover:text-text-primary'
                         }`}
                       >
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
@@ -932,23 +1270,22 @@ function TodoPage() {
                 </div>
               </div>
 
-              {/* Priority & Status Grid */}
+              {/* Priority & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Priority */}
                 <div>
                   <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                     Prioritas
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {PRIORITIES.map(p => (
+                    {PRIORITIES.map((p) => (
                       <button
                         key={p.value}
                         type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, priority: p.value }))}
+                        onClick={() => setFormData((prev) => ({ ...prev, priority: p.value }))}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-all ${
                           formData.priority === p.value
                             ? `${p.badge} font-bold shadow-sm`
-                            : 'bg-bg-input border-border-subtle text-text-muted hover:text-text-primary'
+                            : 'bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary'
                         }`}
                       >
                         {p.label}
@@ -957,18 +1294,17 @@ function TodoPage() {
                   </div>
                 </div>
 
-                {/* Status */}
                 <div>
                   <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
                     Status
                   </label>
                   <CustomSelect
                     value={formData.status}
-                    onChange={e => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
                     options={[
-                      { value: 'pending', label: 'Pending (Menunggu)' },
+                      { value: 'pending',     label: 'Pending (Menunggu)' },
                       { value: 'in_progress', label: 'Dalam Pengerjaan' },
-                      { value: 'completed', label: 'Selesai' },
+                      { value: 'completed',   label: 'Selesai' },
                     ]}
                   />
                 </div>
@@ -983,13 +1319,13 @@ function TodoPage() {
                   <input
                     type="date"
                     value={formData.deadline}
-                    onChange={e => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all"
+                    onChange={(e) => setFormData((prev) => ({ ...prev, deadline: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:border-accent-cyan transition-all"
                   />
                   {formData.deadline && (
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, deadline: '' }))}
+                      onClick={() => setFormData((prev) => ({ ...prev, deadline: '' }))}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-rose-400 font-medium"
                     >
                       Hapus
@@ -1005,10 +1341,10 @@ function TodoPage() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="Rincian catatan tugas atau instruksi..."
                   rows={2}
-                  className="w-full px-4 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all resize-none"
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-all resize-none"
                 />
               </div>
 
@@ -1022,20 +1358,20 @@ function TodoPage() {
                   <input
                     type="text"
                     value={formData.resource_info}
-                    onChange={e => setFormData(prev => ({ ...prev, resource_info: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, resource_info: e.target.value }))}
                     placeholder="Contoh: https://drive.google.com/... atau tautan aset"
-                    className="w-full pl-9 pr-4 py-2 bg-bg-input border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-colors"
+                    className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-colors"
                   />
                 </div>
               </div>
             </form>
 
-            {/* Pinned Footer Actions */}
+            {/* Footer Actions */}
             <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-border-subtle flex-shrink-0 bg-bg-surface/50">
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-2.5 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
+                className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
               >
                 Batal
               </button>
@@ -1043,7 +1379,7 @@ function TodoPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={!formData.title.trim() || isSubmitting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-cyan text-bg-base font-semibold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:bg-accent-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2 bg-accent-cyan text-bg-base font-bold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:opacity-95 disabled:opacity-50 transition-all"
               >
                 {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>
@@ -1053,34 +1389,34 @@ function TodoPage() {
         </div>
       )}
 
-      {/* ========== DELETE CONFIRMATION MODAL ========== */}
+      {/* ── 7. Delete Confirmation Modal ─────────────────────────────────────── */}
       {deletingTodo && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && setDeletingTodo(null)}
         >
-          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto mb-4">
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-text-primary mb-1">Hapus Todo Ini?</h3>
-            <p className="text-xs text-text-muted mb-4 line-clamp-2">
-              Tugas <span className="text-text-primary font-medium">"{deletingTodo.title}"</span> akan dihapus permanen dari sistem.
+            <h3 className="text-base font-bold text-text-primary">Hapus Todo Ini?</h3>
+            <p className="text-xs text-text-muted line-clamp-2">
+              Tugas <strong className="text-text-primary">"{deletingTodo.title}"</strong> akan dihapus permanen.
             </p>
 
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingTodo(null)}
-                className="flex-1 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
+                className="flex-1 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20"
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20"
               >
                 Hapus
               </button>
@@ -1088,6 +1424,44 @@ function TodoPage() {
           </div>
         </div>
       )}
+
+      {/* ── 8. Clear Completed Confirmation Modal ────────────────────────────── */}
+      {showClearModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={(e) => e.target === e.currentTarget && setShowClearModal(false)}
+        >
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-status-live/15 border border-status-live/30 flex items-center justify-center text-status-live mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-text-primary">Bersihkan Tugas Selesai?</h3>
+            <p className="text-xs text-text-muted">
+              Sebanyak <strong className="text-text-primary font-mono">{stats.completed} tugas</strong> yang telah selesai akan dihapus permanen.
+            </p>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearModal(false)}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleClearCompleted}
+                disabled={isSubmitting}
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-status-live hover:opacity-95 transition-all shadow-md disabled:opacity-50"
+              >
+                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Bersihkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
