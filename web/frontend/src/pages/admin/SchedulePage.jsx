@@ -9,8 +9,8 @@ import { isFirebaseConfigured } from '../../utils/firebase';
 import {
   Radio,
   Calendar,
+  CalendarPlus,
   RefreshCw,
-  TrendingUp,
   Plus,
   Search,
   Eye,
@@ -18,15 +18,17 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Loader2,
-  XCircle,
-  CheckCircle,
   Clock,
   Power,
-  Tv,
   ExternalLink,
   Users,
-  BookPlus
+  BookPlus,
+  LayoutGrid,
+  List,
+  CheckCircle,
+  ArrowRight,
+  Sparkles,
+  PlayCircle
 } from 'lucide-react';
 
 // YouTube Icon Component
@@ -73,12 +75,23 @@ const FILTER_TABS = [
 // Status badge configuration
 const getStatusBadge = (status) => {
   const statusMap = {
-    live: { label: 'LIVE NOW', class: 'bg-status-live/10 text-status-live border-status-live/20', icon: Radio },
-    upcoming: { label: 'UPCOMING', class: 'bg-status-upcoming/10 text-status-upcoming border-status-upcoming/20', icon: Clock },
-    done: { label: 'SELESAI', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
-    archived: { label: 'SELESAI', class: 'bg-status-done/10 text-status-done border-status-done/20', icon: CheckCircle },
+    live: { label: 'LIVE ON AIR', class: 'bg-status-live/15 text-status-live border-status-live/30', icon: Radio },
+    upcoming: { label: 'UPCOMING', class: 'bg-accent-purple/15 text-accent-purple border-accent-purple/30', icon: Clock },
+    done: { label: 'SELESAI', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
+    archived: { label: 'SELESAI', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
   };
   return statusMap[status] || statusMap.upcoming;
+};
+
+// Format day and date block for calendar list
+const formatScheduleDay = (dateString) => {
+  const d = safeParseDate(dateString);
+  if (!d) return { dayName: '-', dayNum: '-', month: '-' };
+  return {
+    dayName: d.toLocaleDateString('id-ID', { weekday: 'short' }).toUpperCase(),
+    dayNum: d.getDate(),
+    month: d.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase()
+  };
 };
 
 function SchedulePage() {
@@ -99,6 +112,9 @@ function SchedulePage() {
   const [schedulesLoading, setSchedulesLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // View Mode: 'cards' (rich horizontal cards) vs 'table' (compact spreadsheet)
+  const [viewMode, setViewMode] = useState('cards');
 
   // Form panel state
   const [formPanelOpen, setFormPanelOpen] = useState(false);
@@ -131,7 +147,6 @@ function SchedulePage() {
       const response = await getStats();
       const isConfigured = isFirebaseConfigured();
       if (response?.data?.stats) {
-        // Extract from nested structure: response.data.stats
         const stats = response.data.stats;
         setSummaryStats({
           activeBroadcast: stats.activeBroadcast || null,
@@ -161,7 +176,6 @@ function SchedulePage() {
     setSchedulesLoading(true);
     try {
       const response = await getSchedules({ status: status === 'all' ? undefined : status });
-      // Handle multiple response formats
       let rawData = [];
       if (response?.data) {
         if (Array.isArray(response.data)) {
@@ -172,12 +186,11 @@ function SchedulePage() {
           rawData = Array.isArray(response.data.data) ? response.data.data : [];
         }
       }
-      // Normalize all schedules
       const normalized = rawData.map(normalizeSchedule);
       setSchedules(normalized);
     } catch (error) {
       console.error('Error fetching schedules:', error);
-      setSchedules([]); // Clear on error instead of mock data
+      setSchedules([]);
     } finally {
       setSchedulesLoading(false);
     }
@@ -312,29 +325,6 @@ function SchedulePage() {
     setConvertModal({ open: false, schedule: null, isPostEndStream: false });
   };
 
-  // Filter schedules by search
-  const filteredSchedules = schedules.filter(schedule =>
-    schedule.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    schedule.game_category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Format date time (safe version)
-  const formatDateTime = (datetime) => {
-    const date = safeParseDate(datetime);
-    if (!date) return '-';
-    const dateStr = safeFormatDate(datetime, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }, '-');
-    const timeStr = safeFormatTime(datetime, {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta',
-    }, '');
-    return dateStr + (timeStr ? ', ' + timeStr + ' WIB' : '');
-  };
-
   // Get status badge for schedule (safe version)
   const getScheduleStatus = (schedule) => {
     if (!schedule) return 'upcoming';
@@ -352,300 +342,597 @@ function SchedulePage() {
     return 'upcoming';
   };
 
+  // Filter schedules by search and active status tab
+  const filteredSchedules = schedules.filter(schedule => {
+    const matchesSearch = schedule.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      schedule.game_category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      schedule.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    if (activeFilter === 'all') return true;
+    return getScheduleStatus(schedule) === activeFilter;
+  });
+
+  // Count finished streams ready for content guide
+  const completedStreamsCount = schedules.filter(s => {
+    const st = getScheduleStatus(s);
+    return st === 'done' || st === 'archived';
+  }).length;
+
+  // Format date time (safe version)
+  const formatDateTime = (datetime) => {
+    const date = safeParseDate(datetime);
+    if (!date) return '-';
+    const dateStr = safeFormatDate(datetime, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }, '-');
+    const timeStr = safeFormatTime(datetime, {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+    }, '');
+    return dateStr + (timeStr ? ', ' + timeStr + ' WIB' : '');
+  };
+
+  const formatTimeOnly = (datetime) => {
+    const timeStr = safeFormatTime(datetime, {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+    }, '');
+    return timeStr ? timeStr + ' WIB' : '';
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* ========== HEADER ========== */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
+
+      {/* ========== 1. HEADER SECTION ========== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-3.5 h-3.5 text-accent-cyan" />
-            <span className="text-xs font-mono text-accent-cyan tracking-wider">SIARAN & PENJADWALAN</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-2 h-2 rounded-full bg-accent-cyan" />
+            <span className="text-xs font-mono text-accent-cyan font-semibold tracking-wider uppercase">
+              Siaran & Penjadwalan
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary font-display">Manajemen Jadwal</h1>
-          <p className="text-sm text-text-muted mt-1">Kelola jadwal stream Xion, sinkronisasi countdown publik</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
+            Manajemen Jadwal
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
+            Kelola sesi streaming Xion, koordinasi kolaborasi, dan sinkronisasi hitung mundur publik.
+          </p>
         </div>
 
         {/* Add Button */}
         <button
+          type="button"
           onClick={handleAddSchedule}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center"
         >
-          <Plus className="w-4 h-4" />
-          Tambah Jadwal
+          <CalendarPlus className="w-4 h-4" />
+          <span>Tambah Jadwal</span>
         </button>
       </div>
 
-      {/* ========== SUMMARY CARDS ========== */}
+      {/* ========== 2. SUMMARY METRIC CARDS (Bebas AI Slop & Ramah Light Mode) ========== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Siaran Aktif */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-live/10 flex items-center justify-center">
-              <Radio className="w-5 h-5 text-status-live" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-muted">Siaran Aktif</p>
-              {statsLoading ? (
-                <div className="h-5 w-24 bg-bg-input rounded animate-shimmer mt-1" />
-              ) : summaryStats.activeBroadcast ? (
-                <p className="text-sm font-semibold text-text-primary truncate">
-                  {summaryStats.activeBroadcast.title || 'Tidak ada'}
+        {/* Card 1: Status Siaran Saat Ini */}
+        <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-border-active transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold">
+              Status Siaran
+            </span>
+            <Radio className={`w-4 h-4 ${summaryStats.activeBroadcast ? 'text-status-live animate-pulse' : 'text-text-muted'}`} />
+          </div>
+          <div className="mt-2">
+            {statsLoading ? (
+              <div className="h-6 w-24 bg-bg-surface rounded animate-pulse" />
+            ) : summaryStats.activeBroadcast ? (
+              <>
+                <p className="text-base font-bold text-status-live flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-status-live animate-ping" />
+                  LIVE ON AIR
                 </p>
-              ) : (
-                <p className="text-sm text-text-muted">Tidak ada</p>
-              )}
-            </div>
-            {summaryStats.activeBroadcast && (
-              <span className="w-2 h-2 rounded-full bg-status-live animate-pulse" />
+                <p className="text-xs text-text-secondary truncate mt-0.5" title={summaryStats.activeBroadcast.title}>
+                  {summaryStats.activeBroadcast.title}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-bold text-text-primary">STANDBY</p>
+                <p className="text-xs text-text-muted mt-0.5">Tidak ada siaran aktif</p>
+              </>
             )}
           </div>
         </div>
 
         {/* Card 2: Slot Terjadwal */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-accent-purple" />
-            </div>
-            <div>
-              <p className="text-xs text-text-muted">Slot Terjadwal 7 Hari</p>
-              {statsLoading ? (
-                <div className="h-5 w-16 bg-bg-input rounded animate-shimmer mt-1" />
-              ) : (
-                <p className="text-sm font-semibold text-text-primary">
-                  {summaryStats.scheduledSlots} Sesi
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveFilter('upcoming')}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActiveFilter('upcoming'); }}
+          className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-accent-purple/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold">
+              Slot Terjadwal (7 Hari)
+            </span>
+            <Calendar className="w-4 h-4 text-accent-purple" />
+          </div>
+          <div className="mt-2">
+            {statsLoading ? (
+              <div className="h-6 w-16 bg-bg-surface rounded animate-pulse" />
+            ) : (
+              <>
+                <p className="text-2xl font-extrabold font-mono text-text-primary group-hover:text-accent-purple transition-colors">
+                  {summaryStats.scheduledSlots} <span className="text-xs font-normal font-sans text-text-secondary">Sesi</span>
                 </p>
-              )}
-            </div>
+                <p className="text-xs text-text-muted mt-0.5">Sesi siaran siap tayang</p>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Card 3: Sinkronisasi */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
-              <RefreshCw className="w-5 h-5 text-accent-cyan" />
-            </div>
-            <div>
-              <p className="text-xs text-text-muted">Sinkronisasi Fansite</p>
-              <p className="text-sm font-semibold text-accent-cyan">
-                {summaryStats.syncStatus} ({summaryStats.syncLatency})
-              </p>
-            </div>
+        {/* Card 3: Siaran Selesai */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveFilter('done')}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActiveFilter('done'); }}
+          className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold">
+              Siaran Selesai
+            </span>
+            <CheckCircle className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="mt-2">
+            {statsLoading ? (
+              <div className="h-6 w-16 bg-bg-surface rounded animate-pulse" />
+            ) : (
+              <>
+                <p className="text-2xl font-extrabold font-mono text-text-primary group-hover:text-emerald-500 transition-colors">
+                  {summaryStats.completedSlots || completedStreamsCount} <span className="text-xs font-normal font-sans text-text-secondary">Sesi</span>
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">Tersimpan dalam arsip rekaman</p>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Card 4: Siaran Selesai */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-status-done/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-status-done" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-muted">Siaran Selesai</p>
-              {statsLoading ? (
-                <div className="h-5 w-16 bg-bg-input rounded animate-shimmer mt-1" />
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {summaryStats.completedSlots || schedules.filter(s => getScheduleStatus(s) === 'done').length} Sesi
-                  </p>
-                  <p className="text-xs text-text-muted">Tersimpan dalam arsip</p>
-                </>
-              )}
-            </div>
+        {/* Card 4: Siap Dijadikan Content Guide */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/admin/content')}
+          onKeyDown={(e) => { if (e.key === 'Enter') navigate('/admin/content'); }}
+          className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-accent-cyan/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold">
+              Katalog Content Guide
+            </span>
+            <BookPlus className="w-4 h-4 text-accent-cyan" />
+          </div>
+          <div className="mt-2">
+            <p className="text-2xl font-extrabold font-mono text-accent-cyan">
+              {completedStreamsCount} <span className="text-xs font-normal font-sans text-text-secondary">Arsip</span>
+            </p>
+            <p className="text-xs text-text-muted mt-0.5 flex items-center justify-between">
+              <span>Siap diarsipkan ke panduan</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform text-accent-cyan" />
+            </p>
           </div>
         </div>
       </div>
 
-      {/* ========== TABLE SECTION ========== */}
-      <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden">
-        {/* Table Header */}
-        <div className="p-4 border-b border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-text-muted" />
-            <span className="text-xs font-mono text-text-muted">MASTER QUEUE</span>
-            <span className="text-xs font-mono text-accent-cyan bg-accent-cyan/10 px-2 py-0.5 rounded">
-              Asia/Jakarta (WIB)
-            </span>
+      {/* ========== 3. MAIN SCHEDULE HUB (Rich Stream Cards vs Compact Table) ========== */}
+      <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+        {/* Toolbar Header */}
+        <div className="p-4 sm:p-5 border-b border-border-subtle flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-bg-surface">
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-bg-card border border-border-subtle rounded-xl overflow-x-auto scrollbar-none">
+            {FILTER_TABS.map((tab) => {
+              const count = tab.key === 'all'
+                ? schedules.length
+                : schedules.filter(s => getScheduleStatus(s) === tab.key).length;
+
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => handleFilterChange(tab.key)}
+                  className={`
+                    px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5
+                    ${activeFilter === tab.key
+                      ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'}
+                  `}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                    activeFilter === tab.key ? 'bg-black/20 text-white' : 'bg-bg-surface text-text-muted'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative">
+          {/* Right Toolbar: Search, View Mode Switcher, Refresh */}
+          <div className="flex items-center gap-2.5">
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari judul atau game..."
-                className="pl-9 pr-4 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none w-48"
+                placeholder="Cari judul, game, atau deskripsi..."
+                className="w-full pl-9 pr-4 py-2 bg-bg-card border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                >
+                  &times;
+                </button>
+              )}
             </div>
 
-            {/* Reload */}
+            {/* View Mode Toggle: Cards vs Table */}
+            <div className="flex items-center bg-bg-card border border-border-subtle rounded-xl p-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'cards'
+                    ? 'bg-accent-cyan text-text-on-cta shadow-sm'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+                title="Tampilan Kartu Siaran (Rapi & Proporsional)"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-accent-cyan text-text-on-cta shadow-sm'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+                title="Tampilan Tabel Ringkas"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Reload button */}
             <button
-              onClick={() => fetchSchedules(activeFilter)}
-              className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
-              title="Reload"
+              type="button"
+              onClick={() => {
+                fetchSchedules(activeFilter);
+                fetchSummaryStats();
+              }}
+              className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-card border border-border-subtle rounded-xl transition-colors shrink-0"
+              title="Refresh Jadwal"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${schedulesLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="px-4 pt-4 flex items-center gap-2 border-b border-border-subtle overflow-x-auto scrollbar-hide">
-          {FILTER_TABS.map((tab) => (
+        {/* Content Body: Cards View vs Table View */}
+        {schedulesLoading ? (
+          <div className="p-6 space-y-4">
+            <div className="h-20 bg-bg-surface rounded-2xl animate-pulse" />
+            <div className="h-20 bg-bg-surface rounded-2xl animate-pulse" />
+            <div className="h-20 bg-bg-surface rounded-2xl animate-pulse" />
+          </div>
+        ) : filteredSchedules.length === 0 ? (
+          <div className="py-16 px-4 text-center flex flex-col items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-bg-surface border border-border-subtle flex items-center justify-center text-text-muted mb-3">
+              <Calendar className="w-7 h-7 opacity-40" />
+            </div>
+            <h3 className="text-base font-bold text-text-primary">
+              {searchQuery ? 'Tidak ada jadwal yang cocok' : 'Belum ada jadwal pada kategori ini'}
+            </h3>
+            <p className="text-xs sm:text-sm text-text-muted max-w-sm mt-1 mb-5 leading-relaxed">
+              {searchQuery
+                ? `Tidak ditemukan hasil dengan kata kunci "${searchQuery}". Coba kata kunci lain.`
+                : 'Buat agenda streaming baru agar muncul di antrean dan portal penonton.'}
+            </p>
             <button
-              key={tab.key}
-              onClick={() => handleFilterChange(tab.key)}
-              className={`
-                px-4 py-2 text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap
-                ${activeFilter === tab.key
-                  ? 'bg-bg-input text-text-primary border-t border-x border-border-subtle'
-                  : 'text-text-muted hover:text-text-secondary'
-                }
-              `}
+              type="button"
+              onClick={handleAddSchedule}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-cyan text-text-on-cta text-xs font-semibold shadow-sm hover:bg-accent-cyan-hover transition-colors"
             >
-              {tab.label} ({tab.key === 'all' ? schedules.length : schedules.filter(s => getScheduleStatus(s) === tab.key).length})
+              <Plus className="w-4 h-4" />
+              <span>Jadwalkan Stream Baru</span>
             </button>
-          ))}
-        </div>
+          </div>
+        ) : viewMode === 'cards' ? (
+          /* ================================================================= */
+          /* 3.A RICH STREAM CARDS VIEW (Mengatasi Ruang Kosong Melompong)     */
+          /* ================================================================= */
+          <div className="p-4 sm:p-5 space-y-3">
+            {filteredSchedules.map((schedule) => {
+              const status = getScheduleStatus(schedule);
+              const statusBadge = getStatusBadge(status);
+              const StatusIcon = statusBadge.icon;
+              const isLive = status === 'live';
+              const isDone = status === 'done';
+              const dayInfo = formatScheduleDay(schedule.scheduled_at);
+              const videoId = getYouTubeVideoId(schedule.youtube_url);
+              const thumbnailSrc = schedule.thumbnail_url || (videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null);
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-bg-input">
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-12">NO</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">JUDUL STREAM</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-32">KATEGORI</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-48">TANGGAL & WAKTU</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-28">STATUS</th>
-                <th className="px-4 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider min-w-[210px]">AKSI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedulesLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i} className="border-b border-border-subtle">
-                    <td className="px-4 py-4"><div className="h-4 w-6 bg-bg-input rounded animate-shimmer" /></td>
-                    <td className="px-4 py-4"><div className="h-4 w-40 bg-bg-input rounded animate-shimmer" /></td>
-                    <td className="px-4 py-4"><div className="h-6 w-24 bg-bg-input rounded animate-shimmer" /></td>
-                    <td className="px-4 py-4"><div className="h-4 w-32 bg-bg-input rounded animate-shimmer" /></td>
-                    <td className="px-4 py-4"><div className="h-6 w-20 bg-bg-input rounded animate-shimmer" /></td>
-                    <td className="px-4 py-4"><div className="h-8 w-20 bg-bg-input rounded animate-shimmer" /></td>
-                  </tr>
-                ))
-              ) : filteredSchedules.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-text-muted">
-                    Tidak ada jadwal stream
-                  </td>
+              return (
+                <div
+                  key={schedule.id}
+                  className={`
+                    flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-2xl border transition-all duration-200
+                    ${isLive
+                      ? 'bg-status-live/5 border-status-live/30 shadow-md ring-1 ring-status-live/20'
+                      : 'bg-bg-surface hover:bg-bg-card-hover border-border-subtle hover:border-border-active shadow-sm'}
+                  `}
+                >
+                  {/* Left: Date Block + Thumbnail Preview + Info */}
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                    {/* Calendar Date Block */}
+                    <div className={`
+                      w-14 h-14 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 border shadow-sm
+                      ${isLive
+                        ? 'bg-status-live/15 border-status-live/30 text-status-live'
+                        : 'bg-bg-card border-border-subtle'}
+                    `}>
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-accent-purple">
+                        {dayInfo.dayName}
+                      </span>
+                      <span className="text-xl font-extrabold font-mono text-text-primary leading-none mt-0.5">
+                        {dayInfo.dayNum}
+                      </span>
+                      <span className="text-[8px] font-mono text-text-muted uppercase mt-0.5">
+                        {dayInfo.month}
+                      </span>
+                    </div>
+
+                    {/* Thumbnail Preview (Hidden on small mobile) */}
+                    {thumbnailSrc && (
+                      <div className="w-24 h-14 rounded-xl overflow-hidden bg-black/40 border border-border-subtle flex-shrink-0 hidden md:block relative shadow-inner">
+                        <img
+                          src={thumbnailSrc}
+                          alt={schedule.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        {isLive && (
+                          <span className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-status-live animate-ping" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Stream Content Details */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {/* Status Badge */}
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${statusBadge.class}`}>
+                          <StatusIcon className="w-3 h-3" />
+                          {statusBadge.label}
+                        </span>
+
+                        {/* Schedule Time */}
+                        <span className="text-[11px] font-mono text-text-muted flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatTimeOnly(schedule.scheduled_at)}
+                        </span>
+
+                        {/* Game Category Chip */}
+                        {schedule.game_category && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-card border border-border-subtle text-text-secondary truncate max-w-[130px]">
+                            {schedule.game_category}
+                          </span>
+                        )}
+
+                        {/* Collab Guest Chip */}
+                        {schedule.collab_guest && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-accent-purple/10 text-accent-purple border border-accent-purple/20">
+                            <Users className="w-3 h-3" />
+                            @{schedule.collab_guest.replace(/^@/, '')}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-sm sm:text-base font-bold text-text-primary truncate">
+                        {schedule.title}
+                      </h3>
+
+                      {schedule.description ? (
+                        <p className="text-xs text-text-muted truncate mt-0.5 max-w-2xl">
+                          {schedule.description}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-text-muted italic mt-0.5">
+                          Tidak ada deskripsi tambahan
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Action Buttons (User Friendly & Prominent) */}
+                  <div className="flex items-center gap-2 flex-shrink-0 self-end lg:self-center w-full lg:w-auto justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-border-subtle">
+                    {/* Prominent CTA for Finished Streams: + Content Guide */}
+                    {isDone && (
+                      <button
+                        type="button"
+                        onClick={() => handleDirectConvertToContent(schedule)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap"
+                        title="Buat Content Guide dari siaran ini"
+                      >
+                        <BookPlus className="w-3.5 h-3.5" />
+                        <span>+ Content Guide</span>
+                      </button>
+                    )}
+
+                    {/* Live Streamer End Button */}
+                    {isLive && (
+                      <button
+                        type="button"
+                        onClick={() => handleEndStreamClick(schedule)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors shadow-sm"
+                        title="Akhiri Siaran Langsung"
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>Akhiri</span>
+                      </button>
+                    )}
+
+                    {/* YouTube Link */}
+                    {schedule.youtube_url && (
+                      <a
+                        href={schedule.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors border border-transparent hover:border-border-subtle"
+                        title="Buka YouTube"
+                      >
+                        <YouTubeIcon size={16} />
+                      </a>
+                    )}
+
+                    {/* Preview Detail */}
+                    <button
+                      type="button"
+                      onClick={() => handlePreview(schedule)}
+                      className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-card rounded-xl transition-colors border border-transparent hover:border-border-subtle"
+                      title="Lihat Detail Siaran"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+
+                    {/* Edit */}
+                    <button
+                      type="button"
+                      onClick={() => handleEditSchedule(schedule)}
+                      className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-xl transition-colors border border-transparent hover:border-accent-cyan/30"
+                      title="Edit Jadwal"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClick(schedule)}
+                      className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-xl transition-colors border border-transparent hover:border-status-live/30"
+                      title="Hapus Jadwal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ================================================================= */
+          /* 3.B COMPACT TABLE VIEW                                           */
+          /* ================================================================= */
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-bg-surface border-b border-border-subtle">
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-16">NO</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider">JUDUL STREAM</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-36">KATEGORI</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-52">TANGGAL & WAKTU</th>
+                  <th className="px-5 py-3 text-left text-xs font-mono text-text-muted uppercase tracking-wider w-32">STATUS</th>
+                  <th className="px-5 py-3 text-right text-xs font-mono text-text-muted uppercase tracking-wider w-56">AKSI</th>
                 </tr>
-              ) : (
-                filteredSchedules.map((schedule, index) => {
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {filteredSchedules.map((schedule, index) => {
                   const status = getScheduleStatus(schedule);
                   const statusBadge = getStatusBadge(status);
                   const isLive = status === 'live';
-                  const StatusIcon = statusBadge.icon;
+                  const isDone = status === 'done';
 
                   return (
                     <tr
                       key={schedule.id}
                       className={`
-                        border-b border-border-subtle transition-colors
-                        ${isLive ? 'bg-status-live/5 border-l-2 border-l-status-live' : 'hover:bg-bg-input/30'}
+                        transition-colors
+                        ${isLive ? 'bg-status-live/5' : 'hover:bg-bg-surface'}
                       `}
                     >
-                      <td className="px-4 py-4">
-                        <span className="text-sm font-mono text-text-muted">
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
+                      <td className="px-5 py-3.5 text-xs font-mono text-text-muted">
+                        {String(index + 1).padStart(2, '0')}
                       </td>
-                      <td className="px-4 py-4">
-                        <div>
-                          <p className="text-sm font-semibold text-text-primary">{schedule.title}</p>
+                      <td className="px-5 py-3.5">
+                        <div className="min-w-0 max-w-md">
+                          <p className="text-sm font-bold text-text-primary truncate">{schedule.title}</p>
                           {schedule.description && (
-                            <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{schedule.description}</p>
-                          )}
-                          {isLive && (
-                            <p className="flex items-center gap-1.5 text-xs text-status-live mt-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-pulse" />
-                              Sedang Berlangsung
-                            </p>
+                            <p className="text-xs text-text-muted truncate mt-0.5">{schedule.description}</p>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className={`
-                          inline-flex px-3 py-1 text-xs font-medium rounded-full
-                          ${isLive ? 'bg-status-live/20 text-status-live' : 'bg-bg-input text-text-secondary'}
-                        `}>
-                          {schedule.game_category || 'LAINNYA'}
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex px-2.5 py-0.5 text-xs font-medium rounded-md bg-bg-surface border border-border-subtle text-text-secondary truncate max-w-[120px]">
+                          {schedule.game_category || 'UMUM'}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-text-muted" />
-                          <span className="text-sm text-text-secondary">
-                            {formatDateTime(schedule.scheduled_at)}
-                          </span>
-                        </div>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs text-text-secondary flex items-center gap-1.5 whitespace-nowrap">
+                          <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                          {formatDateTime(schedule.scheduled_at)}
+                        </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border ${statusBadge.class}`}>
-                          <StatusIcon className="w-3 h-3" />
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full border ${statusBadge.class} whitespace-nowrap`}>
+                          <statusBadge.icon className="w-3 h-3" />
                           {statusBadge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {/* End Stream Button - Only for LIVE schedules */}
-                          {isLive && (
-                            <button
-                              onClick={() => handleEndStreamClick(schedule)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors"
-                              title="Akhiri Siaran"
-                            >
-                              <Power className="w-3.5 h-3.5" />
-                              <span>Akhiri</span>
-                            </button>
-                          )}
-                          {/* Jadikan Content Guide - Prominent, Clear, User Friendly Button */}
-                          {(schedule.status === 'done' || schedule.status === 'archived') && (
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isDone && (
                             <button
                               type="button"
                               onClick={() => handleDirectConvertToContent(schedule)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap"
-                              title="Buat Content Guide dari siaran ini"
+                              className="px-2.5 py-1 rounded-lg bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all whitespace-nowrap"
                             >
-                              <BookPlus className="w-3.5 h-3.5" />
-                              <span>+ Content Guide</span>
+                              + Guide
                             </button>
                           )}
-                          {/* Preview */}
                           <button
+                            type="button"
                             onClick={() => handlePreview(schedule)}
-                            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
-                            title="Preview Detail Siaran"
+                            className="p-1.5 text-text-muted hover:text-text-primary rounded-lg transition-colors"
+                            title="Preview"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {/* Edit */}
                           <button
+                            type="button"
                             onClick={() => handleEditSchedule(schedule)}
-                            className="p-1.5 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-lg transition-colors"
-                            title="Edit Jadwal"
+                            className="p-1.5 text-text-muted hover:text-accent-cyan rounded-lg transition-colors"
+                            title="Edit"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
-                          {/* Delete */}
                           <button
+                            type="button"
                             onClick={() => handleDeleteClick(schedule)}
-                            className="p-1.5 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-lg transition-colors"
-                            title="Hapus Jadwal"
+                            className="p-1.5 text-text-muted hover:text-status-live rounded-lg transition-colors"
+                            title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -653,21 +940,20 @@ function SchedulePage() {
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        {/* Table Footer */}
-        <div className="px-4 py-3 border-t border-border-subtle">
-          <p className="text-xs text-text-muted">
-            Menampilkan {filteredSchedules.length} dari {schedules.length} jadwal
-          </p>
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-border-subtle flex items-center justify-between text-xs text-text-muted bg-bg-surface">
+          <span>Menampilkan {filteredSchedules.length} dari {schedules.length} jadwal streaming</span>
+          <span className="font-mono">Zona Waktu: Asia/Jakarta (WIB)</span>
         </div>
       </div>
 
-      {/* ========== SCHEDULE FORM PANEL ========== */}
+      {/* ========== 4. SCHEDULE FORM PANEL ========== */}
       <ScheduleFormPanel
         isOpen={formPanelOpen}
         onClose={() => {
@@ -679,34 +965,36 @@ function SchedulePage() {
         loading={formLoading}
       />
 
-      {/* ========== PREVIEW MODAL ========== */}
+      {/* ========== 5. DETAIL MODAL (Redesign Total: Rapi & Media Card Studio) ========== */}
       <Modal
         isOpen={previewModal.open}
         onClose={() => setPreviewModal({ open: false, schedule: null })}
         title="Detail Jadwal Siaran"
         size="lg"
-        icon={<Tv className="w-5 h-5 text-accent-purple" />}
+        icon={<PlayCircle className="w-5 h-5 text-accent-cyan" />}
         footer={
           <div className="flex items-center justify-between w-full">
             <button
               type="button"
               onClick={() => setPreviewModal({ open: false, schedule: null })}
-              className="px-4 py-2.5 rounded-xl bg-bg-card-hover border border-border-subtle text-text-secondary hover:text-text-primary text-sm font-medium transition-colors"
+              className="px-4 py-2 rounded-xl bg-bg-surface border border-border-subtle text-text-secondary hover:text-text-primary text-xs font-semibold transition-colors"
             >
               Tutup
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                const scheduleToEdit = previewModal.schedule;
-                setPreviewModal({ open: false, schedule: null });
-                handleEditSchedule(scheduleToEdit);
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-cta text-text-on-cta hover:opacity-90 text-sm font-semibold transition-opacity shadow-sm"
-            >
-              <Edit className="w-4 h-4" />
-              <span>Edit Jadwal</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const scheduleToEdit = previewModal.schedule;
+                  setPreviewModal({ open: false, schedule: null });
+                  handleEditSchedule(scheduleToEdit);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent-cyan text-text-on-cta hover:bg-accent-cyan-hover text-xs font-semibold transition-all shadow-sm active:scale-95"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>Edit Jadwal</span>
+              </button>
+            </div>
           </div>
         }
       >
@@ -717,41 +1005,43 @@ function SchedulePage() {
           const StatusIcon = statusBadge.icon;
           const videoId = getYouTubeVideoId(s.youtube_url);
           const thumbnailSrc = s.thumbnail_url || (videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null);
+          const isDone = statusKey === 'done';
 
           return (
             <div className="space-y-4">
-              {/* Media Thumbnail or Title Banner */}
-              {thumbnailSrc ? (
-                <div className="rounded-xl overflow-hidden border border-border-subtle bg-bg-surface">
-                  <div className="aspect-video w-full max-h-52 overflow-hidden bg-black/60 relative">
+              {/* Media Preview Header */}
+              <div className="rounded-2xl overflow-hidden border border-border-subtle bg-bg-surface shadow-sm">
+                {thumbnailSrc ? (
+                  <div className="aspect-video w-full max-h-56 sm:max-h-64 overflow-hidden bg-black/70 relative group">
                     <img
                       src={thumbnailSrc}
                       alt={s.title}
-                      className="w-full h-full object-cover object-center"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
+                      className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-bg-base/90 via-transparent to-black/30" />
-                    
-                    {/* Floating Badges */}
-                    <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border backdrop-blur-md shadow-sm ${statusBadge.class}`}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-black/25 to-black/40" />
+
+                    {/* Status & Category Badges */}
+                    <div className="absolute top-3.5 left-3.5 flex flex-wrap items-center gap-2 z-10">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border backdrop-blur-md shadow-md ${statusBadge.class}`}>
                         <StatusIcon className="w-3.5 h-3.5" />
                         {statusBadge.label}
                       </span>
-                      <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-bg-base/80 border border-border-subtle text-text-primary backdrop-blur-md shadow-sm">
-                        {s.game_category || 'UMUM'}
-                      </span>
+                      {s.game_category && (
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-black/60 border border-white/20 text-white backdrop-blur-md shadow-md">
+                          {s.game_category}
+                        </span>
+                      )}
                     </div>
 
+                    {/* YouTube Watch Pill */}
                     {s.youtube_url && (
-                      <div className="absolute bottom-3 right-3">
+                      <div className="absolute bottom-3.5 right-3.5 z-10">
                         <a
                           href={s.youtube_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-xs font-semibold backdrop-blur-md transition-colors shadow-sm"
+                          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold backdrop-blur-md transition-all shadow-md active:scale-95"
                         >
                           <YouTubeIcon size={14} />
                           <span>Buka Siaran</span>
@@ -760,135 +1050,109 @@ function SchedulePage() {
                       </div>
                     )}
                   </div>
+                ) : (
+                  <div className="p-4 bg-gradient-to-r from-accent-purple/10 to-accent-cyan/10 border-b border-border-subtle flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${statusBadge.class}`}>
+                        <StatusIcon className="w-3.5 h-3.5" />
+                        {statusBadge.label}
+                      </span>
+                      {s.game_category && (
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-bg-card border border-border-subtle text-text-secondary">
+                          {s.game_category}
+                        </span>
+                      )}
+                    </div>
+                    {s.youtube_url && (
+                      <a
+                        href={s.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
+                      >
+                        <YouTubeIcon size={14} />
+                        <span>YouTube</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
 
-                  <div className="p-4 bg-bg-card">
-                    <h3 className="text-base font-bold text-text-primary leading-snug">
-                      {s.title}
-                    </h3>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl border border-border-subtle bg-bg-surface space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border ${statusBadge.class}`}>
-                      <StatusIcon className="w-3.5 h-3.5" />
-                      {statusBadge.label}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-bg-input text-text-secondary border border-border-subtle">
-                      {s.game_category || 'UMUM'}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-text-primary leading-snug">
+                {/* Title & Collab Info */}
+                <div className="p-4 sm:p-5 bg-bg-card">
+                  <h2 className="text-base sm:text-lg font-bold text-text-primary tracking-tight leading-snug">
                     {s.title}
-                  </h3>
-                </div>
-              )}
+                  </h2>
 
-              {/* 2-Column Schedule & Countdown Info Grid */}
+                  {s.collab_guest && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border-subtle text-xs">
+                      <Users className="w-4 h-4 text-accent-purple flex-shrink-0" />
+                      <span className="text-text-muted">Streaming Bersama:</span>
+                      <span className="font-semibold text-text-primary">@{s.collab_guest.replace(/^@/, '')}</span>
+                      {s.collab_social && (
+                        <a
+                          href={s.collab_social.startsWith('http') ? s.collab_social : `https://${s.collab_social}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-accent-purple hover:underline"
+                        >
+                          <span>Kanal Tamu</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Horizontal Metadata Ribbon (Compact & Balanced) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-accent-purple/10 text-accent-purple border border-accent-purple/20 shrink-0 mt-0.5">
-                    <Calendar className="w-4 h-4" />
-                  </div>
+                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-bg-surface border border-border-subtle">
+                  <Calendar className="w-4 h-4 text-accent-purple flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Waktu Siaran</p>
-                    <p className="text-sm font-semibold text-text-primary mt-0.5">
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">Waktu Pelaksanaan</p>
+                    <p className="text-xs sm:text-sm font-semibold text-text-primary mt-0.5 truncate">
                       {formatDateTime(s.scheduled_at)}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-start gap-3">
-                  <div className={`p-2 rounded-lg shrink-0 mt-0.5 border ${
-                    s.countdown_enabled
-                      ? 'bg-status-upcoming/10 text-status-upcoming border-status-upcoming/20'
-                      : 'bg-bg-input text-text-muted border-border-subtle'
-                  }`}>
-                    <Clock className="w-4 h-4" />
-                  </div>
+                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-bg-surface border border-border-subtle">
+                  <Clock className={`w-4 h-4 flex-shrink-0 ${s.countdown_enabled ? 'text-accent-cyan' : 'text-text-muted'}`} />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Countdown Fansite</p>
-                    <p className={`text-sm font-semibold mt-0.5 ${
-                      s.countdown_enabled ? 'text-status-upcoming' : 'text-text-muted'
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">Countdown Fansite</p>
+                    <p className={`text-xs sm:text-sm font-semibold mt-0.5 truncate ${
+                      s.countdown_enabled ? 'text-accent-cyan' : 'text-text-muted'
                     }`}>
-                      {s.countdown_enabled ? 'Aktif di Beranda' : 'Nonaktif'}
+                      {s.countdown_enabled ? 'Aktif Tayang di Beranda' : 'Nonaktif (Selesai / Diarsipkan)'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Collab Streamer Info */}
-              {s.collab_guest && (
-                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded-lg bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 shrink-0">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Kolaborasi</p>
-                      <p className="text-sm font-semibold text-text-primary truncate mt-0.5">
-                        @{s.collab_guest.replace(/^@/, '')}
-                      </p>
-                    </div>
-                  </div>
-                  {s.collab_social && (
-                    <a
-                      href={s.collab_social.startsWith('http') ? s.collab_social : `https://${s.collab_social}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card hover:bg-bg-card-hover border border-border-subtle text-xs font-medium text-text-secondary hover:text-text-primary transition-colors shrink-0"
-                    >
-                      <span>Kanal Tamu</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
-              )}
-
-              {/* Description */}
+              {/* Description Block (Adaptive Height, No Dead Space) */}
               {s.description && (
-                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle space-y-1.5">
-                  <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Deskripsi Siaran</p>
-                  <p className="text-sm text-text-secondary whitespace-pre-line leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle space-y-1">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">Deskripsi Siaran</p>
+                  <p className="text-xs sm:text-sm text-text-secondary leading-relaxed whitespace-pre-line">
                     {s.description}
                   </p>
                 </div>
               )}
 
-              {/* YouTube Card (when no thumbnail was shown above) */}
-              {s.youtube_url && !thumbnailSrc && (
-                <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 shrink-0">
-                      <YouTubeIcon size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Tautan YouTube</p>
-                      <p className="text-xs font-mono text-text-secondary truncate mt-0.5">{s.youtube_url}</p>
-                    </div>
-                  </div>
-                  <a
-                    href={s.youtube_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-sm transition-colors shrink-0"
-                  >
-                    <span>Buka YouTube</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              )}
-
               {/* Conversion to Content Guide Banner for Completed Streams */}
-              {(s.status === 'done' || s.status === 'archived') && (
-                <div className="p-3.5 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-                  <div>
-                    <p className="text-xs font-bold text-accent-cyan uppercase tracking-wider font-mono">
-                      Siaran Telah Selesai
-                    </p>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      Tambahkan rekaman siaran ini langsung ke Content Guide.
-                    </p>
+              {isDone && (
+                <div className="p-4 rounded-xl bg-accent-cyan/10 border border-accent-cyan/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <BookPlus className="w-5 h-5 text-accent-cyan flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-accent-cyan uppercase tracking-wider font-mono">
+                        Siaran Telah Selesai
+                      </p>
+                      <p className="text-xs text-text-secondary mt-0.5">
+                        Tambahkan rekaman siaran ini langsung ke katalog panduan konten penonton.
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -896,7 +1160,7 @@ function SchedulePage() {
                       setPreviewModal({ open: false, schedule: null });
                       handleDirectConvertToContent(s);
                     }}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent-cyan text-bg-base text-xs font-bold font-mono tracking-wider uppercase hover:bg-accent-cyan/90 transition-all shadow-sm shrink-0"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs font-bold transition-all shadow-md shrink-0 active:scale-95 whitespace-nowrap"
                   >
                     <BookPlus className="w-4 h-4" />
                     <span>Jadikan Content Guide</span>
@@ -905,7 +1169,7 @@ function SchedulePage() {
               )}
 
               {/* Metadata Footer: ID, Platform, Timestamps */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-border-subtle text-xs text-text-muted">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-border-subtle text-xs text-text-muted">
                 <div className="flex items-center gap-3">
                   <span>ID Jadwal: #{s.id}</span>
                   <span>Platform: {s.stream_platform || 'YouTube'}</span>
@@ -919,7 +1183,7 @@ function SchedulePage() {
         })()}
       </Modal>
 
-      {/* ========== DELETE CONFIRMATION MODAL ========== */}
+      {/* ========== 6. DELETE CONFIRMATION MODAL ========== */}
       <Modal
         isOpen={deleteModal.open}
         onClose={handleDeleteCancel}
@@ -938,77 +1202,45 @@ function SchedulePage() {
         </p>
       </Modal>
 
-      {/* ========== END STREAM CONFIRMATION MODAL ========== */}
+      {/* ========== 7. END STREAM CONFIRMATION MODAL ========== */}
       <Modal
         isOpen={endStreamModal.open}
         onClose={handleEndStreamCancel}
-        title="Akhiri Siaran?"
-        confirmText="Akhiri Siaran"
+        title="Akhiri Siaran Langsung"
+        confirmText="Ya, Akhiri Siaran"
         cancelText="Batal"
         onConfirm={handleEndStreamConfirm}
         variant="danger"
         loading={endStreamLoading}
       >
-        <div className="space-y-3">
-          <p className="text-text-secondary text-sm">
-            Apakah kamu yakin ingin mengakhiri siaran <span className="text-text-primary font-semibold">"{endStreamModal.schedule?.title}"</span>?
-          </p>
-          <div className="p-3 bg-status-live/10 border border-status-live/20 rounded-lg">
-            <p className="text-status-live text-xs font-medium flex items-center gap-2">
-              <Power className="w-4 h-4" />
-              Siaran akan segera ditandai selesai
-            </p>
-          </div>
-          <p className="text-text-muted text-xs">
-            Stream akan otomatis berakhir setelah 5 jam jika tidak diakhiri manual.
-          </p>
-        </div>
+        <p className="text-text-secondary text-sm">
+          Apakah kamu yakin ingin mengakhiri sesi live stream <span className="text-text-primary font-semibold">"{endStreamModal.schedule?.title}"</span> sekarang?
+        </p>
+        <p className="text-text-muted text-xs mt-2">
+          Status jadwal akan diubah menjadi SELESAI dan sinyal siaran di portal publik akan dinonaktifkan.
+        </p>
       </Modal>
 
-      {/* ========== CONVERT TO CONTENT GUIDE MODAL ========== */}
+      {/* ========== 8. POST-STREAM CONVERT TO CONTENT GUIDE MODAL ========== */}
       <Modal
         isOpen={convertModal.open}
         onClose={handleConvertCancel}
-        title="Jadikan Content Guide"
+        title="Siaran Selesai &bull; Jadikan Content Guide?"
+        confirmText="Ya, Buka Formulir Content Guide"
+        cancelText="Nanti Saja"
+        onConfirm={handleConvertConfirm}
+        variant="success"
       >
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex items-start gap-3">
-            <BookPlus className="w-5 h-5 text-accent-cyan flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-text-primary">
-                {convertModal.isPostEndStream
-                  ? 'Siaran Telah Selesai'
-                  : 'Buat Konten Katalog dari Jadwal Siaran'}
-              </p>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                Apakah Anda ingin menambahkan siaran{' '}
-                <span className="font-semibold text-text-primary">
-                  "{convertModal.schedule?.title}"
-                </span>{' '}
-                ke formulir Content Guide? Data judul, kategori, URL video, dan thumbnail akan otomatis diisikan.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleConvertCancel}
-              className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-input rounded-xl transition-colors"
-            >
-              Nanti Saja
-            </button>
-            <button
-              type="button"
-              onClick={handleConvertConfirm}
-              className="px-4 py-2 text-sm font-semibold bg-accent-cyan text-bg-base hover:bg-accent-cyan/90 rounded-xl transition-colors flex items-center gap-2 shadow-md shadow-accent-cyan/20"
-            >
-              <BookPlus className="w-4 h-4" />
-              <span>Buka Form Content Guide</span>
-            </button>
-          </div>
+        <div className="space-y-3">
+          <p className="text-text-secondary text-sm">
+            Siaran <span className="text-text-primary font-semibold">"{convertModal.schedule?.title}"</span> telah berhasil diakhiri!
+          </p>
+          <p className="text-text-muted text-xs leading-relaxed">
+            Apakah Anda ingin langsung menambahkan rekaman siaran ini ke katalog <strong>Content Guide</strong>? Sistem akan mengisi otomatis judul, kategori game, tautan video YouTube, dan thumbnail.
+          </p>
         </div>
       </Modal>
+
     </div>
   );
 }
