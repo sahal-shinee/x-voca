@@ -94,6 +94,102 @@ const SORT_OPTIONS = [
   { value: 'longest', label: 'Durasi Terpanjang' },
 ];
 
+// ========== MODERN CUSTOM DROPDOWN (ZERO NATIVE OS STIFFNESS) ==========
+function CustomDropdown({ value, options, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const selectedOption = options.find((o) => o.value === value) || options[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`
+          flex items-center justify-between gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200
+          ${isOpen
+            ? 'bg-[#181432] border-[#7ee0d2]/60 text-white shadow-[0_0_14px_rgba(126,224,210,0.18)] ring-1 ring-[#7ee0d2]/30'
+            : 'bg-[#141126] border-white/10 text-white hover:border-[#7ee0d2]/40 hover:bg-[#181432]'
+          } border
+        `}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">{selectedOption.label}</span>
+        <svg
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#7ee0d2]' : 'text-[#8E8AAB]'}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Floating Menu with Glassmorphism */}
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute right-0 mt-1.5 w-44 rounded-xl bg-[#141128]/95 backdrop-blur-xl border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.6)] p-1 z-30 animate-in fade-in zoom-in-95 duration-150"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`
+                  w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between text-left transition-all duration-150 cursor-pointer
+                  ${isSelected
+                    ? 'bg-[#7ee0d2]/15 text-[#7ee0d2] font-semibold'
+                    : 'text-[#A09BB8] hover:text-white hover:bg-white/[0.06]'
+                  }
+                `}
+              >
+                <span>{option.label}</span>
+                {isSelected && (
+                  <svg className="w-3.5 h-3.5 text-[#7ee0d2] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ContentGuidePage() {
   const toast = useToast();
 
@@ -556,20 +652,12 @@ function ContentGuidePage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Sort Dropdown */}
-              <select
+              {/* Modern Custom Sort Dropdown */}
+              <CustomDropdown
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="pl-3 pr-7 py-1.5 rounded-xl text-xs text-white bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/50 focus:outline-none appearance-none cursor-pointer"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238E8AAB'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 8px center',
-                  backgroundSize: '10px',
-                }}
-              >
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+                options={SORT_OPTIONS}
+                onChange={setSortBy}
+              />
 
               {/* View Mode Toggle */}
               <div className="flex rounded-xl overflow-hidden border border-white/10 bg-[#141126]">
