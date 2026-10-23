@@ -239,7 +239,7 @@ function SchedulePage() {
   const handleSaveSchedule = async (data) => {
     setFormLoading(true);
     try {
-      if (editingSchedule) {
+      if (editingSchedule && editingSchedule.id) {
         await updateSchedule(editingSchedule.id, data);
       } else {
         await createSchedule(data);

@@ -32,7 +32,7 @@ function ScheduleFormPanel({
    */
   initialCollabData = null,
 }) {
-  const isEdit = !!schedule;
+  const isEdit = !!(schedule && schedule.id);
   // Flag: form was opened from Collab Requests (to show contextual header)
   const isFromCollab = !isEdit && !!initialCollabData;
 
@@ -60,13 +60,28 @@ function ScheduleFormPanel({
   // Initialize form data when schedule changes or opens
   useEffect(() => {
     if (schedule) {
-      const scheduleDate = new Date(schedule.scheduled_at || schedule.datetime || schedule.date);
+      let dateStr = '';
+      let timeStr = '';
+      const rawDate = schedule.scheduled_at || schedule.datetime || schedule.date;
+      if (rawDate) {
+        try {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) {
+            dateStr = parsed.toISOString().split('T')[0];
+            timeStr = parsed.toTimeString().slice(0, 5);
+          }
+        } catch {
+          dateStr = '';
+          timeStr = '';
+        }
+      }
+
       const hasCollab = !!(schedule.collab_guest || schedule.collab_social);
       setFormData({
         title: schedule.title || '',
         game_category: schedule.game_category || schedule.category || '',
-        date: scheduleDate.toISOString().split('T')[0],
-        time: scheduleDate.toTimeString().slice(0, 5),
+        date: dateStr,
+        time: timeStr,
         description: schedule.description || '',
         collab_guest: schedule.collab_guest || '',
         collab_social: schedule.collab_social || '',
