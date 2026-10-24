@@ -483,33 +483,39 @@ function DashboardPage() {
             </div>
           </div>
 
-          {/* Right: Master On-Air Broadcast Console */}
+          {/* Right: Master On-Air Broadcast Console (Proporsi Seimbang & Clean) */}
           <div className={`
-            flex items-center justify-between gap-4 px-4 py-3 rounded-xl border transition-all duration-200 self-stretch lg:self-auto
+            flex items-center justify-between gap-4 sm:gap-6 px-5 py-4 rounded-2xl border transition-all duration-200 self-stretch lg:self-auto shadow-xs
             ${isLiveState
-              ? 'bg-status-live/10 border-status-live/30'
-              : 'bg-bg-surface border-border-subtle hover:border-border-active'}
+              ? 'bg-status-live/[0.08] dark:bg-status-live/[0.12] border-status-live/30 ring-1 ring-status-live/20'
+              : 'bg-bg-base/70 dark:bg-bg-surface/80 border-border-subtle hover:border-border-active'}
           `}>
-            <div className="flex items-center gap-3.5">
-              <div className="flex items-center justify-center flex-shrink-0">
-                <Radio className={`w-5 h-5 ${isLiveState ? 'text-status-live animate-pulse' : 'text-text-muted'}`} />
+            <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+              <div className={`
+                w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border transition-all
+                ${isLiveState
+                  ? 'bg-status-live/15 border-status-live/30 text-status-live shadow-xs'
+                  : 'bg-bg-surface dark:bg-bg-card border-border-subtle text-text-secondary shadow-xs'}
+              `}>
+                <Radio className={`w-5 h-5 ${isLiveState ? 'text-status-live animate-pulse' : 'text-text-secondary'}`} />
               </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider font-semibold">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-sm font-semibold text-text-primary tracking-tight">
                     Master Broadcast
                   </span>
                   <span className={`
-                    px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider border
+                    inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border transition-all
                     ${isLiveState
                       ? 'bg-status-live/15 text-status-live border-status-live/30 animate-pulse'
-                      : 'bg-bg-card text-text-muted border-border-subtle'}
+                      : 'bg-bg-surface dark:bg-bg-card text-text-secondary border-border-subtle shadow-xs'}
                   `}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isLiveState ? 'bg-status-live animate-ping' : 'bg-text-muted/60'}`} />
                     {isLiveState ? 'LIVE ON AIR' : 'STANDBY'}
                   </span>
                 </div>
-                <p className="text-xs text-text-secondary mt-0.5 max-w-xs truncate font-medium">
+                <p className="text-xs text-text-secondary mt-1 max-w-xs truncate leading-normal">
                   {isLiveState
                     ? (stats.activeBroadcast?.title
                         ? `Tayang: ${stats.activeBroadcast.title}`
@@ -521,13 +527,13 @@ function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3 shrink-0 pl-1">
               {isLiveState && stats.activeBroadcast?.youtube_url && (
                 <a
                   href={stats.activeBroadcast.youtube_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors shadow-xs"
                   title="Tonton di YouTube"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -536,6 +542,7 @@ function DashboardPage() {
               )}
 
               <Toggle
+                variant="live"
                 checked={isLiveState}
                 onChange={requestToggleBroadcasting}
                 disabled={loadingBroadcasting}

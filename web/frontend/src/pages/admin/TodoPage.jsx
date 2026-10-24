@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { useTheme } from '../../hooks/useTheme';
 import {
   CheckSquare,
   Plus,
@@ -31,27 +33,27 @@ import CustomSelect from '../../components/common/CustomSelect';
 
 // ========== CONSTANTS ==========
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', badge: 'bg-rose-500/15 text-rose-300 border border-rose-500/30' },
-  { value: 'high',   label: 'High',   badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' },
-  { value: 'medium', label: 'Medium', badge: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30' },
-  { value: 'low',    label: 'Low',    badge: 'bg-slate-500/15 text-slate-300 border border-slate-500/30' },
+  { value: 'urgent', label: 'Urgent', badge: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30' },
+  { value: 'high',   label: 'High',   badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30' },
+  { value: 'medium', label: 'Medium', badge: 'bg-cyan-500/10 text-teal-700 dark:text-cyan-300 border border-cyan-500/30' },
+  { value: 'low',    label: 'Low',    badge: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/30' },
 ];
 
 const STATUS_CONFIG = {
   pending: {
     label: 'Pending',
-    badge: 'bg-amber-400/15 text-amber-300 border border-amber-400/30',
-    indicator: 'bg-amber-400',
+    badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30',
+    indicator: 'bg-amber-500',
   },
   in_progress: {
     label: 'Dalam Pengerjaan',
-    badge: 'bg-cyan-400/15 text-cyan-300 border border-cyan-400/30',
-    indicator: 'bg-cyan-400',
+    badge: 'bg-cyan-500/10 text-teal-700 dark:text-cyan-300 border border-cyan-500/30',
+    indicator: 'bg-cyan-500',
   },
   completed: {
     label: 'Selesai',
-    badge: 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30',
-    indicator: 'bg-emerald-400',
+    badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30',
+    indicator: 'bg-emerald-500',
   },
 };
 
@@ -155,6 +157,13 @@ const getTodoCategory = (todo) => {
 
 function TodoPage() {
   const toast = useToast();
+  let theme = 'dark';
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) theme = themeCtx.theme;
+  } catch {
+    theme = 'dark';
+  }
 
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -660,7 +669,7 @@ function TodoPage() {
               onClick={() => setViewMode('list')}
               className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'list'
-                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
               }`}
               title="Tampilan Daftar Checklist"
@@ -674,7 +683,7 @@ function TodoPage() {
               onClick={() => setViewMode('kanban')}
               className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'kanban'
-                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
               }`}
               title="Tampilan Papan Kanban"
@@ -714,7 +723,7 @@ function TodoPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-accent-cyan/10"
+            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-accent-cyan text-white rounded-xl hover:bg-accent-cyan-hover active:scale-95 transition-all shadow-sm"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Tambah Todo</span>
@@ -733,12 +742,12 @@ function TodoPage() {
             className={`
               p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
               ${statusFilter === 'all'
-                ? 'bg-accent-purple/10 border-accent-purple ring-1 ring-accent-purple/30'
+                ? 'bg-accent-purple/10 border-accent-purple/50 shadow-sm'
                 : 'bg-bg-surface/50 border-border-subtle hover:border-accent-purple/40'}
             `}
           >
             <div className="flex items-center justify-between text-xs text-text-muted mb-1">
-              <span>Total Tugas</span>
+              <span className="font-medium text-text-secondary">Total Tugas</span>
               <Layers className="w-4 h-4 text-accent-purple" />
             </div>
             <div className="text-xl sm:text-2xl font-bold font-mono text-text-primary">
@@ -753,15 +762,15 @@ function TodoPage() {
             className={`
               p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
               ${statusFilter === 'pending'
-                ? 'bg-amber-400/10 border-amber-400 ring-1 ring-amber-400/30'
-                : 'bg-bg-surface/50 border-border-subtle hover:border-amber-400/40'}
+                ? 'bg-amber-500/10 border-amber-500/50 shadow-sm'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-amber-500/30'}
             `}
           >
-            <div className="flex items-center justify-between text-xs text-amber-400 mb-1">
-              <span>Pending</span>
-              <Clock className="w-4 h-4" />
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-medium text-amber-700 dark:text-amber-300">Pending</span>
+              <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono text-amber-400">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-text-primary">
               {stats.pending}
             </div>
           </button>
@@ -773,15 +782,15 @@ function TodoPage() {
             className={`
               p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
               ${statusFilter === 'in_progress'
-                ? 'bg-cyan-400/10 border-cyan-400 ring-1 ring-cyan-400/30'
-                : 'bg-bg-surface/50 border-border-subtle hover:border-cyan-400/40'}
+                ? 'bg-cyan-500/10 border-cyan-500/50 shadow-sm'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-cyan-500/30'}
             `}
           >
-            <div className="flex items-center justify-between text-xs text-cyan-400 mb-1">
-              <span>Dikerjakan</span>
-              <RefreshCw className="w-4 h-4" />
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-medium text-teal-700 dark:text-cyan-300">Dikerjakan</span>
+              <RefreshCw className="w-4 h-4 text-teal-600 dark:text-cyan-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono text-cyan-400">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-text-primary">
               {stats.inProgress}
             </div>
           </button>
@@ -793,26 +802,26 @@ function TodoPage() {
             className={`
               p-3.5 rounded-xl border text-left transition-all hover:bg-bg-surface
               ${statusFilter === 'completed'
-                ? 'bg-emerald-400/10 border-emerald-400 ring-1 ring-emerald-400/30'
-                : 'bg-bg-surface/50 border-border-subtle hover:border-emerald-400/40'}
+                ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm'
+                : 'bg-bg-surface/50 border-border-subtle hover:border-emerald-500/30'}
             `}
           >
-            <div className="flex items-center justify-between text-xs text-emerald-400 mb-1">
-              <span>Selesai</span>
-              <CheckCheck className="w-4 h-4" />
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-medium text-emerald-700 dark:text-emerald-300">Selesai</span>
+              <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-text-primary">
               {stats.completed}
             </div>
           </button>
 
           {/* Terlambat */}
           <div className="p-3.5 rounded-xl border border-border-subtle bg-bg-surface/50 text-left col-span-2 sm:col-span-1">
-            <div className="flex items-center justify-between text-xs text-rose-400 mb-1">
-              <span>Terlambat</span>
-              <AlertTriangle className={`w-4 h-4 ${stats.overdue > 0 ? 'animate-pulse' : ''}`} />
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className={`font-medium ${stats.overdue > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-text-muted'}`}>Terlambat</span>
+              <AlertTriangle className={`w-4 h-4 ${stats.overdue > 0 ? 'text-rose-600 dark:text-rose-400 animate-pulse' : 'text-text-muted'}`} />
             </div>
-            <div className={`text-xl sm:text-2xl font-bold font-mono ${stats.overdue > 0 ? 'text-rose-400' : 'text-text-primary'}`}>
+            <div className={`text-xl sm:text-2xl font-bold font-mono ${stats.overdue > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-text-primary'}`}>
               {stats.overdue}
             </div>
           </div>
@@ -884,7 +893,7 @@ function TodoPage() {
           <button
             type="submit"
             disabled={!quickTitle.trim() || isQuickAdding}
-            className="h-8 px-4 text-xs font-bold bg-accent-cyan text-bg-base rounded-xl hover:bg-accent-cyan/90 transition-all disabled:opacity-40 flex-shrink-0"
+            className="h-8 px-4 text-xs font-bold bg-accent-cyan text-white rounded-xl hover:bg-accent-cyan-hover transition-all disabled:opacity-40 flex-shrink-0"
           >
             {isQuickAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '+ Tambah'}
           </button>
@@ -912,13 +921,13 @@ function TodoPage() {
                   className={`
                     px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
                     ${isActive
-                      ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                      ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/35 shadow-xs font-bold'
                       : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-bg-base/20 text-bg-base' : 'bg-bg-card text-text-secondary'
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    isActive ? 'bg-accent-cyan/20 text-accent-cyan' : 'bg-bg-card text-text-muted'
                   }`}>
                     {tab.count}
                   </span>
@@ -1200,38 +1209,45 @@ function TodoPage() {
       )}
 
       {/* ── 6. Form Modal (Tambah / Edit) ────────────────────────────────────── */}
-      {showModal && (
+      {showModal && createPortal(
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+          data-admin-theme={theme}
+          data-theme={theme}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
-              <div>
-                <h2 className="text-lg font-bold text-text-primary">
-                  {editingTodo ? 'Edit Todo' : 'Tambah Todo Baru'}
-                </h2>
-                <p className="text-xs text-text-muted mt-0.5">
-                  Isi detail tugas checklist kerja dan deadline operasional
-                </p>
+            <div className="flex justify-between items-center px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+                    {editingTodo ? 'Edit Todo' : 'Tambah Todo Baru'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+                    Isi detail tugas checklist kerja dan deadline operasional
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-lg transition-colors"
-                title="Tutup"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+                title="Tutup (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form Body */}
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 overscroll-contain">
+            <form onSubmit={handleSave} className="flex-1 min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6 overscroll-contain">
               {/* Title */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
-                  Judul Tugas <span className="text-rose-400">*</span>
+                <label className="text-xs font-semibold text-text-secondary block mb-2">
+                  Judul Tugas <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1239,16 +1255,16 @@ function TodoPage() {
                   value={formData.title}
                   onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Contoh: Buat thumbnail & overlay stream collab..."
-                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-all"
+                  className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-all"
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
+                <label className="text-xs font-semibold text-text-secondary block mb-2">
                   Kategori
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => {
                     const isSelected = formData.category === cat.id;
                     return (
@@ -1256,13 +1272,13 @@ function TodoPage() {
                         key={cat.id}
                         type="button"
                         onClick={() => setFormData((prev) => ({ ...prev, category: cat.id }))}
-                        className={`px-3 py-2 rounded-xl text-xs font-medium border text-left flex items-center gap-2 transition-all ${
+                        className={`px-3.5 py-2.5 rounded-xl text-xs font-medium border text-left flex items-center gap-2.5 transition-all ${
                           isSelected
-                            ? 'bg-accent-cyan/15 border-accent-cyan text-accent-cyan font-semibold shadow-sm'
-                            : 'bg-bg-surface border border-border-subtle text-text-secondary hover:border-accent-cyan/40 hover:text-text-primary'
+                            ? 'bg-accent-cyan/15 border-accent-cyan text-accent-cyan font-semibold shadow-xs ring-1 ring-accent-cyan/30'
+                            : 'bg-bg-surface border-border-subtle text-text-secondary hover:border-accent-cyan/40 hover:text-text-primary hover:bg-bg-card'
                         }`}
                       >
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                         <span className="truncate">{cat.name}</span>
                       </button>
                     );
@@ -1270,32 +1286,36 @@ function TodoPage() {
                 </div>
               </div>
 
-              {/* Priority & Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
-                    Prioritas
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {PRIORITIES.map((p) => (
+              {/* Priority */}
+              <div>
+                <label className="text-xs font-semibold text-text-secondary block mb-2">
+                  Prioritas
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {PRIORITIES.map((p) => {
+                    const isSelected = formData.priority === p.value;
+                    return (
                       <button
                         key={p.value}
                         type="button"
                         onClick={() => setFormData((prev) => ({ ...prev, priority: p.value }))}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border text-center transition-all ${
-                          formData.priority === p.value
-                            ? `${p.badge} font-bold shadow-sm`
-                            : 'bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary'
+                        className={`py-2.5 px-3 rounded-xl text-xs font-semibold border text-center transition-all ${
+                          isSelected
+                            ? `${p.badge} ring-1 ring-current shadow-xs`
+                            : 'bg-bg-surface border-border-subtle text-text-muted hover:text-text-primary hover:border-border-active'
                         }`}
                       >
                         {p.label}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
+              </div>
 
+              {/* Status & Deadline (Side by Side) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div>
-                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
+                  <label className="text-xs font-semibold text-text-secondary block mb-2">
                     Status
                   </label>
                   <CustomSelect
@@ -1308,50 +1328,49 @@ function TodoPage() {
                     ]}
                   />
                 </div>
-              </div>
 
-              {/* Deadline */}
-              <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
-                  Batas Waktu (Deadline)
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.deadline}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, deadline: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:border-accent-cyan transition-all"
-                  />
-                  {formData.deadline && (
-                    <button
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, deadline: '' }))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-rose-400 font-medium"
-                    >
-                      Hapus
-                    </button>
-                  )}
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary block mb-2">
+                    Batas Waktu (Deadline)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={formData.deadline}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, deadline: e.target.value }))}
+                      className="w-full px-4 py-2.5 sm:py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-all"
+                    />
+                    {formData.deadline && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, deadline: '' }))}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-muted hover:text-rose-500 font-medium hover:bg-rose-500/10 rounded-lg transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
-                  Deskripsi / Catatan Tambahan (Opsional)
+                <label className="text-xs font-semibold text-text-secondary block mb-2">
+                  Deskripsi / Catatan Tambahan <span className="text-[11px] text-text-muted font-normal">(Opsional)</span>
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder="Rincian catatan tugas atau instruksi..."
-                  rows={2}
-                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-all resize-none"
+                  placeholder="Rincian catatan tugas, instruksi pengerjaan, atau poin penting..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-all resize-none leading-relaxed"
                 />
               </div>
 
               {/* Resource Info */}
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-1.5 font-medium">
-                  Tautan Sumber / Dokumen (Opsional)
+                <label className="text-xs font-semibold text-text-secondary block mb-2">
+                  Tautan Sumber / Dokumen <span className="text-[11px] text-text-muted font-normal">(Opsional)</span>
                 </label>
                 <div className="relative">
                   <LinkIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -1359,19 +1378,19 @@ function TodoPage() {
                     type="text"
                     value={formData.resource_info}
                     onChange={(e) => setFormData((prev) => ({ ...prev, resource_info: e.target.value }))}
-                    placeholder="Contoh: https://drive.google.com/... atau tautan aset"
-                    className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan transition-colors"
+                    placeholder="Contoh: https://drive.google.com/... atau tautan aset figma / drive"
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
                   />
                 </div>
               </div>
             </form>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-border-subtle flex-shrink-0 bg-bg-surface/50">
+            <div className="flex items-center justify-end gap-3.5 px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
+                className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
               >
                 Batal
               </button>
@@ -1379,73 +1398,83 @@ function TodoPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={!formData.title.trim() || isSubmitting}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-accent-cyan text-bg-base font-bold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:opacity-95 disabled:opacity-50 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-cyan text-white font-semibold rounded-xl text-xs hover:bg-accent-cyan-hover disabled:opacity-50 transition-all shadow-sm"
               >
                 {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── 7. Delete Confirmation Modal ─────────────────────────────────────── */}
-      {deletingTodo && (
+      {deletingTodo && createPortal(
         <div
+          data-admin-theme={theme}
+          data-theme={theme}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && setDeletingTodo(null)}
         >
-          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl p-7 sm:p-8 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto shadow-xs">
               <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-text-primary">Hapus Todo Ini?</h3>
-            <p className="text-xs text-text-muted line-clamp-2">
-              Tugas <strong className="text-text-primary">"{deletingTodo.title}"</strong> akan dihapus permanen.
-            </p>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold font-display text-text-primary">Hapus Todo Ini?</h3>
+              <p className="text-xs text-text-muted line-clamp-2 mt-1 leading-relaxed">
+                Tugas <strong className="text-text-primary">"{deletingTodo.title}"</strong> akan dihapus permanen.
+              </p>
+            </div>
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingTodo(null)}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20"
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20"
               >
                 Hapus
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── 8. Clear Completed Confirmation Modal ────────────────────────────── */}
-      {showClearModal && (
+      {showClearModal && createPortal(
         <div
+          data-admin-theme={theme}
+          data-theme={theme}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && setShowClearModal(false)}
         >
-          <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-status-live/15 border border-status-live/30 flex items-center justify-center text-status-live mx-auto">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl p-7 sm:p-8 w-full max-w-sm shadow-2xl animate-scale-in text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-status-live/15 border border-status-live/30 flex items-center justify-center text-status-live mx-auto shadow-xs">
               <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-text-primary">Bersihkan Tugas Selesai?</h3>
-            <p className="text-xs text-text-muted">
-              Sebanyak <strong className="text-text-primary font-mono">{stats.completed} tugas</strong> yang telah selesai akan dihapus permanen.
-            </p>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold font-display text-text-primary">Bersihkan Tugas Selesai?</h3>
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                Sebanyak <strong className="text-text-primary font-mono">{stats.completed} tugas</strong> yang telah selesai akan dihapus permanen.
+              </p>
+            </div>
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowClearModal(false)}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-surface border border-border-subtle transition-all"
               >
                 Batal
               </button>
@@ -1453,13 +1482,14 @@ function TodoPage() {
                 type="button"
                 onClick={handleClearCompleted}
                 disabled={isSubmitting}
-                className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-status-live hover:opacity-95 transition-all shadow-md disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-status-live hover:opacity-95 transition-all shadow-md disabled:opacity-50"
               >
                 {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Bersihkan'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

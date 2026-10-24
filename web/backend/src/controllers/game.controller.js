@@ -1,5 +1,5 @@
 const { Game, Vote, AuditLog } = require('../models');
-const { updateVoteCount, updateAllGamesVotes } = require('../utils/firebase.helper');
+const { updateVoteCount, updateAllGamesVotes, pushNotification } = require('../utils/firebase.helper');
 const { Op, fn, col, literal } = require('sequelize');
 
 /**
@@ -156,6 +156,21 @@ const createGame = async (req, res) => {
     const totalVotes = await Game.sum('vote_count', { where: { period_key: game.period_key } }) || 0;
     const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
     await updateVoteCount(game.id, game.vote_count, percentage);
+
+    // Push real-time notification to Firebase if submitted by viewer
+    if (added_by === 'viewer' || status === 'requested') {
+      try {
+        await pushNotification({
+          userId: 'default',
+          type: 'game_requested',
+          title: 'Request Game Baru',
+          message: `Game "${title}" telah diajukan penonton untuk voting`,
+          link: '/admin/voting'
+        });
+      } catch (notifErr) {
+        console.warn('Firebase notification skipped for game request:', notifErr.message);
+      }
+    }
 
     return res.status(201).json({
       success: true,

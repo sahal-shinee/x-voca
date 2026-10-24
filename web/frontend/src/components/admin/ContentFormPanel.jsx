@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useTheme } from '../../hooks/useTheme';
 import {
   AlignLeft,
   Play,
@@ -364,59 +366,78 @@ function ContentFormPanel({
 
   if (!isVisible && !isOpen) return null;
 
-  return (
-    <>
+  let theme = 'dark';
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) theme = themeCtx.theme;
+  } catch {
+    theme = 'dark';
+  }
+
+  return createPortal(
+    <div
+      data-admin-theme={theme}
+      data-theme={theme}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-hidden transition-all duration-200 ${
+        isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+    >
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-bg-base/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/65 backdrop-blur-sm transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
       />
 
-      {/* Slide-in Drawer */}
+      {/* Modern Center Studio Dialog */}
       <div
-        className={`fixed top-0 right-0 h-screen w-[480px] max-w-full bg-bg-nav border-l border-border-subtle z-50 flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`
+          relative w-full max-w-2xl lg:max-w-3xl max-h-[90vh]
+          bg-bg-card border border-border-subtle rounded-3xl shadow-2xl
+          flex flex-col z-10 overflow-hidden
+          transition-all duration-200 ease-out
+          ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'}
+        `}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-card/50">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Layers className="w-3.5 h-3.5 text-accent-cyan" />
-              <span className="text-[10px] font-mono text-accent-cyan tracking-wider uppercase font-semibold">
-                {isEdit ? 'EDIT KATALOG' : (content?.isNew ? 'KONVERSI JADWAL KE KATALOG' : 'TAMBAH KONTEN BARU')}
-              </span>
+        {/* Header (Sticky) */}
+        <div className="px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
+              <Layers className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-text-primary font-display">
-              {isEdit ? 'Edit Konten Katalog' : (content?.isNew ? 'Tambah Konten dari Jadwal' : 'Tambah Konten Katalog')}
-            </h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Kurasi video atau seri playlist YouTube untuk portal penonton
-            </p>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+                {isEdit ? 'Edit Konten Katalog' : (content?.isNew ? 'Tambah Konten dari Jadwal' : 'Tambah Konten Katalog')}
+              </h2>
+              <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+                Kurasi video atau playlist YouTube untuk panduan konten penonton
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card transition-colors"
-            title="Tutup Form"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+            title="Tutup Form (Esc)"
+            aria-label="Tutup Form"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 overscroll-contain">
+        {/* Form Body (Scrollable with min-h-0) */}
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6 overscroll-contain">
           {/* ── 1. URL YOUTUBE & AUTO-FETCH ───────────────────────────── */}
           <div className="p-4 bg-bg-card border border-border-subtle rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider flex items-center gap-1.5 font-medium">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                 <Play className="w-3.5 h-3.5 text-status-live" />
                 <span>Tautan YouTube</span>
                 <span className="text-status-live">*</span>
               </label>
-              <span className="text-[10px] text-text-muted font-mono">Video / Playlist</span>
+              <span className="text-xs text-text-muted">Video / Playlist</span>
             </div>
 
             <div className="flex gap-2">
@@ -426,7 +447,7 @@ function ContentFormPanel({
                 value={formData.youtube_url}
                 onChange={handleChange}
                 placeholder="https://youtube.com/watch?v=... atau playlist?list=..."
-                className={`w-full px-3.5 py-2.5 bg-bg-surface border rounded-xl text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-cyan transition-colors ${
+                className={`w-full px-4 py-2.5 bg-bg-surface border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
                   errors.youtube_url ? 'border-status-live' : 'border-border-subtle'
                 }`}
               />
@@ -434,7 +455,7 @@ function ContentFormPanel({
                 type="button"
                 onClick={handleYoutubeFetch}
                 disabled={ytLoading || !formData.youtube_url}
-                className="px-3 py-2 bg-accent-cyan/10 hover:bg-accent-cyan text-accent-cyan hover:text-text-on-cta border border-accent-cyan/30 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="px-4 py-2.5 bg-accent-cyan/10 hover:bg-accent-cyan text-accent-cyan hover:text-white border border-accent-cyan/30 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                 title="Ambil judul dan thumbnail otomatis dari YouTube"
               >
                 {ytLoading ? (
@@ -470,11 +491,11 @@ function ContentFormPanel({
           <div className="p-4 bg-bg-card border border-border-subtle rounded-2xl space-y-4">
             {/* Judul Konten */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider font-medium">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-text-secondary">
                   Judul Konten <span className="text-status-live">*</span>
                 </label>
-                <span className={`text-[10px] font-mono ${formData.title.length > 90 ? 'text-status-live' : 'text-text-muted'}`}>
+                <span className={`text-xs ${formData.title.length > 90 ? 'text-status-live' : 'text-text-muted'}`}>
                   {formData.title.length}/100
                 </span>
               </div>
@@ -485,7 +506,7 @@ function ContentFormPanel({
                 onChange={handleChange}
                 placeholder="Contoh: Persona 3 Reload Full Walkthrough Episode 1..."
                 maxLength={100}
-                className={`w-full px-3.5 py-2.5 bg-bg-surface border rounded-xl text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-cyan transition-colors ${
+                className={`w-full px-4 py-2.5 bg-bg-surface border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
                   errors.title ? 'border-status-live' : 'border-border-subtle'
                 }`}
               />
@@ -496,20 +517,20 @@ function ContentFormPanel({
 
             {/* Kategori Konten */}
             <div>
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider font-medium block mb-1.5">
+              <label className="text-xs font-semibold text-text-secondary block mb-2">
                 Kategori Konten
               </label>
 
               {/* Preset Category Pills */}
-              <div className="flex flex-wrap gap-1.5 mb-2">
+              <div className="flex flex-wrap gap-2 mb-2.5">
                 {CATEGORY_PRESETS.map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, game_tag: cat }))}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       formData.game_tag === cat
-                        ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
+                        ? 'bg-accent-cyan text-white font-semibold shadow-xs'
                         : 'bg-bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-card'
                     }`}
                   >
@@ -526,41 +547,41 @@ function ContentFormPanel({
                   value={formData.game_tag}
                   onChange={handleChange}
                   placeholder="Kategori atau genre kustom..."
-                  className="w-full px-3.5 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-cyan font-mono"
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
                 />
-                <Tag className="w-3.5 h-3.5 text-text-muted absolute right-3 top-1/2 -translate-y-1/2" />
+                <Tag className="w-4 h-4 text-text-muted absolute right-3.5 top-1/2 -translate-y-1/2" />
               </div>
             </div>
 
             {/* Tipe Konten: Single Video vs Playlist */}
             <div>
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider font-medium block mb-1.5">
+              <label className="text-xs font-semibold text-text-secondary block mb-2">
                 Format Konten
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, content_type: 'video', video_count: 1 }))}
-                  className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-center gap-2 transition-all ${
+                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                     formData.content_type === 'video'
-                      ? 'bg-accent-cyan/15 border-accent-cyan/40 text-accent-cyan font-bold shadow-sm'
-                      : 'bg-bg-surface border-border-subtle text-text-muted hover:text-text-primary'
+                      ? 'bg-accent-cyan/15 border-accent-cyan text-accent-cyan shadow-xs ring-1 ring-accent-cyan/30'
+                      : 'bg-bg-surface border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-card'
                   }`}
                 >
-                  <Play className="w-3.5 h-3.5" />
+                  <Play className="w-4 h-4" />
                   <span>Video Tunggal</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, content_type: 'playlist' }))}
-                  className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-center gap-2 transition-all ${
+                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                     formData.content_type === 'playlist'
-                      ? 'bg-accent-purple/15 border-accent-purple/40 text-accent-purple font-bold shadow-sm'
-                      : 'bg-bg-surface border-border-subtle text-text-muted hover:text-text-primary'
+                      ? 'bg-accent-purple/15 border-accent-purple text-accent-purple shadow-xs ring-1 ring-accent-purple/30'
+                      : 'bg-bg-surface border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-card'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5" />
+                  <Layers className="w-4 h-4" />
                   <span>Playlist / Seri</span>
                 </button>
               </div>
@@ -568,9 +589,9 @@ function ContentFormPanel({
 
             {/* Detail jika Playlist */}
             {formData.content_type === 'playlist' && (
-              <div className="grid grid-cols-2 gap-3 p-3 bg-bg-surface/50 border border-border-subtle/70 rounded-xl animate-fade-in">
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-bg-surface/50 border border-border-subtle/70 rounded-xl animate-fade-in">
                 <div>
-                  <label className="text-[11px] font-mono text-text-secondary uppercase block mb-1">
+                  <label className="text-xs font-medium text-text-secondary block mb-1.5">
                     Jumlah Video
                   </label>
                   <input
@@ -580,11 +601,11 @@ function ContentFormPanel({
                     value={formData.video_count || ''}
                     onChange={handleChange}
                     placeholder="12"
-                    className="w-full px-3 py-1.5 bg-bg-surface border border-border-subtle rounded-lg text-xs text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-accent-cyan"
+                    className="w-full px-3.5 py-2 bg-bg-surface border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-mono text-text-secondary uppercase block mb-1">
+                  <label className="text-xs font-medium text-text-secondary block mb-1.5">
                     Estimasi Durasi
                   </label>
                   <input
@@ -593,7 +614,7 @@ function ContentFormPanel({
                     value={formData.total_duration}
                     onChange={handleChange}
                     placeholder="Contoh: 24 Jam"
-                    className="w-full px-3 py-1.5 bg-bg-surface border border-border-subtle rounded-lg text-xs text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-accent-cyan"
+                    className="w-full px-3.5 py-2 bg-bg-surface border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
                   />
                 </div>
               </div>
@@ -603,19 +624,19 @@ function ContentFormPanel({
           {/* ── 3. THUMBNAIL (DUAL MODE) ──────────────────────────────── */}
           <div className="p-4 bg-bg-card border border-border-subtle rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider font-medium flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                 <ImageIcon className="w-3.5 h-3.5 text-accent-purple" />
                 <span>Thumbnail Cover</span>
               </label>
-              <span className="text-[10px] font-mono text-text-muted">Rasio 16:9</span>
+              <span className="text-xs text-text-muted">Rasio 16:9</span>
             </div>
 
             {/* Mode Selector Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-bg-surface border border-border-subtle rounded-xl text-xs font-mono">
+            <div className="flex items-center gap-1 p-1 bg-bg-surface border border-border-subtle rounded-xl text-xs">
               <button
                 type="button"
                 onClick={() => setThumbMode('youtube')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                className={`flex-1 py-2 px-3 rounded-lg text-center font-medium transition-all ${
                   thumbMode === 'youtube'
                     ? 'bg-bg-card text-accent-cyan shadow-sm font-semibold'
                     : 'text-text-muted hover:text-text-primary'
@@ -626,7 +647,7 @@ function ContentFormPanel({
               <button
                 type="button"
                 onClick={() => setThumbMode('upload')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                className={`flex-1 py-2 px-3 rounded-lg text-center font-medium transition-all ${
                   thumbMode === 'upload'
                     ? 'bg-bg-card text-accent-cyan shadow-sm font-semibold'
                     : 'text-text-muted hover:text-text-primary'
@@ -637,7 +658,7 @@ function ContentFormPanel({
               <button
                 type="button"
                 onClick={() => setThumbMode('url')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                className={`flex-1 py-2 px-3 rounded-lg text-center font-medium transition-all ${
                   thumbMode === 'url'
                     ? 'bg-bg-card text-accent-cyan shadow-sm font-semibold'
                     : 'text-text-muted hover:text-text-primary'
@@ -661,7 +682,7 @@ function ContentFormPanel({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={imageProcessing}
-                  className="w-full py-3 px-4 border border-dashed border-border-subtle hover:border-accent-cyan/50 bg-bg-surface/50 rounded-xl text-xs font-mono text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 border border-dashed border-border-subtle hover:border-accent-cyan/50 bg-bg-surface/50 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-2"
                 >
                   {imageProcessing ? (
                     <Loader2 className="w-4 h-4 animate-spin text-accent-cyan" />
@@ -681,12 +702,12 @@ function ContentFormPanel({
                   value={customUrlInput}
                   onChange={(e) => setCustomUrlInput(e.target.value)}
                   placeholder="https://domain.com/gambar.jpg"
-                  className="flex-1 px-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-cyan"
+                  className="flex-1 px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-cyan"
                 />
                 <button
                   type="button"
                   onClick={handleCustomUrlApply}
-                  className="px-3 py-2 bg-bg-surface border border-border-subtle hover:border-accent-cyan rounded-xl text-xs font-mono text-text-primary transition-colors"
+                  className="px-4 py-2.5 bg-bg-surface border border-border-subtle hover:border-accent-cyan rounded-xl text-xs font-semibold text-text-primary transition-colors"
                 >
                   Terapkan
                 </button>
@@ -699,7 +720,7 @@ function ContentFormPanel({
                 {thumbnailError ? (
                   <div className="w-full h-full flex flex-col items-center justify-center text-status-live gap-1.5 p-4 text-center">
                     <AlertCircle className="w-6 h-6" />
-                    <span className="text-xs font-mono">Gagal memuat pratinjau thumbnail</span>
+                    <span className="text-xs">Gagal memuat pratinjau thumbnail</span>
                   </div>
                 ) : (
                   <img
@@ -721,7 +742,7 @@ function ContentFormPanel({
             ) : (
               <div className="aspect-video rounded-xl border border-dashed border-border-subtle flex flex-col items-center justify-center text-text-muted gap-1 bg-bg-surface/30">
                 <Tv className="w-8 h-8 opacity-40" />
-                <span className="text-[11px] font-mono opacity-60">
+                <span className="text-xs opacity-60">
                   Thumbnail akan terisi otomatis saat mengambil info YouTube
                 </span>
               </div>
@@ -733,7 +754,7 @@ function ContentFormPanel({
             {/* Sort Order Input */}
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider font-medium block">
+                <label className="text-xs font-semibold text-text-secondary block">
                   Urutan Prioritas (Sort Order)
                 </label>
                 <p className="text-[11px] text-text-muted mt-0.5">
@@ -747,7 +768,7 @@ function ContentFormPanel({
                 max="999"
                 value={formData.sort_order}
                 onChange={handleChange}
-                className="w-20 px-3 py-1.5 bg-bg-surface border border-border-subtle rounded-xl text-center text-sm font-mono font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
+                className="w-20 px-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-center text-sm font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
               />
             </div>
 
@@ -787,13 +808,21 @@ function ContentFormPanel({
           </div>
         </form>
 
-        {/* Footer Actions */}
-        <div className="p-5 border-t border-border-subtle space-y-2.5 flex-shrink-0 bg-bg-nav">
+        {/* Footer Actions (Sticky) */}
+        <div className="px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle flex items-center justify-between gap-3.5 flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50"
+          >
+            Batal
+          </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-xl hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-md"
+            className="px-6 py-2.5 bg-accent-cyan text-white text-xs font-bold rounded-xl hover:bg-accent-cyan-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
           >
             {loading ? (
               <>
@@ -802,22 +831,15 @@ function ContentFormPanel({
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" />
+                <Save className="w-4 h-4 stroke-[2.5]" />
                 <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Konten'}</span>
               </>
             )}
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="w-full py-2.5 bg-transparent text-text-secondary font-medium rounded-xl hover:text-text-primary hover:bg-bg-card transition-colors disabled:opacity-50 text-sm"
-          >
-            Batal
-          </button>
         </div>
       </div>
-    </>
+    </div>,
+    document.body
   );
 }
 

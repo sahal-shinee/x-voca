@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar,
   Clock,
@@ -9,15 +10,77 @@ import {
   RefreshCw,
   Loader2,
   Check,
-  X
+  X,
+  Radio,
+  Tv,
+  Eye,
+  AlertCircle,
+  CheckCircle2,
+  CalendarDays,
+  Info
 } from 'lucide-react';
 import { youtubeAPI } from '../../services/api';
 import { getGames } from '../../services/gameService';
 import Toggle from '../common/Toggle';
 import CustomSelect from '../common/CustomSelect';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
- * ScheduleFormPanel - Slide-in panel untuk Tambah / Edit Jadwal Siaran
+ * Extract YouTube video ID from various URL formats
+ */
+const extractYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([\w-]{11})/);
+  return match ? match[1] : null;
+};
+
+/**
+ * Calculate dynamic countdown text for preview
+ */
+const getPreviewCountdown = (date, time) => {
+  if (!date || !time) return null;
+  try {
+    const target = new Date(`${date}T${time}:00`);
+    const now = new Date();
+    const diffMs = target.getTime() - now.getTime();
+    if (isNaN(diffMs)) return null;
+    if (diffMs <= 0) return 'Siaran berlangsung atau telah lewat';
+    const totalSecs = Math.floor(diffMs / 1000);
+    const days = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    if (days > 0) return `${days} Hari ${hours} Jam Lagi`;
+    if (hours > 0) return `${hours} Jam ${mins} Menit Lagi`;
+    return `${mins} Menit Lagi`;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Format date nicely for preview card
+ */
+const formatPreviewDate = (dateStr, timeStr) => {
+  if (!dateStr) return 'Tanggal belum diatur';
+  try {
+    const [year, month, day] = dateStr.split('-');
+    const d = new Date(Number(year), Number(month) - 1, Number(day));
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+    return `${dateFormatted}${timeStr ? ` • ${timeStr} WIB` : ''}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+/**
+ * ScheduleFormPanel - Studio Broadcast Deck untuk Tambah & Edit Jadwal Siaran
+ * Desain Split-Pane Bersih: Form Kontrol (Kiri) + Live Fansite Card Preview (Kanan)
+ * Mendukung penuh Light & Dark mode tanpa AI-slop atau emoji berlebihan.
  */
 function ScheduleFormPanel({
   isOpen,
@@ -25,23 +88,25 @@ function ScheduleFormPanel({
   onSave,
   schedule = null,
   loading = false,
-  /**
-   * initialCollabData - Pre-fill collab fields when opening from Collab Requests page.
-   * Format: { collab_guest?: string, collab_social?: string, sourceLabel?: string }
-   * Only used when schedule is null (new schedule, not edit).
-   */
   initialCollabData = null,
 }) {
   const isEdit = !!(schedule && schedule.id);
-  // Flag: form was opened from Collab Requests (to show contextual header)
   const isFromCollab = !isEdit && !!initialCollabData;
+
+  // Retrieve active theme to scope the portal properly
+  let theme = 'dark';
+  try {
+    const themeContext = useTheme();
+    if (themeContext?.theme) theme = themeContext.theme;
+  } catch {
+    theme = 'dark';
+  }
 
   const [formData, setFormData] = useState({
     title: '',
     game_category: '',
     date: '',
     time: '',
-    description: '',
     collab_guest: '',
     collab_social: '',
     youtube_url: '',
@@ -50,6 +115,7 @@ function ScheduleFormPanel({
 
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [youtubeError, setYoutubeError] = useState('');
+  const [youtubeSuccess, setYoutubeSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [showCollab, setShowCollab] = useState(false);
 
@@ -82,7 +148,6 @@ function ScheduleFormPanel({
         game_category: schedule.game_category || schedule.category || '',
         date: dateStr,
         time: timeStr,
-        description: schedule.description || '',
         collab_guest: schedule.collab_guest || '',
         collab_social: schedule.collab_social || '',
         youtube_url: schedule.youtube_url || '',
@@ -90,7 +155,6 @@ function ScheduleFormPanel({
       });
       setShowCollab(hasCollab);
     } else if (initialCollabData) {
-      // New schedule pre-filled with collab data from Collab Requests
       const guestName = initialCollabData.collab_guest || '';
       const guestSocial = initialCollabData.collab_social || '';
       setFormData({
@@ -98,13 +162,11 @@ function ScheduleFormPanel({
         game_category: '',
         date: '',
         time: '',
-        description: '',
         collab_guest: guestName,
         collab_social: guestSocial,
         youtube_url: '',
         countdown_enabled: true,
       });
-      // Auto-expand collab section since it's pre-filled
       setShowCollab(true);
     } else {
       setFormData({
@@ -112,7 +174,6 @@ function ScheduleFormPanel({
         game_category: '',
         date: '',
         time: '',
-        description: '',
         collab_guest: '',
         collab_social: '',
         youtube_url: '',
@@ -122,6 +183,7 @@ function ScheduleFormPanel({
     }
     setErrors({});
     setYoutubeError('');
+    setYoutubeSuccess(false);
   }, [schedule, initialCollabData, isOpen]);
 
   // Fetch accepted games from voting system
@@ -160,15 +222,60 @@ function ScheduleFormPanel({
     }
   };
 
+  // Smart Presets for quick timing
+  const handleApplyPreset = (presetType) => {
+    const now = new Date();
+    if (presetType === 'tonight') {
+      const dateStr = now.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, date: dateStr, time: '19:30' }));
+    } else if (presetType === 'tomorrow') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, date: dateStr, time: '20:00' }));
+    } else if (presetType === 'weekend') {
+      const weekend = new Date(now);
+      const day = weekend.getDay();
+      const diff = day === 6 ? 0 : (6 - day);
+      weekend.setDate(weekend.getDate() + (diff === 0 ? 0 : diff));
+      const dateStr = weekend.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, date: dateStr, time: '13:00' }));
+    }
+    if (errors.date || errors.time) {
+      setErrors(prev => ({ ...prev, date: '', time: '' }));
+    }
+  };
+
+  const isPresetActive = (presetType) => {
+    const now = new Date();
+    if (presetType === 'tonight') {
+      return formData.date === now.toISOString().split('T')[0] && formData.time === '19:30';
+    }
+    if (presetType === 'tomorrow') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return formData.date === tomorrow.toISOString().split('T')[0] && formData.time === '20:00';
+    }
+    if (presetType === 'weekend') {
+      const weekend = new Date(now);
+      const day = weekend.getDay();
+      const diff = day === 6 ? 0 : (6 - day);
+      weekend.setDate(weekend.getDate() + (diff === 0 ? 0 : diff));
+      return formData.date === weekend.toISOString().split('T')[0] && formData.time === '13:00';
+    }
+    return false;
+  };
+
   // Handle YouTube auto-fill
   const handleYoutubeFetch = async () => {
     if (!formData.youtube_url) {
-      setYoutubeError('Masukkan URL YouTube terlebih dahulu');
+      setYoutubeError('Masukkan tautan YouTube terlebih dahulu');
       return;
     }
 
     setYoutubeLoading(true);
     setYoutubeError('');
+    setYoutubeSuccess(false);
 
     try {
       const response = await youtubeAPI.fetch(formData.youtube_url);
@@ -179,6 +286,8 @@ function ScheduleFormPanel({
           title: data.title || prev.title,
           game_category: data.category || prev.game_category,
         }));
+        setYoutubeSuccess(true);
+        setTimeout(() => setYoutubeSuccess(false), 3500);
       }
     } catch (error) {
       console.error('YouTube fetch error:', error);
@@ -199,7 +308,7 @@ function ScheduleFormPanel({
       newErrors.date = 'Tanggal wajib diisi';
     }
     if (!formData.time) {
-      newErrors.time = 'Waktu wajib diisi';
+      newErrors.time = 'Waktu siaran wajib diisi';
     }
 
     setErrors(newErrors);
@@ -218,7 +327,6 @@ function ScheduleFormPanel({
       title: formData.title,
       game_category: formData.game_category,
       scheduled_at,
-      description: formData.description,
       youtube_url: formData.youtube_url || undefined,
       collab_guest: formData.collab_guest || undefined,
       collab_social: formData.collab_social || undefined,
@@ -226,8 +334,18 @@ function ScheduleFormPanel({
     });
   };
 
-  // Animation state
+  // Animation state & Escape key handling
   const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -237,135 +355,158 @@ function ScheduleFormPanel({
       const timer = setTimeout(() => {
         setIsVisible(false);
         document.body.style.overflow = '';
-      }, 300);
+      }, 250);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
   if (!isVisible && !isOpen) return null;
 
-  return (
-    <>
+  // Extract video ID for real-time preview thumbnail
+  const videoId = extractYouTubeVideoId(formData.youtube_url);
+  const previewThumbnail = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : null;
+  const countdownPreview = getPreviewCountdown(formData.date, formData.time);
+
+  return createPortal(
+    <div
+      data-admin-theme={theme}
+      data-theme={theme}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-hidden transition-all duration-200 ${
+        isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+    >
       {/* Backdrop */}
       <div
-        className={`
-          fixed inset-0 bg-bg-base/60 backdrop-blur-sm z-40
-          transition-opacity duration-300
-          ${isOpen ? 'opacity-100' : 'opacity-0'}
-        `}
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
+          isOpen ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={onClose}
       />
 
-      {/* Drawer Panel */}
+      {/* Modern Center Studio Split-Pane Dialog */}
       <div
         className={`
-          fixed top-0 right-0 h-screen w-[440px] max-w-full
-          bg-bg-nav border-l border-border-subtle
-          z-50 flex flex-col shadow-2xl
-          transform transition-transform duration-300 ease-out
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+          relative w-full max-w-5xl max-h-[92vh]
+          bg-bg-card border border-border-subtle rounded-3xl shadow-2xl
+          flex flex-col z-10 overflow-hidden
+          transition-all duration-200 ease-out
+          ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'}
         `}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-card/50">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Calendar className="w-3.5 h-3.5 text-accent-cyan" />
-              <span className="text-[10px] font-mono text-accent-cyan tracking-wider uppercase">
-                {isEdit ? 'EDIT JADWAL' : isFromCollab ? 'JADWAL DARI COLLAB REQUEST' : 'JADWAL BARU'}
-              </span>
+        {/* 1. Clean, Spacious Header */}
+        <div className="px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
+              <Calendar className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-text-primary font-display">
-              {isEdit ? 'Edit Jadwal Siaran' : 'Tambah Jadwal Siaran'}
-            </h2>
-            {isFromCollab && initialCollabData?.collab_guest ? (
-              <p className="text-xs text-accent-purple mt-0.5 flex items-center gap-1.5">
-                <Users className="w-3 h-3 flex-shrink-0" />
-                <span>
-                  Data collab dari:{' '}
-                  <strong className="font-semibold">
-                    {initialCollabData.collab_guest.startsWith('@')
-                      ? initialCollabData.collab_guest
-                      : `@${initialCollabData.collab_guest}`}
-                  </strong>
-                </span>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+                {isEdit ? 'Edit Jadwal Siaran' : 'Tambah Jadwal Siaran'}
+              </h2>
+              <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+                {isFromCollab && initialCollabData?.collab_guest
+                  ? `Jadwal dari usulan kolaborasi bersama @${initialCollabData.collab_guest.replace(/^@/, '')}`
+                  : 'Atur jadwal penayangan siaran langsung untuk portal penonton'}
               </p>
-            ) : (
-              <p className="text-xs text-text-muted mt-0.5">
-                Atur detail siaran dan sinkronisasi ke portal publik
-              </p>
-            )}
+            </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card transition-colors"
-            title="Tutup"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+            title="Tutup (Esc)"
+            aria-label="Tutup Form"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 overscroll-contain">
-          {/* Tautan YouTube & Auto-fill */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                <Play className="w-3.5 h-3.5 text-red-500" />
-                Tautan YouTube
-              </label>
-              {formData.youtube_url && (
-                <a
-                  href={formData.youtube_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-accent-cyan hover:underline flex items-center gap-1"
-                >
-                  <span>Uji tautan</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                name="youtube_url"
-                value={formData.youtube_url}
-                onChange={handleChange}
-                placeholder="https://youtube.com/live/... atau https://youtu.be/..."
-                className="w-full px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
-              />
-              <button
-                type="button"
-                onClick={handleYoutubeFetch}
-                disabled={youtubeLoading || !formData.youtube_url}
-                className="px-3.5 py-2.5 bg-bg-card border border-border-subtle hover:border-accent-cyan/50 text-text-primary rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-              >
-                {youtubeLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-cyan" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5 text-accent-cyan" />
-                )}
-                <span>{youtubeLoading ? 'Mengambil...' : 'Ambil Info'}</span>
-              </button>
-            </div>
-            {youtubeError && (
-              <p className="text-xs text-status-live mt-1.5">{youtubeError}</p>
-            )}
-            <p className="text-[11px] text-text-muted mt-1.5">
-              Opsional. Masukkan URL video atau live YouTube untuk mengisi judul dan kategori secara otomatis.
-            </p>
-          </div>
+        {/* 2. Split-Pane Content Hub */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+          {/* ================================================================= */}
+          {/* LEFT COLUMN: Controls & Form Inputs (7 cols = ~58%)               */}
+          {/* ================================================================= */}
+          <form
+            id="schedule-form"
+            onSubmit={handleSubmit}
+            className="lg:col-span-7 flex flex-col min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6 border-b lg:border-b-0 lg:border-r border-border-subtle overscroll-contain"
+          >
+            {/* Tautan YouTube Auto-Fill */}
+            <div className="p-4 bg-bg-surface border border-border-subtle rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-text-secondary flex items-center gap-2">
+                  <Play className="w-3.5 h-3.5 text-red-500 fill-current" />
+                  <span>Tautan YouTube</span>
+                  <span className="text-[11px] text-text-muted font-normal">(Opsional)</span>
+                </label>
 
-          <div className="border-t border-border-subtle/60 pt-4 space-y-4">
+                {formData.youtube_url && (
+                  <a
+                    href={formData.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-accent-cyan hover:underline flex items-center gap-1 font-medium"
+                  >
+                    <span>Uji Tautan</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  name="youtube_url"
+                  value={formData.youtube_url}
+                  onChange={handleChange}
+                  placeholder="https://youtube.com/live/... atau https://youtu.be/..."
+                  className="flex-1 px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={handleYoutubeFetch}
+                  disabled={youtubeLoading || !formData.youtube_url}
+                  className="px-4 py-2.5 bg-bg-card border border-border-subtle hover:border-accent-cyan/50 text-text-primary rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 hover:bg-bg-surface"
+                >
+                  {youtubeLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-cyan" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5 text-accent-cyan" />
+                  )}
+                  <span>{youtubeLoading ? 'Mengambil...' : 'Ambil Info'}</span>
+                </button>
+              </div>
+
+              {youtubeError && (
+                <div className="flex items-center gap-2 text-xs text-status-live bg-status-live/10 border border-status-live/20 px-3 py-2 rounded-xl">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{youtubeError}</span>
+                </div>
+              )}
+
+              {youtubeSuccess && (
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Data judul dan kategori berhasil diekstrak otomatis.</span>
+                </div>
+              )}
+
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Tempel tautan video atau live stream YouTube untuk mengisi judul dan thumbnail secara otomatis.
+              </p>
+            </div>
+
             {/* Judul Siaran */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
                   Judul Siaran <span className="text-status-live">*</span>
                 </label>
-                <span className={`text-[10px] font-mono ${formData.title.length > 70 ? 'text-status-live' : 'text-text-muted'}`}>
+                <span className={`text-[11px] font-medium ${formData.title.length > 70 ? 'text-amber-500' : 'text-text-muted'}`}>
                   {formData.title.length}/80
                 </span>
               </div>
@@ -374,21 +515,24 @@ function ScheduleFormPanel({
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="Masukkan judul siaran..."
+                placeholder="Contoh: Sesi Mabar & Obrolan Santai Akhir Pekan"
                 maxLength={80}
-                className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
+                className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
                   errors.title ? 'border-status-live' : 'border-border-subtle'
                 }`}
               />
               {errors.title && (
-                <p className="text-xs text-status-live mt-1">{errors.title}</p>
+                <p className="text-xs text-status-live mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{errors.title}</span>
+                </p>
               )}
             </div>
 
-            {/* Kategori Game */}
+            {/* Kategori Siaran / Game */}
             <div>
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
-                Kategori Siaran / Game
+              <label className="text-xs font-semibold text-text-secondary block mb-1.5">
+                Kategori Siaran atau Game
               </label>
               <CustomSelect
                 name="game_category"
@@ -419,183 +563,374 @@ function ScheduleFormPanel({
               />
             </div>
 
-            {/* Jadwal Tanggal & Waktu */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
-                  Tanggal <span className="text-status-live">*</span>
+            {/* Jadwal Tayang & Presets */}
+            <div className="p-4 bg-bg-surface border border-border-subtle rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-text-secondary flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-accent-cyan" />
+                  <span>Jadwal Tayang</span>
+                  <span className="text-status-live">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
-                    errors.date ? 'border-status-live' : 'border-border-subtle'
-                  }`}
-                />
-                {errors.date && (
-                  <p className="text-xs text-status-live mt-1">{errors.date}</p>
-                )}
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-mono text-text-secondary uppercase tracking-wider">
-                    Waktu <span className="text-status-live">*</span>
-                  </label>
-                  <span className="text-[10px] font-mono text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded">
-                    WIB
-                  </span>
-                </div>
-                <input
-                  type="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
-                    errors.time ? 'border-status-live' : 'border-border-subtle'
-                  }`}
-                />
-                {errors.time && (
-                  <p className="text-xs text-status-live mt-1">{errors.time}</p>
-                )}
-              </div>
-            </div>
 
-            {/* Deskripsi */}
-            <div>
-              <label className="text-xs font-mono text-text-secondary uppercase tracking-wider block mb-2">
-                Deskripsi
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Deskripsi atau catatan siaran (opsional)..."
-                rows={3}
-                className="w-full px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors resize-none"
-              />
-            </div>
-          </div>
-
-          {/* Kolaborasi Streamer (Collapsible) */}
-          <div className={`border rounded-xl overflow-hidden ${isFromCollab ? 'border-accent-purple/40 bg-accent-purple/5' : 'border-border-subtle bg-bg-input/20'}`}>
-            <button
-              type="button"
-              onClick={() => setShowCollab(!showCollab)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-bg-input/40 transition-colors text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className={`w-4 h-4 ${isFromCollab ? 'text-accent-purple' : 'text-accent-purple'}`} />
-                <span className="text-xs font-semibold text-text-primary">
-                  Kolaborasi Streamer
+                <span className="text-[11px] font-medium text-accent-cyan bg-accent-cyan/10 border border-accent-cyan/20 px-2 py-0.5 rounded-md">
+                  Zona Waktu: WIB
                 </span>
-                {isFromCollab ? (
-                  <span className="text-[10px] font-mono bg-accent-purple/15 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded">
-                    Dari Request
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono text-text-muted bg-bg-card px-2 py-0.5 rounded border border-border-subtle">
-                    Opsional
-                  </span>
-                )}
               </div>
-              <ChevronDown
-                className={`w-4 h-4 text-text-muted transition-transform duration-200 ${showCollab ? 'rotate-180' : ''}`}
-              />
-            </button>
-            {showCollab && (
-              <div className="p-4 pt-2 space-y-3 border-t border-border-subtle/50 bg-bg-base/30">
-                {isFromCollab && (
-                  <div className="flex items-start gap-2 p-2.5 bg-accent-purple/10 border border-accent-purple/20 rounded-lg">
-                    <Users className="w-3.5 h-3.5 text-accent-purple flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-accent-purple leading-relaxed">
-                      Data streamer diisi otomatis dari usulan Collab Request. Anda bisa mengubah data ini sebelum menyimpan jadwal.
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-text-muted mr-1">Preset:</span>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('tonight')}
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                    isPresetActive('tonight')
+                      ? 'bg-accent-cyan text-white border-accent-cyan font-semibold shadow-xs'
+                      : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:border-accent-cyan/40'
+                  }`}
+                >
+                  Malam Ini (19:30)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('tomorrow')}
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                    isPresetActive('tomorrow')
+                      ? 'bg-accent-cyan text-white border-accent-cyan font-semibold shadow-xs'
+                      : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:border-accent-cyan/40'
+                  }`}
+                >
+                  Besok Malam (20:00)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('weekend')}
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                    isPresetActive('weekend')
+                      ? 'bg-accent-cyan text-white border-accent-cyan font-semibold shadow-xs'
+                      : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:border-accent-cyan/40'
+                  }`}
+                >
+                  Weekend (13:00)
+                </button>
+              </div>
+
+              {/* Date & Time Input Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-medium text-text-secondary block mb-1.5">
+                    Tanggal Siaran
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
+                      errors.date ? 'border-status-live' : 'border-border-subtle'
+                    }`}
+                  />
+                  {errors.date && (
+                    <p className="text-xs text-status-live mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{errors.date}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-text-secondary block mb-1.5">
+                    Jam Mulai (WIB)
+                  </label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
+                      errors.time ? 'border-status-live' : 'border-border-subtle'
+                    }`}
+                  />
+                  {errors.time && (
+                    <p className="text-xs text-status-live mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{errors.time}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Kolaborasi Streamer (Collapsible) */}
+            <div className={`border rounded-xl overflow-hidden transition-all ${
+              isFromCollab
+                ? 'border-accent-purple/40 bg-accent-purple/5'
+                : 'border-border-subtle bg-bg-surface'
+            }`}>
+              <button
+                type="button"
+                onClick={() => setShowCollab(!showCollab)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-bg-card-hover/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-accent-purple/15 text-accent-purple flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-text-primary block">
+                      Kolaborasi Streamer (Opsional)
+                    </span>
+                    <span className="text-[11px] text-text-muted">
+                      {formData.collab_guest ? `Tamu: @${formData.collab_guest.replace(/^@/, '')}` : 'Informasi guest creator atau streamer kolaborasi'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isFromCollab && (
+                    <span className="text-[10px] bg-accent-purple/15 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded-full font-medium">
+                      Dari Request
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-text-muted transition-transform duration-200 ${
+                      showCollab ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {showCollab && (
+                <div className="p-4 pt-2 space-y-3.5 border-t border-border-subtle/50 bg-bg-card/30">
+                  {isFromCollab && (
+                    <div className="flex items-start gap-2.5 p-3 bg-accent-purple/10 border border-accent-purple/20 rounded-xl">
+                      <Users className="w-4 h-4 text-accent-purple flex-shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-accent-purple leading-relaxed">
+                        Data kolaborasi diisi otomatis dari usulan penonton. Anda dapat mengubahnya sebelum jadwal disimpan.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-[11px] font-medium text-text-secondary mb-1.5 block">
+                      Nama Streamer Tamu
+                    </label>
+                    <input
+                      type="text"
+                      name="collab_guest"
+                      value={formData.collab_guest}
+                      onChange={handleChange}
+                      placeholder="@streamer"
+                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-text-secondary mb-1.5 block">
+                      Tautan Media Sosial atau Kanal Tamu
+                    </label>
+                    <input
+                      type="url"
+                      name="collab_social"
+                      value={formData.collab_social}
+                      onChange={handleChange}
+                      placeholder="https://youtube.com/@channel..."
+                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pengaturan Hitung Mundur Fansite */}
+            <div className="p-4 rounded-xl bg-bg-surface border border-border-subtle space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    formData.countdown_enabled
+                      ? 'bg-accent-cyan/15 text-accent-cyan'
+                      : 'bg-bg-card text-text-muted'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-text-primary">
+                      Hitung Mundur di Halaman Utama
+                    </h4>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      Tampilkan banner countdown jadwal ini pada beranda portal fansite.
                     </p>
                   </div>
+                </div>
+
+                <Toggle
+                  checked={formData.countdown_enabled}
+                  onChange={(checked) => setFormData(prev => ({ ...prev, countdown_enabled: checked }))}
+                />
+              </div>
+
+              <div className={`p-2.5 rounded-lg border text-[11px] leading-relaxed transition-all ${
+                formData.countdown_enabled
+                  ? 'bg-accent-cyan/10 border-accent-cyan/25 text-accent-cyan'
+                  : 'bg-bg-card border-border-subtle text-text-muted'
+              }`}>
+                {formData.countdown_enabled ? (
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Banner hitung mundur aktif dan akan tampil di halaman depan.</span>
+                  </div>
+                ) : (
+                  <span>Banner countdown tidak ditampilkan di halaman depan.</span>
                 )}
-                <div>
-                  <label className="text-[11px] font-mono text-text-secondary uppercase tracking-wider mb-1.5 block">
-                    Nama Streamer Tamu
-                  </label>
-                  <input
-                    type="text"
-                    name="collab_guest"
-                    value={formData.collab_guest}
-                    onChange={handleChange}
-                    placeholder="@streamer"
-                    className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-mono text-text-secondary uppercase tracking-wider mb-1.5 block">
-                    Tautan Media Sosial / Channel
-                  </label>
-                  <input
-                    type="url"
-                    name="collab_social"
-                    value={formData.collab_social}
-                    onChange={handleChange}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan"
-                  />
-                </div>
-                <p className="text-[11px] text-text-muted leading-relaxed">
-                  Informasi kolaborasi akan ditampilkan pada kartu jadwal di portal penonton.
-                </p>
               </div>
-            )}
-          </div>
-
-          {/* Pengaturan Countdown Fansite */}
-          <div className="flex items-center justify-between p-4 bg-bg-input/20 border border-border-subtle rounded-xl">
-            <div className="pr-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-accent-cyan" />
-                <p className="text-xs font-semibold text-text-primary">Hitung Mundur Fansite</p>
-              </div>
-              <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
-                Tampilkan banner hitung mundur siaran di halaman utama portal fansite.
-              </p>
             </div>
-            <Toggle
-              checked={formData.countdown_enabled}
-              onChange={(checked) => setFormData(prev => ({ ...prev, countdown_enabled: checked }))}
-            />
-          </div>
-        </form>
+          </form>
 
-        {/* Footer Actions */}
-        <div className="p-5 border-t border-border-subtle space-y-2.5 flex-shrink-0 bg-bg-nav">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base font-semibold rounded-xl hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-md"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Menyimpan...</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Jadwal'}</span>
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="w-full py-2.5 bg-transparent text-text-secondary font-medium rounded-xl hover:text-text-primary hover:bg-bg-card transition-colors disabled:opacity-50 text-sm"
-          >
-            Batal
-          </button>
+          {/* ================================================================= */}
+          {/* RIGHT COLUMN: Live Fansite Card Preview (5 cols = ~42%)           */}
+          {/* ================================================================= */}
+          <div className="lg:col-span-5 flex flex-col min-h-0 overflow-y-auto p-5 sm:p-6 bg-bg-surface/50 space-y-4">
+            {/* Header Pratinjau di Kolom Kanan */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-accent-cyan" />
+                <h3 className="text-xs font-semibold text-text-secondary">
+                  Pratinjau Kartu Publik
+                </h3>
+              </div>
+              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Pratinjau Langsung</span>
+              </span>
+            </div>
+
+            {/* Live Fansite Card Preview (Replika Kartu Fansite Penonton) */}
+            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-md transition-all">
+              {/* Media Thumbnail Banner */}
+              <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center">
+                {previewThumbnail ? (
+                  <img
+                    src={previewThumbnail}
+                    alt="Pratinjau Thumbnail"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/20 via-bg-card to-accent-cyan/15 flex flex-col items-center justify-center p-4 text-center">
+                    <Tv className="w-7 h-7 text-text-muted/60 mb-1.5" />
+                    <span className="text-xs font-medium text-text-muted">
+                      Thumbnail YouTube Otomatis
+                    </span>
+                    <span className="text-[10px] text-text-muted/70 mt-0.5">
+                      Tempel tautan YouTube untuk menampilkan cover
+                    </span>
+                  </div>
+                )}
+
+                {/* Overlaid Status Badge */}
+                <div className="absolute top-2.5 left-2.5 z-10">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-accent-purple/90 text-white shadow-sm backdrop-blur-md">
+                    <Clock className="w-3 h-3" />
+                    Akan Datang
+                  </span>
+                </div>
+
+                {/* Overlaid Category Badge */}
+                {formData.game_category && (
+                  <div className="absolute top-2.5 right-2.5 z-10">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-black/60 text-white border border-white/10 backdrop-blur-md">
+                      {formData.game_category}
+                    </span>
+                  </div>
+                )}
+
+                {/* Live Countdown Banner (If enabled) */}
+                {formData.countdown_enabled && (
+                  <div className="absolute bottom-0 inset-x-0 bg-black/75 backdrop-blur-md px-3 py-1.5 border-t border-white/10 flex items-center justify-between text-white">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-accent-cyan">
+                      <Clock className="w-3 h-3 text-accent-cyan animate-pulse" />
+                      <span>{countdownPreview || 'Hitung Mundur Aktif'}</span>
+                    </div>
+                    <span className="text-[10px] text-white/70">
+                      Beranda Fansite
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Meta Content */}
+              <div className="p-4 space-y-2.5">
+                <div className="text-[11px] font-medium text-accent-cyan flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>{formatPreviewDate(formData.date, formData.time)}</span>
+                </div>
+
+                <h4 className="text-sm font-bold text-text-primary leading-snug line-clamp-2">
+                  {formData.title || 'Judul siaran akan ditampilkan di sini...'}
+                </h4>
+
+                {formData.collab_guest && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-border-subtle/70 text-xs">
+                    <Users className="w-3.5 h-3.5 text-accent-purple shrink-0" />
+                    <span className="text-text-muted">Streaming bersama:</span>
+                    <span className="font-semibold text-text-primary">
+                      @{formData.collab_guest.replace(/^@/, '')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Subtle Explanatory Footnote */}
+            <div className="p-3.5 rounded-xl bg-bg-surface border border-border-subtle text-[11px] text-text-muted leading-relaxed flex items-start gap-2">
+              <Info className="w-4 h-4 text-text-muted shrink-0 mt-0.5" />
+              <span>
+                Kartu ini akan otomatis tersinkronisasi dan tampil pada jadwal siaran di portal penonton.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Sticky Action Footer */}
+        <div className="px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md flex items-center justify-between gap-3.5 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-text-muted">
+            <kbd className="px-2 py-0.5 rounded-lg bg-bg-card border border-border-subtle font-mono text-[10px] text-text-secondary">
+              Esc
+            </kbd>
+            <span>untuk membatalkan</span>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="schedule-form"
+              disabled={loading}
+              className="px-6 py-2.5 bg-accent-cyan text-white text-xs font-bold rounded-xl hover:bg-accent-cyan-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Jadwal'}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </>
+    </div>,
+    document.body
   );
 }
 

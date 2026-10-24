@@ -12,6 +12,7 @@
 
 const adminModule = require('firebase-admin');
 const admin = adminModule.default || adminModule;
+const { getDatabase } = require('firebase-admin/database');
 const path = require('path');
 const fs = require('fs');
 
@@ -101,12 +102,16 @@ const getFirebaseAdmin = () => {
     if (serviceAccount && serviceAccount.private_key) {
       const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      const certCredential = admin.credential?.cert
+        ? admin.credential.cert(serviceAccount)
+        : (admin.cert ? admin.cert(serviceAccount) : adminModule.cert(serviceAccount));
+
+      const app = admin.initializeApp({
+        credential: certCredential,
         databaseURL: databaseURL
       });
 
-      firebaseAdmin = admin;
+      firebaseAdmin = app || admin;
       console.log('✅ Firebase Admin SDK initialized successfully');
       console.log(`📍 Database URL: ${databaseURL}`);
       return firebaseAdmin;
@@ -124,17 +129,35 @@ const getFirebaseAdmin = () => {
 };
 
 /**
+ * Get Realtime Database instance safely
+ */
+const getDb = () => {
+  const fb = getFirebaseAdmin();
+  if (!fb) return null;
+  try {
+    return getDatabase();
+  } catch (err) {
+    try {
+      return getDatabase(fb);
+    } catch (fallbackErr) {
+      console.error('❌ Firebase getDb error:', fallbackErr.message);
+      return null;
+    }
+  }
+};
+
+/**
  * Clear next schedule di Firebase
  * @returns {Promise<boolean>} Success status
  */
 const clearNextSchedule = async () => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     return false;
   }
 
   try {
-    const ref = fb.database().ref('/schedules/next');
+    const ref = db.ref('/schedules/next');
     await ref.remove();
     console.log('✅ Firebase: Cleared /schedules/next');
     return true;
@@ -154,14 +177,14 @@ const updateNextSchedule = async (scheduleData) => {
     return await clearNextSchedule();
   }
 
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     console.warn('⚠️ Firebase not available, skipping schedule update');
     return false;
   }
 
   try {
-    const ref = fb.database().ref('/schedules/next');
+    const ref = db.ref('/schedules/next');
 
     await ref.set({
       id: scheduleData.id,
@@ -190,14 +213,13 @@ const updateNextSchedule = async (scheduleData) => {
  * @returns {Promise<boolean>} Success status
  */
 const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     console.warn('⚠️ Firebase not available, skipping vote update');
     return false;
   }
 
   try {
-    const db = fb.database();
     const gameRef = db.ref(`/votes/games/${gameId}`);
     const totalRef = db.ref('/votes/totalVotes');
 
@@ -225,14 +247,14 @@ const updateVoteCount = async (gameId, voteCount, percentage, totalVotes) => {
  * @returns {Promise<boolean>} Success status
  */
 const updateBroadcastingStatus = async (isReady) => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     console.warn('⚠️ Firebase not available, skipping broadcasting status update');
     return false;
   }
 
   try {
-    const ref = fb.database().ref('/broadcasting');
+    const ref = db.ref('/broadcasting');
 
     await ref.set({
       isReady: isReady,
@@ -253,14 +275,14 @@ const updateBroadcastingStatus = async (isReady) => {
  * @returns {Promise<boolean>} Success status
  */
 const resetVotingPeriod = async (periodKey) => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     console.warn('⚠️ Firebase not available, skipping voting period reset');
     return false;
   }
 
   try {
-    const ref = fb.database().ref('/votes');
+    const ref = db.ref('/votes');
 
     await ref.set({
       period: periodKey,
@@ -284,15 +306,13 @@ const resetVotingPeriod = async (periodKey) => {
  * @returns {Promise<boolean>} Success status
  */
 const updateAllGamesVotes = async (games, periodKey) => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     console.warn('⚠️ Firebase not available, skipping bulk vote update');
     return false;
   }
 
   try {
-    const db = fb.database();
-
     const totalVotes = games.reduce((sum, g) => sum + (g.vote_count || 0), 0);
 
     const gamesData = {};
@@ -330,20 +350,55 @@ const updateAllGamesVotes = async (games, periodKey) => {
  * @returns {Promise<boolean>} Success status
  */
 const triggerContentUpdate = async () => {
-  const fb = getFirebaseAdmin();
-  if (!fb) {
+  const db = getDb();
+  if (!db) {
     return false;
   }
 
   try {
     const timestamp = new Date().toISOString();
-    await fb.database().ref('/content_updates').set({
+    await db.ref('/content_updates').set({
       lastUpdated: timestamp
     });
     console.log(`✅ Firebase: Broadcasted /content_updates (lastUpdated: ${timestamp})`);
     return true;
   } catch (error) {
     console.error('❌ Firebase triggerContentUpdate error:', error.message);
+    return false;
+  }
+};
+
+/**
+ * Push real-time notification to Firebase
+ * @param {Object} options
+ * @param {string} options.userId - Target user ID (default: 'default')
+ * @param {string} options.type - Notification type key
+ * @param {string} options.title - Notification title
+ * @param {string} options.message - Notification message
+ * @param {string} options.link - Internal navigation link in admin
+ * @returns {Promise<boolean>}
+ */
+const pushNotification = async ({ userId = 'default', type = 'SYSTEM_UPDATE', title, message, link = null }) => {
+  const db = getDb();
+  if (!db) {
+    console.warn('⚠️ Firebase not available, skipping pushNotification');
+    return false;
+  }
+
+  try {
+    const notifRef = db.ref(`notifications/${userId}`).push();
+    await notifRef.set({
+      type,
+      title,
+      message,
+      link,
+      read: false,
+      createdAt: Date.now()
+    });
+    console.log(`✅ Firebase: Pushed notification [${type}] to notifications/${userId} (ID: ${notifRef.key})`);
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase pushNotification error:', error.message);
     return false;
   }
 };
@@ -356,5 +411,7 @@ module.exports = {
   resetVotingPeriod,
   updateAllGamesVotes,
   triggerContentUpdate,
-  getFirebaseAdmin
+  pushNotification,
+  getFirebaseAdmin,
+  getDb
 };
