@@ -26,7 +26,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'A';
   const userName = user?.name || 'Admin';
 
-  // Hotkey listener: [ or Ctrl+B / Cmd+B to toggle sidebar collapse
+  // Hotkey listener: Ctrl+B / Cmd+B to toggle sidebar collapse
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Ignore if user is currently typing in an input, textarea or select
@@ -39,11 +39,6 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
 
       // Hotkey: Ctrl+B or Cmd+B
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        onToggleCollapse?.();
-      }
-      // Hotkey: '[' key when no modifier is pressed
-      else if (e.key === '[' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         onToggleCollapse?.();
       }
@@ -100,7 +95,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
       title={collapsed ? label : undefined}
       className={({ isActive }) => `
         group relative flex items-center
-        ${collapsed ? 'justify-center p-2.5 my-0.5 mx-2' : 'px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
+        ${collapsed ? 'w-[calc(100%-1rem)] justify-center p-2.5 my-0.5 mx-2' : 'w-[calc(100%-1.5rem)] px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
         rounded-xl text-sm font-medium
         transition-all duration-200 ease-out select-none
         hover-sheen active:scale-[0.98]
@@ -309,7 +304,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
               <div className="font-semibold text-text-primary">{userName}</div>
               <div className="text-[10px] font-mono text-text-muted mt-0.5 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-status-done" />
-                <span>Administrator ↗</span>
+                <span>Administrator</span>
               </div>
             </div>
           )}
@@ -351,7 +346,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
             title={collapsed ? 'Settings' : undefined}
             className={({ isActive }) => `
               group relative flex items-center
-              ${collapsed ? 'justify-center p-2.5 my-0.5 mx-2' : 'px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
+              ${collapsed ? 'w-[calc(100%-1rem)] justify-center p-2.5 my-0.5 mx-2' : 'w-[calc(100%-1.5rem)] px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
               rounded-xl text-sm font-medium
               transition-all duration-200 ease-out select-none
               hover-sheen active:scale-[0.98]
@@ -394,23 +389,23 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
             )}
           </NavLink>
 
-          {/* Logout Button with Eject Recoil Animation */}
+          {/* Logout Button with Unified Width & Recoil Animation */}
           <button
             type="button"
             onClick={logout}
             title={collapsed ? 'Keluar' : undefined}
             className={`
-              w-auto flex items-center rounded-xl text-sm font-medium
-              ${collapsed ? 'justify-center p-2.5 my-0.5 mx-2' : 'px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
+              flex items-center rounded-xl text-sm font-medium
+              ${collapsed ? 'w-[calc(100%-1rem)] justify-center p-2.5 my-0.5 mx-2' : 'w-[calc(100%-1.5rem)] px-3.5 py-2.5 my-0.5 mx-3 gap-3.5'}
               text-text-muted hover:text-status-live hover:bg-status-live/10 hover:border-status-live/30
               border border-transparent transition-all duration-200 group relative select-none
               hover-sheen active:scale-[0.98]
             `}
           >
-            <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-all duration-200 ease-out group-hover:-translate-x-1.5 group-hover:scale-115" />
+            <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-all duration-200 ease-out group-hover:-translate-x-1 group-hover:scale-110" />
 
             {!collapsed && (
-              <span className="text-sm truncate leading-none pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-1.5">
+              <span className="text-sm truncate leading-none pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-1">
                 Keluar
               </span>
             )}
@@ -424,7 +419,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
                 group-hover:opacity-100 group-hover:visible group-hover:scale-100
                 transition-all duration-200 ease-out z-50 shadow-xl pointer-events-none
               ">
-                Keluar dari Sesi
+                Keluar
               </div>
             )}
           </button>
@@ -435,34 +430,26 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
           <button
             type="button"
             onClick={onToggleCollapse}
-            title={collapsed ? 'Perluas Sidebar ( [ )' : 'Perkecil Sidebar ( [ )'}
+            title={collapsed ? 'Perluas Sidebar' : 'Perkecil Sidebar'}
             className={`
-              hidden lg:flex w-full items-center rounded-xl py-2 px-3
+              hidden lg:flex w-full items-center rounded-xl py-2.5 px-3
               text-text-muted hover:text-text-primary hover:bg-bg-surface
               border border-border-subtle/60 hover:border-accent-cyan/30
               active:scale-[0.98] transition-all duration-200 group hover-sheen
-              ${collapsed ? 'justify-center' : 'justify-between'}
+              ${collapsed ? 'justify-center' : 'justify-start gap-3.5'}
             `}
           >
-            <div className="flex items-center gap-3">
-              <ChevronLeft
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  collapsed
-                    ? 'rotate-180 text-accent-cyan'
-                    : 'group-hover:-translate-x-1 text-text-muted group-hover:text-accent-cyan'
-                }`}
-              />
-              {!collapsed && (
-                <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">
-                  Perkecil Panel
-                </span>
-              )}
-            </div>
-
+            <ChevronLeft
+              className={`w-4 h-4 shrink-0 transition-transform duration-300 ${
+                collapsed
+                  ? 'rotate-180 text-accent-cyan'
+                  : 'group-hover:-translate-x-1 text-text-muted group-hover:text-accent-cyan'
+              }`}
+            />
             {!collapsed && (
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-text-muted/80 bg-bg-card rounded border border-border-subtle shadow-xs group-hover:border-accent-cyan/40 group-hover:text-accent-cyan group-hover:bg-accent-cyan/10 transition-all">
-                [
-              </kbd>
+              <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">
+                Perkecil Panel
+              </span>
             )}
           </button>
         </div>
