@@ -219,7 +219,7 @@ function SettingsPage() {
               onClick={() => setActiveTab('profile')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'profile'
-                  ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                  ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
               }`}
             >
@@ -232,7 +232,7 @@ function SettingsPage() {
               onClick={() => setActiveTab('password')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'password'
-                  ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                  ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
               }`}
             >
@@ -245,7 +245,7 @@ function SettingsPage() {
               onClick={() => setActiveTab('preferences')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'preferences'
-                  ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                  ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
               }`}
             >
@@ -368,7 +368,7 @@ function SettingsPage() {
                   <button
                     type="submit"
                     disabled={profileLoading || !profileData.name.trim()}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base font-bold text-xs rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-accent-cyan/10"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold text-xs rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
                   >
                     {profileLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <span>Simpan Perubahan</span>
@@ -494,7 +494,7 @@ function SettingsPage() {
                       !passwordData.new_password ||
                       !passwordData.confirm_password
                     }
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base font-bold text-xs rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-accent-cyan/10"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold text-xs rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
                   >
                     {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                     <span>Ubah Kata Sandi</span>

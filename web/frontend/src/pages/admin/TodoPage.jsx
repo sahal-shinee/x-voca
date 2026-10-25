@@ -711,7 +711,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setShowClearModal(true)}
-              className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors"
+              className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors"
               title="Bersihkan semua tugas yang sudah selesai"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -723,9 +723,9 @@ function TodoPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-accent-cyan text-white rounded-xl hover:bg-accent-cyan-hover active:scale-95 transition-all shadow-sm"
+            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Tambah Todo</span>
           </button>
         </div>
@@ -893,7 +893,7 @@ function TodoPage() {
           <button
             type="submit"
             disabled={!quickTitle.trim() || isQuickAdding}
-            className="h-8 px-4 text-xs font-bold bg-accent-cyan text-white rounded-xl hover:bg-accent-cyan-hover transition-all disabled:opacity-40 flex-shrink-0"
+            className="h-8 px-4 text-xs font-semibold bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta rounded-xl transition-all disabled:opacity-40 flex-shrink-0 shadow-xs active:scale-95"
           >
             {isQuickAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '+ Tambah'}
           </button>
@@ -1064,9 +1064,9 @@ function TodoPage() {
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan text-bg-base font-bold rounded-xl text-xs shadow-md shadow-accent-cyan/20 hover:opacity-95 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold rounded-xl text-xs shadow-sm active:scale-95 transition-all"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>Tambah Todo Baru</span>
             </button>
           )}
@@ -1398,7 +1398,7 @@ function TodoPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={!formData.title.trim() || isSubmitting}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-cyan text-white font-semibold rounded-xl text-xs hover:bg-accent-cyan-hover disabled:opacity-50 transition-all shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold rounded-xl text-xs disabled:opacity-50 transition-all shadow-sm active:scale-95"
               >
                 {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>

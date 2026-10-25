@@ -390,7 +390,7 @@ function CollabRequestsPage() {
               onClick={() => setViewMode('cards')}
               className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'cards'
-                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
               }`}
               title="Tampilan Kartu Studio"
@@ -404,7 +404,7 @@ function CollabRequestsPage() {
               onClick={() => setViewMode('table')}
               className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'table'
-                  ? 'bg-accent-cyan text-bg-base font-bold shadow-sm'
+                  ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
               }`}
               title="Tampilan Tabel Ringkas"
@@ -420,7 +420,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={refetch}
             disabled={loading}
-            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
             title="Muat ulang data usulan"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -432,7 +432,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={handleExportCSV}
             disabled={requests.length === 0}
-            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
             title="Unduh laporan usulan kolaborasi (.csv)"
           >
             <Download className="w-3.5 h-3.5 text-accent-purple" />
@@ -443,9 +443,9 @@ function CollabRequestsPage() {
           <button
             type="button"
             onClick={() => setAddModalOpen(true)}
-            className="h-9 flex items-center gap-1.5 px-4 text-xs font-bold bg-gradient-to-r from-accent-cyan via-accent-cyan to-accent-purple text-bg-base rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-accent-cyan/10"
+            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Catat Collab</span>
           </button>
         </div>
@@ -582,13 +582,13 @@ function CollabRequestsPage() {
                   className={`
                     px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
                     ${isActive
-                      ? 'bg-accent-cyan text-bg-base shadow-sm font-bold'
+                      ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
                       : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
                   `}
                 >
                   <span>{tab.label}</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-bg-base/20 text-bg-base' : 'bg-bg-card text-text-secondary'
+                    isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                   }`}>
                     {count}
                   </span>
@@ -723,9 +723,10 @@ function CollabRequestsPage() {
             <button
               type="button"
               onClick={() => setAddModalOpen(true)}
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-accent-cyan to-accent-purple text-bg-base hover:opacity-95 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta transition-all shadow-sm active:scale-95"
             >
-              + Catat Collab Baru
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Catat Collab Baru</span>
             </button>
           </div>
         </div>
