@@ -1,33 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import {
+  Shield,
+  Menu,
+  X,
+  ChevronRight,
+  ExternalLink,
+  Radio,
+} from 'lucide-react';
 import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase';
 import logoXion from '../../assets/logo_xion.png';
-
-// Icons
-const UserIcon = ({ size = 15, className = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const HeartHandIcon = ({ size = 14, className = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-  </svg>
-);
-
-const MenuIcon = () => (
-  <svg width="20" height="14" viewBox="0 0 20 14" fill="none" aria-hidden="true">
-    <path d="M0 1H20M0 7H20M0 13H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
+import logoSaweria from '../../assets/logo_saweria.jpeg';
 
 const TopNav = () => {
   const location = useLocation();
@@ -35,7 +18,7 @@ const TopNav = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Live broadcast status from Firebase
+  // Live broadcast status from Firebase RTDB
   const { isLive } = useBroadcastingStatus();
   const { schedule: nextSchedule } = useNextSchedule();
   const isCurrentlyLive = isLive || nextSchedule?.status === 'live';
@@ -45,10 +28,46 @@ const TopNav = () => {
   const gainNodeRef = useRef(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  // Scroll listener
+  // Fluid sliding indicator for desktop nav tabs
+  const tabRefs = useRef([]);
+  const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
+
+  // Pure typographic navigation links (Clean, zero emoji, zero AI-slop)
+  const navLinks = [
+    { path: '/', label: 'Home' },
+    { path: '/voting', label: 'Voting' },
+    { path: '/content', label: 'Content Guide' },
+  ];
+
+  // Update sliding pill position smoothly
+  useEffect(() => {
+    const updateSlider = () => {
+      const activeIdx = navLinks.findIndex((tab) => tab.path === location.pathname);
+      if (activeIdx !== -1 && tabRefs.current[activeIdx]) {
+        const el = tabRefs.current[activeIdx];
+        setSliderStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+          opacity: 1,
+        });
+      } else {
+        setSliderStyle((prev) => ({ ...prev, opacity: 0 }));
+      }
+    };
+
+    updateSlider();
+    const timer = setTimeout(updateSlider, 100);
+    window.addEventListener('resize', updateSlider);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateSlider);
+    };
+  }, [location.pathname]);
+
+  // Scroll listener for dynamic floating island elevation
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -62,7 +81,7 @@ const TopNav = () => {
     };
   }, [isMenuOpen]);
 
-  // Audio Toggle
+  // Audio Ambient Synthesizer Toggle (G3 + D4 Harmonious Cosmic Drone)
   const toggleAudio = () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -123,7 +142,7 @@ const TopNav = () => {
     };
   }, []);
 
-  // Jump to live stream schedule
+  // Jump smoothly to live stream section
   const handleLiveClick = () => {
     setIsMenuOpen(false);
     if (location.pathname === '/') {
@@ -136,216 +155,282 @@ const TopNav = () => {
     }
   };
 
-  const getNavLinkClass = (path) => {
-    const isActive = location.pathname === path;
-    return `px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
-      isActive
-        ? 'bg-[#231d3d] text-[#7ee0d2] border border-[rgba(126,224,210,0.35)] shadow-[0_0_12px_rgba(126,224,210,0.15)]'
-        : 'text-[#a89ec0] hover:text-white hover:bg-white/[0.05]'
-    }`;
-  };
-
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex items-center ${
-        scrolled
-          ? 'h-[64px] bg-[#0c081e]/90 backdrop-blur-xl border-b border-[rgba(126,224,210,0.15)] shadow-[0_8px_30px_rgba(0,0,0,0.6)]'
-          : 'h-[72px] bg-[#0c081e]/60 backdrop-blur-md border-b border-white/[0.06]'
-      }`}
-    >
-      {/* Hairline cosmic glow on top edge */}
+    <header className="fixed top-3.5 sm:top-4 left-0 right-0 z-50 flex justify-center px-3 sm:px-6 pointer-events-none select-none">
+      {/* ── Floating Dynamic Island Capsule (Dimensi Stabil & Elevated Glass Transition) ── */}
       <div
-        className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none"
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.3), rgba(192,132,252,0.3), transparent)',
-        }}
-      />
+        className={`
+          pointer-events-auto relative w-full transition-all duration-300 ease-out
+          flex items-center justify-between rounded-full
+          max-w-[1160px] h-[60px] sm:h-[64px] px-4.5 sm:px-6
+          ${
+            scrolled
+              ? 'bg-[#0c081e]/96 backdrop-blur-2xl border border-white/[0.14] shadow-[0_20px_45px_rgba(0,0,0,0.85),0_0_24px_rgba(94,234,212,0.15),inset_0_1px_1px_rgba(255,255,255,0.18)]'
+              : 'bg-[#0c081e]/80 backdrop-blur-xl border border-white/[0.10] shadow-[0_8px_24px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.12)]'
+          }
+          hover:border-accent-cyan/35
+        `}
+      >
+        {/* Ambient Top Hairline Highlight */}
+        <div
+          className={`absolute top-0 left-10 right-10 h-[1px] pointer-events-none rounded-full transition-opacity duration-300 ${
+            scrolled ? 'opacity-100' : 'opacity-70'
+          }`}
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(94,234,212,0.5), rgba(167,139,250,0.5), transparent)',
+          }}
+        />
 
-      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-        <div className="flex items-center justify-between">
-          {/* Logo & Brand */}
-          <Link
-            to="/"
-            className="flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] rounded-xl py-1"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <div className="relative flex items-center justify-center">
-              <img
-                src={logoXion}
-                alt="Xion Regalia Logo"
-                className="h-12 sm:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-110 drop-shadow-[0_2px_14px_rgba(126,224,210,0.25)]"
-              />
-            </div>
-            <span className="font-bold text-white text-lg sm:text-[22px] tracking-wider font-display group-hover:text-[#7ee0d2] transition-colors leading-none">
-              X-VOCA
-            </span>
-          </Link>
+        {/* ── 1. Left: Brand & Chibi Logo (Proporsi Pas & True Circle Ring) ──── */}
+        <Link
+          to="/"
+          className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5 shrink-0 z-20"
+          onClick={() => setIsMenuOpen(false)}
+        >
+          {/* Chibi Avatar with True-Circle Holographic Crest */}
+          <div className="relative flex items-center justify-center shrink-0">
+            {/* Ambient Backlight Breathing Glow */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-accent-cyan/40 via-accent-purple/30 to-transparent blur-md opacity-60 group-hover:opacity-100 group-hover:scale-115 transition-all duration-300 pointer-events-none" />
 
-          {/* Center: Floating Segmented Pill Navigation */}
-          <div className="hidden md:flex items-center p-1 rounded-full bg-[#15102a]/85 backdrop-blur-md border border-[rgba(61,53,96,0.6)] shadow-inner">
-            <Link to="/" className={getNavLinkClass('/')}>
-              Home
-            </Link>
-            <Link to="/voting" className={getNavLinkClass('/voting')}>
-              Voting
-            </Link>
-            <Link to="/content" className={getNavLinkClass('/content')}>
-              Content Guide
-            </Link>
-          </div>
-
-          {/* Right: Functional Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* LIVE NOW Interactive Scroll Trigger - Only when actually live */}
-            {isCurrentlyLive && (
-              <button
-                type="button"
-                onClick={handleLiveClick}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/35 hover:border-red-500/60 hover:bg-red-500/20 text-red-400 text-[10px] sm:text-[11px] font-bold font-sans tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(239,68,68,0.2)] group cursor-pointer"
-                title="Lihat Jadwal Siaran Langsung"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                </span>
-                <span className="hidden sm:inline">LIVE NOW</span>
-                <span className="sm:hidden">LIVE</span>
-              </button>
-            )}
-
-            {/* Interactive Audio Ambient Synthesizer Button */}
-            <button
-              type="button"
-              onClick={toggleAudio}
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 group ${
-                isPlayingAudio
-                  ? 'bg-[#7ee0d2]/15 border-[#7ee0d2] text-[#7ee0d2] shadow-[0_0_14px_rgba(126,224,210,0.25)]'
-                  : 'bg-[#15102a] border-[rgba(61,53,96,0.7)] text-[#a89ec0] hover:text-[#7ee0d2] hover:border-[#7ee0d2]/50'
-              }`}
-              aria-label={isPlayingAudio ? 'Matikan audio ambien' : 'Nyalakan audio ambien'}
-              title={isPlayingAudio ? 'Audio Ambien: Aktif (Klik untuk mematikan)' : 'Audio Ambien: Bisu (Klik untuk mendengarkan)'}
+            {/* Holographic Circular Glass Crest (Guaranteed Perfect Circle) */}
+            <div
+              className={`
+                relative w-10 h-10 sm:w-10.5 sm:h-10.5 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/60 via-white/25 to-accent-purple/50
+                shadow-[0_0_12px_rgba(94,234,212,0.25)] transition-all duration-300
+                group-hover:shadow-[0_0_20px_rgba(94,234,212,0.45)] group-hover:scale-105 shrink-0 flex items-center justify-center
+              `}
             >
-              <div className="flex items-center gap-[2.5px] h-3.5">
-                <span
-                  className={`w-[2.5px] rounded-full transition-all duration-300 ${
-                    isPlayingAudio ? 'h-3 bg-[#7ee0d2] animate-pulse' : 'h-1.5 bg-[#a89ec0]'
-                  }`}
-                />
-                <span
-                  className={`w-[2.5px] rounded-full transition-all duration-300 ${
-                    isPlayingAudio ? 'h-3.5 bg-[#7ee0d2] animate-pulse [animation-delay:0.2s]' : 'h-2 bg-[#a89ec0]'
-                  }`}
-                />
-                <span
-                  className={`w-[2.5px] rounded-full transition-all duration-300 ${
-                    isPlayingAudio ? 'h-2.5 bg-[#7ee0d2] animate-pulse [animation-delay:0.4s]' : 'h-3 bg-[#a89ec0]'
-                  }`}
-                />
-                <span
-                  className={`w-[2.5px] rounded-full transition-all duration-300 ${
-                    isPlayingAudio ? 'h-3 bg-[#7ee0d2] animate-pulse [animation-delay:0.1s]' : 'h-1.5 bg-[#a89ec0]'
-                  }`}
+              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center p-0.5">
+                <img
+                  src={logoXion}
+                  alt="Xion Regalia Logo"
+                  className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
                 />
               </div>
-            </button>
-
-            {/* Saweria Donation Action */}
-            <a
-              href="https://saweria.co/xionregalia"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.08] text-white/80 hover:text-white text-xs font-medium tracking-wide transition-all duration-200 active:scale-95 group"
-              title="Dukung Xion Regalia di Saweria"
-            >
-              <HeartHandIcon size={14} className="text-[#fbbf24] group-hover:scale-110 transition-transform duration-200" />
-              <span className="hidden sm:inline">Saweria</span>
-            </a>
-
-            {/* Admin Portal Button */}
-            <Link
-              to="/admin/login"
-              aria-label="Portal Admin"
-              title="Masuk ke Portal Admin / Staff"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#15102a] border border-[rgba(61,53,96,0.7)] flex items-center justify-center text-[#7ee0d2] hover:text-white hover:border-[#7ee0d2]/60 hover:bg-[#231d3d] hover:shadow-[0_0_12px_rgba(126,224,210,0.2)] hover:scale-105 active:scale-95 transition-all duration-200"
-            >
-              <UserIcon size={14} />
-            </Link>
-
-            {/* Mobile Hamburger Button */}
-            <button
-              className="md:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#15102a] border border-[rgba(61,53,96,0.7)] flex items-center justify-center text-[#a89ec0] hover:text-white transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
-              aria-expanded={isMenuOpen}
-            >
-              {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
-            </button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mobile Menu Dropdown / Overlay */}
-      <div
-        className={`md:hidden absolute top-full left-0 right-0 bg-[#0c081e]/95 backdrop-blur-xl border-b border-[rgba(61,53,96,0.7)] shadow-2xl transition-all duration-300 overflow-hidden ${
-          isMenuOpen ? 'max-h-96 opacity-100 py-5 px-4' : 'max-h-0 opacity-0 py-0 px-4 pointer-events-none'
-        }`}
-      >
-        <div className="flex flex-col gap-2">
-          <Link
-            to="/"
-            className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-all ${
-              location.pathname === '/'
-                ? 'bg-[#231d3d] text-[#7ee0d2] border border-[rgba(126,224,210,0.35)]'
-                : 'text-[#a89ec0] hover:bg-white/[0.05] hover:text-white'
-            }`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Home (Beranda)
-          </Link>
-          <Link
-            to="/voting"
-            className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-all ${
-              location.pathname === '/voting'
-                ? 'bg-[#231d3d] text-[#7ee0d2] border border-[rgba(126,224,210,0.35)]'
-                : 'text-[#a89ec0] hover:bg-white/[0.05] hover:text-white'
-            }`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Voting Interaktif
-          </Link>
-          <Link
-            to="/content"
-            className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-all ${
-              location.pathname === '/content'
-                ? 'bg-[#231d3d] text-[#7ee0d2] border border-[rgba(126,224,210,0.35)]'
-                : 'text-[#a89ec0] hover:bg-white/[0.05] hover:text-white'
-            }`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Panduan Konten (Content Guide)
-          </Link>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white text-base sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none">
+              X-VOCA
+            </span>
+
+            {/* Broadcast Live Indicator (Hanya saat siaran streaming on-air) */}
+            {isCurrentlyLive && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider uppercase bg-status-live/15 text-status-live border border-status-live/35 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.25)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-ping" />
+                LIVE
+              </span>
+            )}
+          </div>
+        </Link>
+
+        {/* ── 2. Center: Pure Typographic Fluid Sliding Navigation (Geometrically Centered & Spacious) ── */}
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center p-1.5 px-2.5 sm:px-3 gap-2 sm:gap-2.5 rounded-full bg-[#15102a]/85 border border-white/[0.08] shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] z-10">
+          {/* Fluid Sliding Frosted Glow Pill */}
+          <div
+            className="absolute top-1.5 bottom-1.5 rounded-full bg-gradient-to-r from-accent-cyan/25 via-accent-cyan/15 to-accent-purple/20 border border-accent-cyan/45 shadow-[0_0_18px_rgba(94,234,212,0.25)] transition-all duration-300 ease-out pointer-events-none"
+            style={{
+              left: `${sliderStyle.left}px`,
+              width: `${sliderStyle.width}px`,
+              opacity: sliderStyle.opacity,
+            }}
+          />
+
+          {/* Pure Typographic Interactive Tab Links (Tactile Hover & Spacious Typography) */}
+          {navLinks.map((tab, idx) => {
+            const isActive = location.pathname === tab.path;
+            return (
+              <Link
+                key={tab.path}
+                ref={(el) => (tabRefs.current[idx] = el)}
+                to={tab.path}
+                className={`
+                  relative z-10 px-6 sm:px-7 h-[38px] sm:h-[40px] rounded-full text-[13px] sm:text-sm tracking-wide select-none group flex items-center justify-center transition-all duration-200
+                  ${
+                    isActive
+                      ? 'text-white font-bold drop-shadow-[0_0_8px_rgba(94,234,212,0.4)]'
+                      : 'text-white/70 hover:text-white font-medium hover:bg-white/[0.06]'
+                  }
+                `}
+              >
+                <span className="transition-transform duration-200 group-hover:-translate-y-[0.5px]">
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* ── 3. Right: Sleek Action Controls ───────────────────────────────── */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-20">
+
+          {/* LIVE NOW Radar Button (Hanya saat siaran streaming aktif) */}
+          {isCurrentlyLive && (
+            <button
+              type="button"
+              onClick={handleLiveClick}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_14px_rgba(239,68,68,0.3)] active:scale-95 transition-all duration-200 cursor-pointer group shrink-0"
+              title="Sinyal Siaran Langsung Aktif - Klik untuk Menonton"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
+              </span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase font-sans animate-pulse">
+                <span className="hidden sm:inline">LIVE NOW</span>
+                <span className="sm:hidden">LIVE</span>
+              </span>
+            </button>
+          )}
+
+          {/* Ambient Synthesizer Button (5-Bar Wave Visualizer) */}
           <button
-            onClick={handleLiveClick}
-            className="py-2.5 px-4 rounded-xl text-sm font-semibold text-left text-[#a89ec0] hover:bg-white/[0.05] hover:text-[#7ee0d2] transition-all"
+            type="button"
+            onClick={toggleAudio}
+            className={`
+              h-8.5 sm:h-9 px-2.5 sm:px-3 rounded-full border flex items-center gap-2 transition-all duration-200 active:scale-95 group shrink-0
+              ${
+                isPlayingAudio
+                  ? 'bg-accent-cyan/15 border-accent-cyan/50 text-accent-cyan shadow-[0_0_14px_rgba(94,234,212,0.25)]'
+                  : 'bg-white/[0.04] border-white/[0.08] text-white/70 hover:text-accent-cyan hover:border-accent-cyan/40 hover:bg-white/[0.08]'
+              }
+            `}
+            aria-label={isPlayingAudio ? 'Matikan musik ambien' : 'Nyalakan musik ambien'}
+            title={isPlayingAudio ? 'Audio Ambien: Berputar (Klik untuk membisukan)' : 'Audio Ambien: Bisu (Klik untuk mendengarkan)'}
           >
-            Jadwal Siaran (Upcoming)
+            <div className="flex items-end gap-[2.5px] h-3.5">
+              <span
+                className={`w-[2px] rounded-full transition-all duration-200 ${
+                  isPlayingAudio ? 'bg-accent-cyan animate-eq-1' : 'h-1.5 bg-white/50 group-hover:bg-accent-cyan/70'
+                }`}
+              />
+              <span
+                className={`w-[2px] rounded-full transition-all duration-200 ${
+                  isPlayingAudio ? 'bg-accent-cyan animate-eq-2' : 'h-2.5 bg-white/50 group-hover:bg-accent-cyan/70'
+                }`}
+              />
+              <span
+                className={`w-[2px] rounded-full transition-all duration-200 ${
+                  isPlayingAudio ? 'bg-gradient-to-t from-accent-cyan to-accent-purple animate-eq-3' : 'h-3.5 bg-white/50 group-hover:bg-accent-cyan/70'
+                }`}
+              />
+              <span
+                className={`w-[2px] rounded-full transition-all duration-200 ${
+                  isPlayingAudio ? 'bg-accent-purple animate-eq-4' : 'h-2 bg-white/50 group-hover:bg-accent-cyan/70'
+                }`}
+              />
+              <span
+                className={`w-[2px] rounded-full transition-all duration-200 ${
+                  isPlayingAudio ? 'bg-accent-cyan animate-eq-5' : 'h-1.5 bg-white/50 group-hover:bg-accent-cyan/70'
+                }`}
+              />
+            </div>
+            <span className="hidden xl:inline text-[11px] font-mono tracking-tight font-medium">
+              {isPlayingAudio ? 'Synth ON' : 'Synth'}
+            </span>
           </button>
+
+          {/* Saweria Creator Appreciation Button (Harmonious Idle Glass & Official Mascot Logo) */}
           <a
             href="https://saweria.co/xionregalia"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-between text-[#fbbf24] bg-[#fbbf24]/10 border border-[#fbbf24]/30 hover:bg-[#fbbf24]/20 transition-all mt-1"
-            onClick={() => setIsMenuOpen(false)}
+            className="h-8.5 sm:h-9 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-full bg-white/[0.04] border border-amber-400/25 text-amber-200/90 hover:text-amber-300 hover:bg-amber-400/10 hover:border-amber-400/50 hover:shadow-[0_0_14px_rgba(251,191,36,0.22)] text-xs sm:text-[13px] font-semibold tracking-wide transition-all duration-200 active:scale-95 group shrink-0"
+            title="Dukung Xion Regalia di Saweria"
           >
-            <span className="flex items-center gap-2">
-              <HeartHandIcon size={15} />
-              <span>Dukung di Saweria</span>
-            </span>
-            <span className="text-xs font-mono uppercase tracking-wider text-[#fbbf24]/80">Tautan Luar</span>
+            <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-white/95 border border-amber-400/40 p-0.5 shadow-sm group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shrink-0 flex items-center justify-center">
+              <img
+                src={logoSaweria}
+                alt="Saweria Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <span className="hidden sm:inline font-sans">Saweria</span>
           </a>
+
+          {/* Admin / Staff Portal Key */}
+          <Link
+            to="/admin/login"
+            aria-label="Portal Staff / Admin"
+            title="Masuk ke Portal Admin / Staff"
+            className="h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-accent-cyan hover:border-accent-cyan/50 hover:bg-accent-cyan/10 hover:shadow-[0_0_12px_rgba(94,234,212,0.2)] active:scale-95 transition-all duration-200 shrink-0 group"
+          >
+            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110" />
+          </Link>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            className="md:hidden h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-text-muted hover:text-white transition-colors shrink-0"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Buka navigasi mobile"
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* ── 4. Mobile Dynamic Island Drawer Dropdown ───────────────────────── */}
+        <div
+          className={`md:hidden absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0c081e]/96 backdrop-blur-2xl border border-white/[0.12] rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 overflow-hidden ${
+            isMenuOpen ? 'max-h-96 opacity-100 py-3.5 px-3' : 'max-h-0 opacity-0 py-0 px-3 pointer-events-none'
+          }`}
+        >
+          <div className="flex flex-col gap-1.5">
+            {navLinks.map((tab) => {
+              const isActive = location.pathname === tab.path;
+              return (
+                <Link
+                  key={tab.path}
+                  to={tab.path}
+                  className={`
+                    flex items-center justify-between py-2 px-3.5 rounded-2xl text-sm font-semibold transition-all duration-200
+                    ${
+                      isActive
+                        ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30'
+                        : 'text-[#a89ec0] hover:bg-white/[0.05] hover:text-white'
+                    }
+                  `}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <span>{tab.label}</span>
+                  <ChevronRight className="w-4 h-4 opacity-40" />
+                </Link>
+              );
+            })}
+
+            {/* Quick Schedule Jump */}
+            <button
+              onClick={handleLiveClick}
+              className="flex items-center justify-between py-2 px-3.5 rounded-2xl text-sm font-semibold text-left text-[#a89ec0] hover:bg-white/[0.05] hover:text-accent-cyan transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Radio className="w-4 h-4 text-accent-purple" />
+                <span>Jadwal & Agenda Siaran</span>
+              </div>
+              <ChevronRight className="w-4 h-4 opacity-40" />
+            </button>
+
+            {/* Saweria Mobile Link */}
+            <a
+              href="https://saweria.co/xionregalia"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between text-accent-gold bg-accent-gold/10 border border-accent-gold/30 hover:bg-accent-gold/20 transition-all mt-1"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <span className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-white/95 border border-amber-400/40 p-0.5 shadow-sm shrink-0 flex items-center justify-center">
+                  <img src={logoSaweria} alt="Saweria Logo" className="w-full h-full object-contain" />
+                </div>
+                <span>Dukung di Saweria</span>
+              </span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+            </a>
+          </div>
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

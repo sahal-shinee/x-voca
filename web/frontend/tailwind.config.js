@@ -21,6 +21,9 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      spacing: {
+        '4.5': '1.125rem',
+      },
       colors: {
         // === THEME-ADAPTIVE PALETTE (Backed by CSS Variables in index.css) ===
         'bg-base': withOpacity('--bg-base'),

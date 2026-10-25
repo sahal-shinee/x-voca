@@ -661,7 +661,7 @@ function TodoPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* Dual View Mode Switcher */}
           <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
             <button
@@ -699,7 +699,7 @@ function TodoPage() {
             type="button"
             onClick={() => fetchTodos()}
             disabled={loading}
-            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang daftar todo"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -711,7 +711,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setShowClearModal(true)}
-              className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors"
+              className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors shrink-0"
               title="Bersihkan semua tugas yang sudah selesai"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -723,9 +723,9 @@ function TodoPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
+            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4" />
             <span>Tambah Todo</span>
           </button>
         </div>
@@ -937,7 +937,7 @@ function TodoPage() {
           </div>
 
           {/* Search + Sort */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             {/* Search */}
             <div className="relative flex-1 sm:w-60">
               <input

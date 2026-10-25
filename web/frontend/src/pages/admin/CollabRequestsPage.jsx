@@ -382,7 +382,7 @@ function CollabRequestsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* View Mode Switcher */}
           <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
             <button
@@ -420,7 +420,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={refetch}
             disabled={loading}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang data usulan"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -432,7 +432,7 @@ function CollabRequestsPage() {
             type="button"
             onClick={handleExportCSV}
             disabled={requests.length === 0}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Unduh laporan usulan kolaborasi (.csv)"
           >
             <Download className="w-3.5 h-3.5 text-accent-purple" />
@@ -443,9 +443,9 @@ function CollabRequestsPage() {
           <button
             type="button"
             onClick={() => setAddModalOpen(true)}
-            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
+            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4" />
             <span>Catat Collab</span>
           </button>
         </div>

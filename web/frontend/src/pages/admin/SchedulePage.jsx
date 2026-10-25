@@ -426,7 +426,7 @@ function SchedulePage() {
         <button
           type="button"
           onClick={handleAddSchedule}
-          className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center"
+          className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center shrink-0"
         >
           <CalendarPlus className="w-4 h-4" />
           <span>Tambah Jadwal</span>

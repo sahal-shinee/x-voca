@@ -494,13 +494,13 @@ function VotingModerationPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* Refresh Manual */}
           <button
             type="button"
             onClick={() => { fetchAllGames(); fetchStats(); }}
             disabled={gamesLoading}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang data voting"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${gamesLoading ? 'animate-spin' : ''}`} />
@@ -508,7 +508,7 @@ function VotingModerationPage() {
           </button>
 
           {/* Export Dropdown Menu */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative shrink-0" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setExportDropdownOpen((prev) => !prev)}
@@ -559,9 +559,9 @@ function VotingModerationPage() {
           <button
             type="button"
             onClick={handleAddGame}
-            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
+            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4" />
             <span>Tambah Game</span>
           </button>
         </div>

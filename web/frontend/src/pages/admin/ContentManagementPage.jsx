@@ -374,7 +374,7 @@ function ContentManagementPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* View Mode Switcher */}
           <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
             <button
@@ -412,7 +412,7 @@ function ContentManagementPage() {
             type="button"
             onClick={() => fetchContents(currentPage)}
             disabled={contentsLoading}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang konten"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${contentsLoading ? 'animate-spin' : ''}`} />
@@ -423,7 +423,7 @@ function ContentManagementPage() {
           <button
             type="button"
             onClick={handleOpenPublicPortal}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-accent-purple bg-accent-purple/10 border border-accent-purple/30 rounded-xl hover:bg-accent-purple/20 transition-colors"
+            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-accent-purple bg-accent-purple/10 border border-accent-purple/30 rounded-xl hover:bg-accent-purple/20 transition-colors shrink-0"
             title="Buka halaman Content Guide viewer di tab baru"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -434,9 +434,9 @@ function ContentManagementPage() {
           <button
             type="button"
             onClick={handleAddContent}
-            className="h-10 inline-flex items-center gap-2 px-4.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center"
+            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4" />
             <span>Tambah Konten</span>
           </button>
         </div>
