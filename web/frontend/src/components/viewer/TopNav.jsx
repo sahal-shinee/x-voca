@@ -23,11 +23,6 @@ const TopNav = () => {
   const { schedule: nextSchedule } = useNextSchedule();
   const isCurrentlyLive = isLive || nextSchedule?.status === 'live';
 
-  // Web Audio Ambient Synthesizer
-  const audioCtxRef = useRef(null);
-  const gainNodeRef = useRef(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
   // Fluid sliding indicator for desktop nav tabs
   const tabRefs = useRef([]);
   const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
@@ -81,67 +76,6 @@ const TopNav = () => {
     };
   }, [isMenuOpen]);
 
-  // Audio Ambient Synthesizer Toggle (G3 + D4 Harmonious Cosmic Drone)
-  const toggleAudio = () => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-
-      if (!audioCtxRef.current) {
-        const ctx = new AudioCtx();
-        audioCtxRef.current = ctx;
-
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const filter = ctx.createBiquadFilter();
-        const gain = ctx.createGain();
-
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(196, ctx.currentTime); // G3
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(293.66, ctx.currentTime); // D4
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(450, ctx.currentTime);
-
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 1.2);
-
-        osc1.connect(filter);
-        osc2.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc1.start();
-        osc2.start();
-        gainNodeRef.current = gain;
-        setIsPlayingAudio(true);
-      } else {
-        if (audioCtxRef.current.state === 'suspended') {
-          audioCtxRef.current.resume();
-          gainNodeRef.current?.gain.linearRampToValueAtTime(0.035, audioCtxRef.current.currentTime + 0.6);
-          setIsPlayingAudio(true);
-        } else if (audioCtxRef.current.state === 'running') {
-          gainNodeRef.current?.gain.linearRampToValueAtTime(0.0001, audioCtxRef.current.currentTime + 0.4);
-          setTimeout(() => {
-            audioCtxRef.current?.suspend();
-            setIsPlayingAudio(false);
-          }, 400);
-        }
-      }
-    } catch {
-      // Audio fallback safely ignored
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close().catch(() => {});
-      }
-    };
-  }, []);
-
   // Jump smoothly to live stream section
   const handleLiveClick = () => {
     setIsMenuOpen(false);
@@ -182,48 +116,56 @@ const TopNav = () => {
         />
 
         {/* ── 1. Left: Brand & Chibi Logo (Proporsi Pas & True Circle Ring) ──── */}
-        <Link
-          to="/"
-          className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5 shrink-0 z-20"
-          onClick={() => setIsMenuOpen(false)}
-        >
-          {/* Chibi Avatar with True-Circle Holographic Crest */}
-          <div className="relative flex items-center justify-center shrink-0">
-            {/* Ambient Backlight Breathing Glow */}
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-accent-cyan/40 via-accent-purple/30 to-transparent blur-md opacity-60 group-hover:opacity-100 group-hover:scale-115 transition-all duration-300 pointer-events-none" />
+        <div className="flex items-center gap-3 shrink-0 z-20">
+          <Link
+            to="/"
+            className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            {/* Chibi Avatar with True-Circle Holographic Crest */}
+            <div className="relative flex items-center justify-center shrink-0">
+              {/* Ambient Backlight Breathing Glow */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-accent-cyan/40 via-accent-purple/30 to-transparent blur-md opacity-60 group-hover:opacity-100 group-hover:scale-115 transition-all duration-300 pointer-events-none" />
 
-            {/* Holographic Circular Glass Crest (Guaranteed Perfect Circle) */}
-            <div
-              className={`
-                relative w-10 h-10 sm:w-10.5 sm:h-10.5 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/60 via-white/25 to-accent-purple/50
-                shadow-[0_0_12px_rgba(94,234,212,0.25)] transition-all duration-300
-                group-hover:shadow-[0_0_20px_rgba(94,234,212,0.45)] group-hover:scale-105 shrink-0 flex items-center justify-center
-              `}
-            >
-              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center p-0.5">
-                <img
-                  src={logoXion}
-                  alt="Xion Regalia Logo"
-                  className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
-                />
+              {/* Holographic Circular Glass Crest (Guaranteed Perfect Circle) */}
+              <div
+                className={`
+                  relative w-10 h-10 sm:w-10.5 sm:h-10.5 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/60 via-white/25 to-accent-purple/50
+                  shadow-[0_0_12px_rgba(94,234,212,0.25)] transition-all duration-300
+                  group-hover:shadow-[0_0_20px_rgba(94,234,212,0.45)] group-hover:scale-105 shrink-0 flex items-center justify-center
+                `}
+              >
+                <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center p-0.5">
+                  <img
+                    src={logoXion}
+                    alt="Xion Regalia Logo"
+                    className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
             <span className="font-bold text-white text-base sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none">
               X-VOCA
             </span>
+          </Link>
 
-            {/* Broadcast Live Indicator (Hanya saat siaran streaming on-air) */}
-            {isCurrentlyLive && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider uppercase bg-status-live/15 text-status-live border border-status-live/35 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.25)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-ping" />
-                LIVE
+          {/* Interactive Live Indicator Badge (Pusat Status Siaran - Klik untuk Menonton) */}
+          {isCurrentlyLive && (
+            <button
+              type="button"
+              onClick={handleLiveClick}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_12px_rgba(239,68,68,0.25)] hover:shadow-[0_0_16px_rgba(239,68,68,0.45)] transition-all duration-200 cursor-pointer active:scale-95 group/live"
+              title="Siaran Sedang Berlangsung! Klik untuk langsung menonton"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
               </span>
-            )}
-          </div>
-        </Link>
+              <span>LIVE</span>
+            </button>
+          )}
+        </div>
 
         {/* ── 2. Center: Pure Typographic Fluid Sliding Navigation (Geometrically Centered & Spacious) ── */}
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center p-1.5 px-2.5 sm:px-3 gap-2 sm:gap-2.5 rounded-full bg-[#15102a]/85 border border-white/[0.08] shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] z-10">
@@ -263,74 +205,7 @@ const TopNav = () => {
         </div>
 
         {/* ── 3. Right: Sleek Action Controls ───────────────────────────────── */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-20">
-
-          {/* LIVE NOW Radar Button (Hanya saat siaran streaming aktif) */}
-          {isCurrentlyLive && (
-            <button
-              type="button"
-              onClick={handleLiveClick}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_14px_rgba(239,68,68,0.3)] active:scale-95 transition-all duration-200 cursor-pointer group shrink-0"
-              title="Sinyal Siaran Langsung Aktif - Klik untuk Menonton"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase font-sans animate-pulse">
-                <span className="hidden sm:inline">LIVE NOW</span>
-                <span className="sm:hidden">LIVE</span>
-              </span>
-            </button>
-          )}
-
-          {/* Ambient Synthesizer Button (5-Bar Wave Visualizer) */}
-          <button
-            type="button"
-            onClick={toggleAudio}
-            className={`
-              h-8.5 sm:h-9 px-2.5 sm:px-3 rounded-full border flex items-center gap-2 transition-all duration-200 active:scale-95 group shrink-0
-              ${
-                isPlayingAudio
-                  ? 'bg-accent-cyan/15 border-accent-cyan/50 text-accent-cyan shadow-[0_0_14px_rgba(94,234,212,0.25)]'
-                  : 'bg-white/[0.04] border-white/[0.08] text-white/70 hover:text-accent-cyan hover:border-accent-cyan/40 hover:bg-white/[0.08]'
-              }
-            `}
-            aria-label={isPlayingAudio ? 'Matikan musik ambien' : 'Nyalakan musik ambien'}
-            title={isPlayingAudio ? 'Audio Ambien: Berputar (Klik untuk membisukan)' : 'Audio Ambien: Bisu (Klik untuk mendengarkan)'}
-          >
-            <div className="flex items-end gap-[2.5px] h-3.5">
-              <span
-                className={`w-[2px] rounded-full transition-all duration-200 ${
-                  isPlayingAudio ? 'bg-accent-cyan animate-eq-1' : 'h-1.5 bg-white/50 group-hover:bg-accent-cyan/70'
-                }`}
-              />
-              <span
-                className={`w-[2px] rounded-full transition-all duration-200 ${
-                  isPlayingAudio ? 'bg-accent-cyan animate-eq-2' : 'h-2.5 bg-white/50 group-hover:bg-accent-cyan/70'
-                }`}
-              />
-              <span
-                className={`w-[2px] rounded-full transition-all duration-200 ${
-                  isPlayingAudio ? 'bg-gradient-to-t from-accent-cyan to-accent-purple animate-eq-3' : 'h-3.5 bg-white/50 group-hover:bg-accent-cyan/70'
-                }`}
-              />
-              <span
-                className={`w-[2px] rounded-full transition-all duration-200 ${
-                  isPlayingAudio ? 'bg-accent-purple animate-eq-4' : 'h-2 bg-white/50 group-hover:bg-accent-cyan/70'
-                }`}
-              />
-              <span
-                className={`w-[2px] rounded-full transition-all duration-200 ${
-                  isPlayingAudio ? 'bg-accent-cyan animate-eq-5' : 'h-1.5 bg-white/50 group-hover:bg-accent-cyan/70'
-                }`}
-              />
-            </div>
-            <span className="hidden xl:inline text-[11px] font-mono tracking-tight font-medium">
-              {isPlayingAudio ? 'Synth ON' : 'Synth'}
-            </span>
-          </button>
-
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
           {/* Saweria Creator Appreciation Button (Harmonious Idle Glass & Official Mascot Logo) */}
           <a
             href="https://saweria.co/xionregalia"
@@ -405,8 +280,8 @@ const TopNav = () => {
               className="flex items-center justify-between py-2 px-3.5 rounded-2xl text-sm font-semibold text-left text-[#a89ec0] hover:bg-white/[0.05] hover:text-accent-cyan transition-all"
             >
               <div className="flex items-center gap-3">
-                <Radio className="w-4 h-4 text-accent-purple" />
-                <span>Jadwal & Agenda Siaran</span>
+                <Radio className={`w-4 h-4 ${isCurrentlyLive ? 'text-status-live animate-pulse' : 'text-accent-purple'}`} />
+                <span>{isCurrentlyLive ? '🔴 Tonton Siaran Langsung (Live)' : 'Jadwal & Agenda Siaran'}</span>
               </div>
               <ChevronRight className="w-4 h-4 opacity-40" />
             </button>

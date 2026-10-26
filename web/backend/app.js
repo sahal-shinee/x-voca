@@ -46,11 +46,28 @@ app.use((req, res, next) => {
 // MIDDLEWARE
 // ============================================================
 
-// CORS configuration - RESTRICTIVE for production
+// CORS configuration - Multi-origin & mobile friendly
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.CORS_ORIGIN
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'x-user-id'],
   credentials: true
 };
 app.use(cors(corsOptions));
@@ -77,8 +94,8 @@ if (process.env.NODE_ENV === 'development') {
 // ROUTES
 // ============================================================
 
-// Health check (public)
-app.get('/health', (req, res) => {
+// Health check (public) - supports both /health and /api/health
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({
     success: true,
     data: {

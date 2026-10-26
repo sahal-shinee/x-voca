@@ -1027,6 +1027,29 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             ),
           ],
 
+          // Collab Guest (opsional)
+          if (schedule.collabGuest?.isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(LucideIcons.users, color: AppColors.primary(isDark), size: 13),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Collab: ${schedule.collabGuest!}${schedule.collabSocial?.isNotEmpty == true ? " (${schedule.collabSocial})" : ""}',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 11,
+                      color: AppColors.primary(isDark),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
           // Banner YouTube Link + Quick Utilities (Buka & Salin)
           if (hasYoutubeUrl) ...[
             const SizedBox(height: 12),
@@ -1904,6 +1927,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final descriptionController = TextEditingController();
     final youtubeController = TextEditingController();
     final webUrlController = TextEditingController();
+    final collabGuestController = TextEditingController();
+    final collabSocialController = TextEditingController();
 
     String thumbnailMode = 'youtube'; // 'youtube' | 'upload' | 'url'
     String? thumbnailUrl;
@@ -2103,7 +2128,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-
+                  _buildSectionLabel('KOLABORASI / GUEST (OPSIONAL)', isDark),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: collabGuestController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                    decoration: _inputDecoration('Nama Guest / VTuber (contoh: Kobo Kanaeru)', isDark),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: collabSocialController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                    decoration: _inputDecoration('Handle / Akun Sosial (contoh: @kobokanaeru)', isDark),
+                  ),
+                  const SizedBox(height: 14),
 
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -2233,6 +2271,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           streamPlatform: 'YouTube',
                           countdownEnabled: countdownEnabled,
                           status: 'upcoming',
+                          collabGuest: collabGuestController.text.trim().isEmpty ? null : collabGuestController.text.trim(),
+                          collabSocial: collabSocialController.text.trim().isEmpty ? null : collabSocialController.text.trim(),
                         );
 
                         if (modalContext.mounted) {
@@ -2282,6 +2322,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final titleController = TextEditingController(text: schedule.title);
     final descriptionController = TextEditingController(text: schedule.description ?? '');
     final youtubeController = TextEditingController(text: schedule.youtubeUrl ?? '');
+    final collabGuestController = TextEditingController(text: schedule.collabGuest ?? '');
+    final collabSocialController = TextEditingController(text: schedule.collabSocial ?? '');
 
     String initialMode = 'youtube';
     if (schedule.thumbnailUrl?.startsWith('data:image') == true) {
@@ -2517,7 +2559,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-
+                  _buildSectionLabel('KOLABORASI / GUEST (OPSIONAL)', isDark),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: collabGuestController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                    decoration: _inputDecoration('Nama Guest / VTuber (contoh: Kobo Kanaeru)', isDark),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: collabSocialController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
+                    decoration: _inputDecoration('Handle / Akun Sosial (contoh: @kobokanaeru)', isDark),
+                  ),
+                  const SizedBox(height: 14),
 
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -2644,6 +2699,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               : thumbnailUrl?.trim(),
                           'countdown_enabled': countdownEnabled ? 1 : 0,
                           'status': selectedStatus,
+                          'collab_guest': collabGuestController.text.trim().isEmpty ? null : collabGuestController.text.trim(),
+                          'collab_social': collabSocialController.text.trim().isEmpty ? null : collabSocialController.text.trim(),
                         };
 
                         if (modalContext.mounted) {

@@ -11,10 +11,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import api from '../../services/api';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * SearchModal - Clean & Minimalist Command Search
- * Simple, fast, distraction-free
+ * Fully theme-adaptive (supports Dark & Light mode) with warm, harmonious colors.
  */
 export function SearchModal({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -23,6 +24,17 @@ export function SearchModal({ isOpen, onClose }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Safe theme detection
+  let isDark = true;
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) {
+      isDark = themeCtx.isDark;
+    }
+  } catch {
+    isDark = true;
+  }
 
   // 4 Primary Quick Links
   const quickLinks = [
@@ -159,43 +171,84 @@ export function SearchModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4">
+    <div
+      data-admin-theme={isDark ? 'dark' : 'light'}
+      data-theme={isDark ? 'dark' : 'light'}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4"
+    >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className={`fixed inset-0 transition-opacity duration-200 backdrop-blur-sm ${
+          isDark ? 'bg-black/60' : 'bg-stone-900/25'
+        }`}
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Clean Minimalist Modal */}
       <div
-        className="relative w-full max-w-lg bg-[#0e0a22]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+        className={`
+          relative w-full max-w-lg
+          ${
+            isDark
+              ? 'bg-[#110e22]/95 border-white/[0.12] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]'
+              : 'bg-white/95 border-[#E5E0D6] shadow-[0_20px_50px_-12px_rgba(28,25,23,0.12),0_0_0_1px_rgba(0,0,0,0.03)]'
+          }
+          backdrop-blur-2xl border rounded-2xl overflow-hidden animate-scale-in
+        `}
         role="dialog"
         aria-modal="true"
       >
-        {/* Search Input Bar (Seamless & Border-free) */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.08]">
-          <Search className="w-4.5 h-4.5 text-text-muted shrink-0" />
+        {/* Search Input Bar */}
+        <div
+          className={`flex items-center gap-3 px-4 py-3.5 border-b ${
+            isDark ? 'border-white/[0.08]' : 'border-[#E5E0D6]'
+          }`}
+        >
+          <Search
+            className={`w-4.5 h-4.5 shrink-0 ${
+              isDark ? 'text-text-muted' : 'text-[#78716C]'
+            }`}
+          />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari jadwal, game, konten..."
-            className="flex-1 bg-transparent text-white placeholder:text-text-muted/60 outline-none border-0 focus:outline-none focus:ring-0 text-sm shadow-none"
+            className={`flex-1 bg-transparent text-sm outline-none border-0 focus:outline-none focus:ring-0 shadow-none ${
+              isDark
+                ? 'text-[#F8F9FC] placeholder:text-[#8E8AA0]/60'
+                : 'text-[#1C1917] placeholder:text-[#78716C]/60'
+            }`}
           />
-          {loading && <Loader2 className="w-4 h-4 text-accent-cyan animate-spin shrink-0" />}
+          {loading && (
+            <Loader2
+              className={`w-4 h-4 animate-spin shrink-0 ${
+                isDark ? 'text-accent-cyan' : 'text-[#0D9488]'
+              }`}
+            />
+          )}
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-text-muted hover:text-white p-0.5 rounded transition-colors"
+              className={`p-0.5 rounded transition-colors ${
+                isDark ? 'text-text-muted hover:text-white' : 'text-[#78716C] hover:text-[#1C1917]'
+              }`}
               title="Hapus"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="px-1.5 py-0.5 bg-white/[0.05] border border-white/[0.1] rounded text-[10px] font-mono text-text-muted">
+          <kbd
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+              isDark
+                ? 'bg-white/[0.05] border border-white/[0.1] text-text-muted'
+                : 'bg-[#F5F3EF] border border-[#E5E0D6] text-[#78716C]'
+            }`}
+          >
             ESC
           </kbd>
         </div>
@@ -204,7 +257,11 @@ export function SearchModal({ isOpen, onClose }) {
         <div className="max-h-80 overflow-y-auto p-2">
           {!query.trim() ? (
             <div>
-              <p className="px-3 py-1.5 text-[10px] font-mono font-semibold text-text-muted uppercase tracking-wider">
+              <p
+                className={`px-3 py-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-text-muted' : 'text-[#78716C]'
+                }`}
+              >
                 Pintasan
               </p>
               <div className="space-y-1 mt-0.5">
@@ -221,8 +278,12 @@ export function SearchModal({ isOpen, onClose }) {
                         w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 text-left group
                         ${
                           isSelected
-                            ? 'bg-white/[0.08] text-white border border-white/[0.1]'
-                            : 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                            ? isDark
+                              ? 'bg-white/[0.08] text-white border border-white/[0.1]'
+                              : 'bg-[#EFECE6] text-[#1C1917] border border-[#DDD7CD]'
+                            : isDark
+                              ? 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                              : 'text-[#44403C] hover:text-[#1C1917] hover:bg-[#F5F3EF] border border-transparent'
                         }
                       `}
                     >
@@ -230,15 +291,25 @@ export function SearchModal({ isOpen, onClose }) {
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                             isSelected
-                              ? 'bg-accent-cyan/20 text-accent-cyan'
-                              : 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                              ? isDark
+                                ? 'bg-accent-cyan/20 text-accent-cyan'
+                                : 'bg-[#0D9488]/15 text-[#0D9488]'
+                              : isDark
+                                ? 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                                : 'bg-[#F0EDE6] text-[#78716C] group-hover:text-[#1C1917]'
                           }`}
                         >
                           <Icon className="w-3.5 h-3.5" />
                         </div>
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-text-muted/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      <ArrowRight
+                        className={`w-4 h-4 transition-all group-hover:translate-x-0.5 ${
+                          isDark
+                            ? 'text-text-muted/40 group-hover:text-white'
+                            : 'text-[#78716C]/40 group-hover:text-[#1C1917]'
+                        }`}
+                      />
                     </button>
                   );
                 })}
@@ -261,8 +332,12 @@ export function SearchModal({ isOpen, onClose }) {
                           w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 text-left group
                           ${
                             isSelected
-                              ? 'bg-white/[0.08] text-white border border-white/[0.1]'
-                              : 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                              ? isDark
+                                ? 'bg-white/[0.08] text-white border border-white/[0.1]'
+                                : 'bg-[#EFECE6] text-[#1C1917] border border-[#DDD7CD]'
+                              : isDark
+                                ? 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                                : 'text-[#44403C] hover:text-[#1C1917] hover:bg-[#F5F3EF] border border-transparent'
                           }
                         `}
                       >
@@ -270,15 +345,25 @@ export function SearchModal({ isOpen, onClose }) {
                           <div
                             className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                               isSelected
-                                ? 'bg-accent-cyan/20 text-accent-cyan'
-                                : 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                                ? isDark
+                                  ? 'bg-accent-cyan/20 text-accent-cyan'
+                                  : 'bg-[#0D9488]/15 text-[#0D9488]'
+                                : isDark
+                                  ? 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                                  : 'bg-[#F0EDE6] text-[#78716C] group-hover:text-[#1C1917]'
                             }`}
                           >
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <span className="text-sm font-medium truncate">{item.label}</span>
                         </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.05] text-text-muted shrink-0 ml-2">
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded shrink-0 ml-2 ${
+                            isDark
+                              ? 'bg-white/[0.05] text-text-muted'
+                              : 'bg-[#EFECE6] text-[#78716C] border border-[#E5E0D6]'
+                          }`}
+                        >
                           {item.type}
                         </span>
                       </button>
@@ -287,7 +372,11 @@ export function SearchModal({ isOpen, onClose }) {
                 </div>
               ) : (
                 !loading && (
-                  <div className="py-8 text-center text-text-muted text-xs">
+                  <div
+                    className={`py-8 text-center text-xs ${
+                      isDark ? 'text-text-muted' : 'text-[#78716C]'
+                    }`}
+                  >
                     Tidak ada hasil untuk "{query}"
                   </div>
                 )
@@ -297,17 +386,47 @@ export function SearchModal({ isOpen, onClose }) {
         </div>
 
         {/* Minimal Footer */}
-        <div className="px-4 py-2 border-t border-white/[0.06] bg-black/20 flex items-center gap-3 text-[11px] text-text-muted">
+        <div
+          className={`px-4 py-2 border-t flex items-center gap-3 text-[11px] ${
+            isDark
+              ? 'border-white/[0.06] bg-black/25 text-text-muted'
+              : 'border-[#E5E0D6] bg-[#FAF8F5] text-[#78716C]'
+          }`}
+        >
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-mono">↑↓</kbd>
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              ↑↓
+            </kbd>
             navigasi
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-mono">↵</kbd>
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              ↵
+            </kbd>
             pilih
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-mono">esc</kbd>
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              esc
+            </kbd>
             tutup
           </span>
         </div>
