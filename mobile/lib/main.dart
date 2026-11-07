@@ -31,7 +31,7 @@ class XVocaApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
-      title: 'X-VOCA Mobile',
+      title: 'X-VOCA',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: AppTheme.lightTheme,

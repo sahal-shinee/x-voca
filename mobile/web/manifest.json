@@ -1,6 +1,6 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "X-VOCA",
+    "short_name": "X-VOCA",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
