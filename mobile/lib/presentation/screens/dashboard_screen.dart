@@ -866,17 +866,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       setState(() => _isLoadingBroadcast = true);
                       try {
                         final dio = ref.read(dioProvider);
-                        try {
-                          await dio.patch(
-                            '/auth/broadcasting',
-                            data: {'is_broadcasting': val, 'is_live': val},
-                          );
-                        } catch (_) {
-                          await dio.patch(
-                            '/dashboard/live-status',
-                            data: {'is_broadcasting': val, 'is_live': val},
-                          );
-                        }
+                        await dio.patch(
+                          '/dashboard/live-status',
+                          data: {'is_live': val},
+                        );
 
                         setState(() => _isBroadcasting = val);
                         await ref.read(scheduleProvider.notifier).fetchSchedules();

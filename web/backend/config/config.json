@@ -1,28 +1,28 @@
 {
   "development": {
     "username": "root",
-    "password": "TnagQJCGwAxTACqpIjzshBtfrPMewXYG",
-    "database": "railway",
-    "host": "tokaido.proxy.rlwy.net",
-    "port": 40526,
+    "password": "",
+    "database": "xvoca_db",
+    "host": "127.0.0.1",
+    "port": 3306,
     "dialect": "mysql",
     "logging": false
   },
   "test": {
     "username": "root",
-    "password": "TnagQJCGwAxTACqpIjzshBtfrPMewXYG",
-    "database": "railway",
-    "host": "tokaido.proxy.rlwy.net",
-    "port": 40526,
+    "password": "",
+    "database": "xvoca_db",
+    "host": "127.0.0.1",
+    "port": 3306,
     "dialect": "mysql",
     "logging": false
   },
   "production": {
     "username": "root",
-    "password": "TnagQJCGwAxTACqpIjzshBtfrPMewXYG",
-    "database": "railway",
-    "host": "tokaido.proxy.rlwy.net",
-    "port": 40526,
+    "password": "",
+    "database": "xvoca_db",
+    "host": "127.0.0.1",
+    "port": 3306,
     "dialect": "mysql",
     "logging": false
   }
