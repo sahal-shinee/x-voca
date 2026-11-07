@@ -53,7 +53,7 @@ const Schedule = sequelize.define('Schedule', {
     field: 'youtube_url'
   },
   thumbnail_url: {
-    type: DataTypes.STRING(500),
+    type: DataTypes.TEXT('medium'),
     allowNull: true,
     field: 'thumbnail_url'
   },

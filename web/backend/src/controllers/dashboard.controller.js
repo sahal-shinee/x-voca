@@ -244,6 +244,7 @@ const getAuditLogs = async (req, res) => {
     const logsWithTimeAgo = logs.map(log => {
       const logData = log.toJSON ? log.toJSON() : { ...log };
       logData.time_ago = getTimeAgo(logData.created_at);
+      logData.description = logData.detail || logData.description || "-";
       return logData;
     });
 
@@ -270,7 +271,85 @@ const getAuditLogs = async (req, res) => {
   }
 };
 
+/**
+ * Toggle status siaran live broadcast
+ * PATCH /api/dashboard/live-status
+ * Body: { is_live: boolean }
+ */
+const updateLiveStatus = async (req, res) => {
+  try {
+    const { is_live } = req.body;
+
+    if (is_live) {
+      // 1. Cari jadwal terdekat yang statusnya masih 'upcoming'
+      let targetSchedule = await Schedule.findOne({
+        where: { status: 'upcoming' },
+        order: [['scheduled_at', 'ASC']]
+      });
+
+      // 2. Jika tidak ada jadwal upcoming, ambil jadwal paling terakhir
+      if (!targetSchedule) {
+        targetSchedule = await Schedule.findOne({
+          order: [['created_at', 'DESC']]
+        });
+      }
+
+      // Ubah status jadwal tersebut menjadi 'live'
+      if (targetSchedule) {
+        await targetSchedule.update({ status: 'live' });
+      }
+
+      // Catat ke AuditLog jika tersedia
+      try {
+        if (AuditLog) {
+          await AuditLog.create({
+            action_type: 'status_changed',
+            detail: targetSchedule ? ('Live broadcast dimulai: ' + targetSchedule.title) : 'Live broadcast siaran dimulai',
+            sub_detail: 'Status siaran diubah ke LIVE'
+          });
+        }
+      } catch (_) {}
+
+      return res.status(200).json({
+        success: true,
+        data: { is_live: true, schedule: targetSchedule },
+        message: 'Status siaran live berhasil diaktifkan.'
+      });
+    } else {
+      // Matikan semua jadwal yang sedang berstatus 'live' menjadi 'done'
+      await Schedule.update(
+        { status: 'done' },
+        { where: { status: 'live' } }
+      );
+
+      try {
+        if (AuditLog) {
+          await AuditLog.create({
+            action_type: 'status_changed',
+            detail: 'Live broadcast siaran dihentikan',
+            sub_detail: 'Status siaran diubah ke DONE'
+          });
+        }
+      } catch (_) {}
+
+      return res.status(200).json({
+        success: true,
+        data: { is_live: false },
+        message: 'Status siaran live dinonaktifkan.'
+      });
+    }
+  } catch (error) {
+    console.error('Update live status error:', error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: 'Gagal memperbarui status live broadcast: ' + error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboardStats,
-  getAuditLogs
+  getAuditLogs,
+  updateLiveStatus
 };

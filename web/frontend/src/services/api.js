@@ -249,4 +249,6 @@ export const dashboardAPI = {
 export const youtubeAPI = {
   fetch: (url) =>
     api.post('/api/youtube/fetch', { url }),
+  getStats: () =>
+    api.get('/api/youtube/stats'),
 };

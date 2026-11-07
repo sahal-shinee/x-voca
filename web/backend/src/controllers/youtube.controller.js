@@ -1,10 +1,14 @@
 const axios = require('axios');
 
+// Cache memori sederhana (15 menit) agar hemat kuota Google API
+let cachedStats = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 15 * 60 * 1000;
+
 /**
  * Extract YouTube video ID from various URL formats
  */
 const extractVideoId = (url) => {
-  // Support: youtube.com/live/ID, youtu.be/ID, watch?v=ID
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
     /youtube\.com\/live\/([^&\n?#]+)/,
@@ -31,7 +35,6 @@ const extractPlaylistId = (url) => {
 /**
  * Fetch YouTube video info
  * POST /api/youtube/fetch
- * Returns: { title, thumbnail_url, category, published_at }
  */
 const fetchYouTubeInfo = async (req, res) => {
   try {
@@ -45,7 +48,7 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAzSEpeZu2_bSqopF5N5piIy2Ww87G4oD8';
     const videoId = extractVideoId(url);
     const playlistId = extractPlaylistId(url);
 
@@ -57,7 +60,6 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
-    // Fallback info if API key is not configured or API fails
     const fallbackThumbnail = videoId
       ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
       : null;
@@ -75,7 +77,6 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
-    // If it's a playlist and no direct videoId, or specifically has playlistId
     if (playlistId && (!videoId || url.includes('/playlist'))) {
       try {
         const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
@@ -108,7 +109,6 @@ const fetchYouTubeInfo = async (req, res) => {
       }
     }
 
-    // Fetch video details using YouTube Data API v3
     if (videoId) {
       try {
         const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
@@ -139,7 +139,6 @@ const fetchYouTubeInfo = async (req, res) => {
       }
     }
 
-    // If API returned 0 items or threw, return fallback thumbnail if videoId exists
     if (fallbackThumbnail) {
       return res.status(200).json({
         success: true,
@@ -161,7 +160,6 @@ const fetchYouTubeInfo = async (req, res) => {
   } catch (error) {
     console.error('YouTube fetch error:', error.response?.data || error.message);
 
-    // Handle YouTube API errors
     if (error.response?.status === 404) {
       return res.status(404).json({
         success: false,
@@ -187,44 +185,34 @@ const fetchYouTubeInfo = async (req, res) => {
 };
 
 /**
- * In-memory cache for YouTube channel stats (5-minute TTL)
- */
-let _statsCache = null;
-let _statsCachedAt = 0;
-const STATS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Fetch YouTube channel statistics (subscribers, video count)
- * GET /api/youtube/stats  — public, no auth required
- * Returns: { subscriberCount, videoCount }
+ * Get YouTube channel stats
+ * GET /api/youtube/stats — public, cached
+ * Returns channel info, subscribers, views, and videos
  */
 const getChannelStats = async (req, res) => {
   try {
     const now = Date.now();
 
-    // Serve from cache if fresh
-    if (_statsCache && now - _statsCachedAt < STATS_CACHE_TTL_MS) {
-      return res.status(200).json({ success: true, data: _statsCache, cached: true });
-    }
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    const channelId = process.env.YOUTUBE_CHANNEL_ID;
-
-    if (!apiKey || !channelId) {
-      return res.status(503).json({
-        success: false,
-        data: null,
-        message: 'YouTube API key atau Channel ID belum dikonfigurasi.'
+    // Kembalikan cache jika masih dalam batas cache (15 menit)
+    if (cachedStats && (now - lastFetchTime < CACHE_DURATION)) {
+      return res.status(200).json({
+        success: true,
+        source: 'cache',
+        data: cachedStats,
       });
     }
 
-    const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+    const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAzSEpeZu2_bSqopF5N5piIy2Ww87G4oD8';
+    const channelId = process.env.YOUTUBE_CHANNEL_ID || 'UCtOvoDqWorYc6NqkuGmZgEg';
+
+    const url = 'https://www.googleapis.com/youtube/v3/channels';
+    const response = await axios.get(url, {
       params: {
-        part: 'statistics',
+        part: 'snippet,statistics',
         id: channelId,
-        key: apiKey
+        key: apiKey,
       },
-      timeout: 8000
+      timeout: 8000,
     });
 
     const items = response.data?.items;
@@ -232,37 +220,64 @@ const getChannelStats = async (req, res) => {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Channel YouTube tidak ditemukan.'
+        message: 'Channel YouTube tidak ditemukan.',
       });
     }
 
-    const stats = items[0].statistics;
-    const payload = {
-      subscriberCount: parseInt(stats.subscriberCount || '0', 10),
-      videoCount: parseInt(stats.videoCount || '0', 10),
-      viewCount: parseInt(stats.viewCount || '0', 10)
+    const channel = items[0];
+    const subCount = parseInt(channel.statistics.subscriberCount, 10) || 0;
+    const viewCount = parseInt(channel.statistics.viewCount, 10) || 0;
+    const vidCount = parseInt(channel.statistics.videoCount, 10) || 0;
+
+    const stats = {
+      channel_name: channel.snippet.title,
+      custom_url: channel.snippet.customUrl || '@xionregalia',
+      avatar_url: channel.snippet.thumbnails?.medium?.url || channel.snippet.thumbnails?.default?.url,
+      subscribers: subCount,
+      total_views: viewCount,
+      total_videos: vidCount,
+      // Compatibility with web frontend
+      subscriberCount: subCount,
+      videoCount: vidCount,
+      viewCount: viewCount,
+      updated_at: new Date().toISOString(),
     };
 
-    // Store in cache
-    _statsCache = payload;
-    _statsCachedAt = now;
+    cachedStats = stats;
+    lastFetchTime = now;
 
-    return res.status(200).json({ success: true, data: payload, cached: false });
+    return res.status(200).json({
+      success: true,
+      source: 'live_api',
+      data: stats,
+      message: 'Statistik YouTube berhasil diperbarui.',
+    });
   } catch (error) {
-    console.error('YouTube channel stats error:', error.response?.data || error.message);
-
-    if (error.response?.status === 403) {
-      return res.status(403).json({
-        success: false,
-        data: null,
-        message: 'YouTube API key tidak memiliki akses atau kuota habis.'
+    console.error('YouTube stats error:', error.response?.data || error.message);
+    if (cachedStats) {
+      return res.status(200).json({
+        success: true,
+        source: 'stale_cache',
+        data: cachedStats,
+        message: 'Menggunakan data statistik tersimpan.',
       });
     }
-
-    return res.status(500).json({
-      success: false,
-      data: null,
-      message: 'Gagal mengambil statistik channel YouTube.'
+    return res.status(200).json({
+      success: true,
+      source: 'fallback',
+      data: {
+        channel_name: 'Xion Regalia Ch',
+        custom_url: '@xionregalia',
+        avatar_url: 'https://yt3.ggpht.com/420karrhb78PSJENTapcnmM3dmQw0fU_SvoWKtg3qcE46VD9sL7w7KVGJ-ANG-JxyBjugThI=s240-c-k-c0x00ffffff-no-rj',
+        subscribers: 4610,
+        total_views: 463965,
+        total_videos: 703,
+        subscriberCount: 4610,
+        videoCount: 703,
+        viewCount: 463965,
+        updated_at: new Date().toISOString(),
+      },
+      message: 'Statistik default dimuat (koneksi YouTube API terkendala).',
     });
   }
 };
@@ -271,5 +286,5 @@ module.exports = {
   fetchYouTubeInfo,
   getChannelStats,
   extractVideoId,
-  extractPlaylistId
+  extractPlaylistId,
 };

@@ -108,10 +108,16 @@ app.use('/api/collab-requests', collabRequestRoutes);
 app.use('/api/todos', todoRoutes);
 
 // Legacy protected routes (for backward compatibility)
+app.use('/dashboard', dashboardRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/api/dashboard', dashboardRoutes);
+app.use('/audit-logs', auditLogRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/api/audit-logs', auditLogRoutes);
 app.use('/api/todos', todoRoutes);
+app.use('/youtube', youtubeRoutes);
 app.use('/api/youtube', youtubeRoutes);
+app.use('/api/api/youtube', youtubeRoutes);
 
 // ============================================================
 // ERROR HANDLING

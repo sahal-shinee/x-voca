@@ -9,4 +9,7 @@ router.use(authMiddleware);
 // GET /api/dashboard/stats - Get dashboard statistics
 router.get('/stats', dashboardController.getDashboardStats);
 
+// PATCH /api/dashboard/live-status - Toggle live broadcast status
+router.patch('/live-status', dashboardController.updateLiveStatus);
+
 module.exports = router;
