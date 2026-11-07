@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  Clock,
   ArrowRight,
   LayoutDashboard,
   Calendar,
@@ -10,13 +9,13 @@ import {
   BookOpen,
   X,
   Loader2,
-  Sparkles
 } from 'lucide-react';
 import api from '../../services/api';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
- * SearchModal - Clean command palette search
- * Features: Cmd+K, keyboard nav, recent searches
+ * SearchModal - Clean & Minimalist Command Search
+ * Fully theme-adaptive (supports Dark & Light mode) with warm, harmonious colors.
  */
 export function SearchModal({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -25,28 +24,27 @@ export function SearchModal({ isOpen, onClose }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      const saved = localStorage.getItem('xvoca_recent_searches');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
 
-  // Quick links
+  // Safe theme detection
+  let isDark = true;
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) {
+      isDark = themeCtx.isDark;
+    }
+  } catch {
+    isDark = true;
+  }
+
+  // 4 Primary Quick Links
   const quickLinks = [
-    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'cyan' },
-    { key: 'schedules', label: 'Jadwal', icon: Calendar, path: '/admin/schedules', color: 'purple' },
-    { key: 'voting', label: 'Game Voting', icon: Gamepad2, path: '/admin/voting', color: 'gold' },
-    { key: 'content', label: 'Content Guide', icon: BookOpen, path: '/admin/content', color: 'cyan' },
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { key: 'schedules', label: 'Jadwal', icon: Calendar, path: '/admin/schedules' },
+    { key: 'voting', label: 'Game Voting', icon: Gamepad2, path: '/admin/voting' },
+    { key: 'content', label: 'Content Guide', icon: BookOpen, path: '/admin/content' },
   ];
 
-  const colorMap = {
-    cyan: { bg: 'bg-accent-cyan/10', text: 'text-accent-cyan' },
-    purple: { bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
-    gold: { bg: 'bg-accent-gold/10', text: 'text-accent-gold' },
-  };
+  const activeItems = query.trim() ? results : quickLinks;
 
   // Debounced search
   useEffect(() => {
@@ -54,39 +52,50 @@ export function SearchModal({ isOpen, onClose }) {
       setResults([]);
       return;
     }
-    const timer = setTimeout(() => performSearch(query), 300);
+    const timer = setTimeout(() => performSearch(query), 250);
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Focus on open
+  // Focus input on open
   useEffect(() => {
-    if (isOpen && inputRef.current) inputRef.current.focus();
-    if (!isOpen) {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
       setQuery('');
       setResults([]);
       setSelectedIndex(0);
     }
   }, [isOpen]);
 
-  // Keyboard nav
+  // Reset selected index when query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
+
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowDown') {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+        setSelectedIndex((prev) => (activeItems.length > 0 ? (prev + 1) % activeItems.length : 0));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-      } else if (e.key === 'Enter' && results[selectedIndex]) {
-        e.preventDefault();
-        handleSelect(results[selectedIndex]);
+        setSelectedIndex((prev) => (activeItems.length > 0 ? (prev - 1 + activeItems.length) % activeItems.length : 0));
+      } else if (e.key === 'Enter') {
+        if (activeItems[selectedIndex]) {
+          e.preventDefault();
+          handleSelect(activeItems[selectedIndex]);
+        }
       }
     };
+
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, results, selectedIndex, onClose]);
+  }, [isOpen, activeItems, selectedIndex, onClose]);
 
   const performSearch = async (q) => {
     setLoading(true);
@@ -103,15 +112,13 @@ export function SearchModal({ isOpen, onClose }) {
         const data = Array.isArray(schedules.value.data.data)
           ? schedules.value.data.data
           : schedules.value.data.data.schedules || [];
-        data.slice(0, 3).forEach(item => {
+        data.slice(0, 3).forEach((item) => {
           items.push({
             id: `s_${item.id}`,
-            type: 'schedules',
-            title: item.title || 'Untitled',
-            subtitle: item.category || 'Jadwal',
+            label: item.title || 'Untitled',
+            type: 'Jadwal',
             icon: Calendar,
             path: '/admin/schedules',
-            color: 'purple',
           });
         });
       }
@@ -120,15 +127,13 @@ export function SearchModal({ isOpen, onClose }) {
         const data = Array.isArray(games.value.data.data)
           ? games.value.data.data
           : games.value.data.data.games || [];
-        data.slice(0, 3).forEach(item => {
+        data.slice(0, 3).forEach((item) => {
           items.push({
             id: `g_${item.id}`,
-            type: 'games',
-            title: item.title || item.name || 'Untitled',
-            subtitle: item.genre || 'Game',
+            label: item.title || item.name || 'Untitled',
+            type: 'Voting',
             icon: Gamepad2,
             path: '/admin/voting',
-            color: 'gold',
           });
         });
       }
@@ -137,15 +142,13 @@ export function SearchModal({ isOpen, onClose }) {
         const data = Array.isArray(content.value.data.data)
           ? content.value.data.data
           : content.value.data.data.content || [];
-        data.slice(0, 3).forEach(item => {
+        data.slice(0, 3).forEach((item) => {
           items.push({
             id: `c_${item.id}`,
-            type: 'content',
-            title: item.title || 'Untitled',
-            subtitle: item.category || item.gameTag || 'Content',
+            label: item.title || 'Untitled',
+            type: 'Konten',
             icon: BookOpen,
             path: '/admin/content',
-            color: 'cyan',
           });
         });
       }
@@ -161,158 +164,270 @@ export function SearchModal({ isOpen, onClose }) {
   };
 
   const handleSelect = (item) => {
-    const updated = [item, ...recentSearches.filter(r => r.id !== item.id)].slice(0, 5);
-    setRecentSearches(updated);
-    try {
-      localStorage.setItem('xvoca_recent_searches', JSON.stringify(updated));
-    } catch {}
     navigate(item.path);
     onClose();
-  };
-
-  const clearRecent = () => {
-    setRecentSearches([]);
-    try { localStorage.removeItem('xvoca_recent_searches'); } catch {}
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4">
+    <div
+      data-admin-theme={isDark ? 'dark' : 'light'}
+      data-theme={isDark ? 'dark' : 'light'}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4"
+    >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className={`fixed inset-0 transition-opacity duration-200 backdrop-blur-sm ${
+          isDark ? 'bg-black/60' : 'bg-stone-900/25'
+        }`}
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg bg-bg-card border border-border-subtle rounded-xl shadow-modal overflow-hidden animate-scale-in">
-        {/* Search Input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
-          <Search className="w-5 h-5 text-text-muted" />
+      {/* Clean Minimalist Modal */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`
+          relative w-full max-w-lg
+          ${
+            isDark
+              ? 'bg-[#110e22]/95 border-white/[0.12] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]'
+              : 'bg-white/95 border-[#E5E0D6] shadow-[0_20px_50px_-12px_rgba(28,25,23,0.12),0_0_0_1px_rgba(0,0,0,0.03)]'
+          }
+          backdrop-blur-2xl border rounded-2xl overflow-hidden animate-scale-in
+        `}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Search Input Bar */}
+        <div
+          className={`flex items-center gap-3 px-4 py-3.5 border-b ${
+            isDark ? 'border-white/[0.08]' : 'border-[#E5E0D6]'
+          }`}
+        >
+          <Search
+            className={`w-4.5 h-4.5 shrink-0 ${
+              isDark ? 'text-text-muted' : 'text-[#78716C]'
+            }`}
+          />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search schedules, games, content..."
-            className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted outline-none text-sm"
+            placeholder="Cari jadwal, game, konten..."
+            className={`flex-1 bg-transparent text-sm outline-none border-0 focus:outline-none focus:ring-0 shadow-none ${
+              isDark
+                ? 'text-[#F8F9FC] placeholder:text-[#8E8AA0]/60'
+                : 'text-[#1C1917] placeholder:text-[#78716C]/60'
+            }`}
           />
-          {loading && <Loader2 className="w-4 h-4 text-accent-cyan animate-spin" />}
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary">
-            <X className="w-4 h-4" />
-          </button>
+          {loading && (
+            <Loader2
+              className={`w-4 h-4 animate-spin shrink-0 ${
+                isDark ? 'text-accent-cyan' : 'text-[#0D9488]'
+              }`}
+            />
+          )}
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className={`p-0.5 rounded transition-colors ${
+                isDark ? 'text-text-muted hover:text-white' : 'text-[#78716C] hover:text-[#1C1917]'
+              }`}
+              title="Hapus"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          <kbd
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+              isDark
+                ? 'bg-white/[0.05] border border-white/[0.1] text-text-muted'
+                : 'bg-[#F5F3EF] border border-[#E5E0D6] text-[#78716C]'
+            }`}
+          >
+            ESC
+          </kbd>
         </div>
 
-        {/* Content */}
+        {/* Content Body */}
         <div className="max-h-80 overflow-y-auto p-2">
-          {!query && (
-            <div className="p-2">
-              {/* Quick Links */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-text-muted uppercase">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Quick Navigate
-                </div>
-                {quickLinks.map(link => {
-                  const colors = colorMap[link.color];
+          {!query.trim() ? (
+            <div>
+              <p
+                className={`px-3 py-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-text-muted' : 'text-[#78716C]'
+                }`}
+              >
+                Pintasan
+              </p>
+              <div className="space-y-1 mt-0.5">
+                {quickLinks.map((item, idx) => {
+                  const isSelected = idx === selectedIndex;
+                  const Icon = item.icon;
                   return (
                     <button
-                      key={link.key}
-                      onClick={() => { navigate(link.path); onClose(); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-bg-surface transition-colors"
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleSelect(item)}
+                      onMouseEnter={() => setSelectedIndex(idx)}
+                      className={`
+                        w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 text-left group
+                        ${
+                          isSelected
+                            ? isDark
+                              ? 'bg-white/[0.08] text-white border border-white/[0.1]'
+                              : 'bg-[#EFECE6] text-[#1C1917] border border-[#DDD7CD]'
+                            : isDark
+                              ? 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                              : 'text-[#44403C] hover:text-[#1C1917] hover:bg-[#F5F3EF] border border-transparent'
+                        }
+                      `}
                     >
-                      <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-                        <link.icon className={`w-4 h-4 ${colors.text}`} />
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected
+                              ? isDark
+                                ? 'bg-accent-cyan/20 text-accent-cyan'
+                                : 'bg-[#0D9488]/15 text-[#0D9488]'
+                              : isDark
+                                ? 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                                : 'bg-[#F0EDE6] text-[#78716C] group-hover:text-[#1C1917]'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-sm font-medium">{item.label}</span>
                       </div>
-                      <span className="flex-1 text-sm text-text-primary">{link.label}</span>
-                      <ArrowRight className="w-4 h-4 text-text-muted" />
+                      <ArrowRight
+                        className={`w-4 h-4 transition-all group-hover:translate-x-0.5 ${
+                          isDark
+                            ? 'text-text-muted/40 group-hover:text-white'
+                            : 'text-[#78716C]/40 group-hover:text-[#1C1917]'
+                        }`}
+                      />
                     </button>
                   );
                 })}
               </div>
-
-              {/* Recent */}
-              {recentSearches.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-xs font-medium text-text-muted uppercase flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5" /> Recent
-                    </span>
-                    <button onClick={clearRecent} className="text-xs text-text-muted hover:text-text-primary">
-                      Clear
-                    </button>
-                  </div>
-                  {recentSearches.map((item, i) => (
-                    <button
-                      key={`${item.id}-${i}`}
-                      onClick={() => handleSelect(item)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-bg-surface transition-colors"
-                    >
-                      <Clock className="w-4 h-4 text-text-muted" />
-                      <div className="flex-1 text-left">
-                        <p className="text-sm text-text-primary">{item.title}</p>
-                        <p className="text-xs text-text-muted">{item.subtitle}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
-
-          {query && (
-            <div className="p-2">
+          ) : (
+            <div>
               {results.length > 0 ? (
-                <>
-                  <div className="px-3 py-2 text-xs font-medium text-text-muted uppercase">
-                    Results ({results.length})
-                  </div>
-                  {results.map((item, index) => {
-                    const colors = colorMap[item.color] || colorMap.cyan;
+                <div className="space-y-1">
+                  {results.map((item, idx) => {
+                    const isSelected = idx === selectedIndex;
+                    const Icon = item.icon;
                     return (
                       <button
                         key={item.id}
+                        type="button"
                         onClick={() => handleSelect(item)}
+                        onMouseEnter={() => setSelectedIndex(idx)}
                         className={`
-                          w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                          ${index === selectedIndex ? 'bg-bg-surface border border-border-subtle' : 'hover:bg-bg-surface'}
+                          w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 text-left group
+                          ${
+                            isSelected
+                              ? isDark
+                                ? 'bg-white/[0.08] text-white border border-white/[0.1]'
+                                : 'bg-[#EFECE6] text-[#1C1917] border border-[#DDD7CD]'
+                              : isDark
+                                ? 'text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent'
+                                : 'text-[#44403C] hover:text-[#1C1917] hover:bg-[#F5F3EF] border border-transparent'
+                          }
                         `}
                       >
-                        <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-                          <item.icon className={`w-4 h-4 ${colors.text}`} />
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? isDark
+                                  ? 'bg-accent-cyan/20 text-accent-cyan'
+                                  : 'bg-[#0D9488]/15 text-[#0D9488]'
+                                : isDark
+                                  ? 'bg-white/[0.04] text-text-muted group-hover:text-white'
+                                  : 'bg-[#F0EDE6] text-[#78716C] group-hover:text-[#1C1917]'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-medium truncate">{item.label}</span>
                         </div>
-                        <div className="flex-1 text-left">
-                          <p className={`text-sm ${index === selectedIndex ? 'text-accent-cyan' : 'text-text-primary'}`}>
-                            {item.title}
-                          </p>
-                          <p className="text-xs text-text-muted">{item.subtitle}</p>
-                        </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded shrink-0 ml-2 ${
+                            isDark
+                              ? 'bg-white/[0.05] text-text-muted'
+                              : 'bg-[#EFECE6] text-[#78716C] border border-[#E5E0D6]'
+                          }`}
+                        >
                           {item.type}
                         </span>
                       </button>
                     );
                   })}
-                </>
-              ) : !loading && (
-                <div className="p-8 text-center text-text-muted">
-                  <p className="text-sm">No results for "{query}"</p>
                 </div>
+              ) : (
+                !loading && (
+                  <div
+                    className={`py-8 text-center text-xs ${
+                      isDark ? 'text-text-muted' : 'text-[#78716C]'
+                    }`}
+                  >
+                    Tidak ada hasil untuk "{query}"
+                  </div>
+                )
               )}
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-2 border-t border-border-subtle bg-bg-surface/50 flex items-center gap-4 text-xs text-text-muted">
+        {/* Minimal Footer */}
+        <div
+          className={`px-4 py-2 border-t flex items-center gap-3 text-[11px] ${
+            isDark
+              ? 'border-white/[0.06] bg-black/25 text-text-muted'
+              : 'border-[#E5E0D6] bg-[#FAF8F5] text-[#78716C]'
+          }`}
+        >
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-bg-card border border-border-subtle rounded text-[10px]">↑↓</kbd>
-            navigate
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              ↑↓
+            </kbd>
+            navigasi
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-bg-card border border-border-subtle rounded text-[10px]">Enter</kbd>
-            select
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              ↵
+            </kbd>
+            pilih
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd
+              className={`px-1 py-0.5 rounded text-[9px] font-mono ${
+                isDark
+                  ? 'bg-white/5 border border-white/10 text-text-muted'
+                  : 'bg-white border border-[#E5E0D6] text-[#78716C] shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              esc
+            </kbd>
+            tutup
           </span>
         </div>
       </div>

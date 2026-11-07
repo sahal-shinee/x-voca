@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useTheme } from '../../hooks/useTheme';
 import {
   X,
   Upload,
@@ -243,58 +245,89 @@ function GameFormPanel({
     }
   }, [isOpen]);
 
+  // Escape key handling
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isVisible && !isOpen) return null;
 
-  return (
-    <>
+  let theme = 'dark';
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) theme = themeCtx.theme;
+  } catch {
+    theme = 'dark';
+  }
+
+  return createPortal(
+    <div
+      data-admin-theme={theme}
+      data-theme={theme}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-hidden transition-all duration-200 ${
+        isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+    >
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-bg-base/70 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/65 backdrop-blur-sm transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
       />
 
-      {/* Slide Panel */}
+      {/* Modern Center Studio Dialog */}
       <div
-        className={`fixed top-0 right-0 h-screen w-[460px] max-w-full bg-bg-card border-l border-border-subtle z-50 flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`
+          relative w-full max-w-2xl lg:max-w-3xl max-h-[90vh]
+          bg-bg-card border border-border-subtle rounded-3xl shadow-2xl
+          flex flex-col z-10 overflow-hidden
+          transition-all duration-200 ease-out
+          ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'}
+        `}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-surface/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent-purple/15 text-accent-purple border border-accent-purple/20 flex items-center justify-center shrink-0">
+        {/* Header (Sticky) */}
+        <div className="px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-accent-purple/15 text-accent-purple border border-accent-purple/20 flex items-center justify-center shrink-0 shadow-xs">
               <Gamepad2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-text-primary leading-tight">
+              <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
                 {isEdit ? 'Edit Data Game' : 'Tambah Game Baru'}
               </h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Kandidat tayang & voting penonton
+              <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+                Kandidat tayang dan voting penonton portal fansite
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card-hover border border-transparent hover:border-border-subtle transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+            title="Tutup (Esc)"
             aria-label="Tutup panel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
+        {/* Scrollable Form Body (with min-h-0) */}
         <form
           id="game-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto p-6 space-y-5"
+          className="flex-1 min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6"
         >
           {/* Judul Game */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider block">
+          <div>
+            <label className="text-xs font-semibold text-text-secondary block mb-2">
               Judul Game <span className="text-status-live">*</span>
             </label>
             <input
@@ -303,23 +336,23 @@ function GameFormPanel({
               value={formData.title}
               onChange={handleChange}
               placeholder="Contoh: Elden Ring: Shadow of the Erdtree"
-              className={`w-full px-4 py-2.5 bg-bg-surface border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none transition-colors ${
+              className={`w-full px-4 py-3 bg-bg-surface border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors ${
                 errors.title
                   ? 'border-status-live focus:border-status-live'
-                  : 'border-border-subtle focus:border-accent-cyan'
+                  : 'border-border-subtle focus:border-accent-purple'
               }`}
             />
             {errors.title && (
-              <p className="text-xs text-status-live flex items-center gap-1 mt-1">
+              <p className="text-xs text-status-live flex items-center gap-1 mt-1.5">
                 <AlertCircle className="w-3.5 h-3.5" />
-                {errors.title}
+                <span>{errors.title}</span>
               </p>
             )}
           </div>
 
           {/* Kategori / Genre */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider block">
+          <div>
+            <label className="text-xs font-semibold text-text-secondary block mb-2">
               Kategori / Genre
             </label>
             <input
@@ -328,19 +361,19 @@ function GameFormPanel({
               value={formData.genre}
               onChange={handleChange}
               placeholder="Contoh: Action RPG, Souls-like"
-              className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
+              className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors"
             />
             {/* Quick Suggestions */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-text-muted mr-1">Rekomendasi:</span>
+            <div className="flex flex-wrap items-center gap-2 pt-2.5">
+              <span className="text-xs text-text-muted mr-1">Rekomendasi:</span>
               {GENRE_SUGGESTIONS.map((sug) => (
                 <button
                   key={sug}
                   type="button"
                   onClick={() => handleSelectGenre(sug)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
                     formData.genre === sug
-                      ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/30 font-medium'
+                      ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/40 font-semibold shadow-xs'
                       : 'bg-bg-surface text-text-muted border-border-subtle hover:text-text-secondary hover:border-border-active'
                   }`}
                 >
@@ -351,8 +384,8 @@ function GameFormPanel({
           </div>
 
           {/* Publisher */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider block">
+          <div>
+            <label className="text-xs font-semibold text-text-secondary block mb-2">
               Publisher / Pengembang
             </label>
             <input
@@ -361,14 +394,14 @@ function GameFormPanel({
               value={formData.publisher}
               onChange={handleChange}
               placeholder="Contoh: FromSoftware, Bandai Namco"
-              className="w-full px-4 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
+              className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors"
             />
           </div>
 
           {/* Cover Image — 2 Pilihan Opsi */}
-          <div className="space-y-3 pt-2 border-t border-border-subtle">
+          <div className="space-y-3 pt-3 border-t border-border-subtle">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider block">
+              <label className="text-xs font-semibold text-text-secondary block mb-1">
                 Cover Image Game
               </label>
               {formData.cover_url && (
@@ -378,7 +411,7 @@ function GameFormPanel({
                   className="text-xs text-status-live hover:underline flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" />
-                  Hapus Cover
+                  <span>Hapus Cover</span>
                 </button>
               )}
             </div>
@@ -482,9 +515,9 @@ function GameFormPanel({
             {formData.cover_url ? (
               <div className="rounded-xl border border-border-subtle bg-bg-surface overflow-hidden p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-accent-purple" />
-                    Preview Cover
+                    <span>Preview Cover</span>
                   </span>
                   {imageLoadStatus === 'valid' && (
                     <span className="text-[10px] font-semibold text-accent-cyan flex items-center gap-1 bg-accent-cyan/10 px-2 py-0.5 rounded-full border border-accent-cyan/20">
@@ -535,13 +568,13 @@ function GameFormPanel({
           </div>
         </form>
 
-        {/* Footer Actions */}
-        <div className="p-5 border-t border-border-subtle bg-bg-surface/40 flex items-center gap-3">
+        {/* Footer Actions (Sticky) */}
+        <div className="px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md flex items-center justify-between gap-3.5 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-active text-sm font-medium transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50"
           >
             Batal
           </button>
@@ -549,7 +582,7 @@ function GameFormPanel({
             type="submit"
             form="game-form"
             disabled={loading || imageProcessing}
-            className="flex-1 py-2.5 rounded-xl bg-gradient-cta text-text-on-cta text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-accent-cyan text-white text-xs font-bold hover:bg-accent-cyan-hover transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -558,14 +591,15 @@ function GameFormPanel({
               </>
             ) : (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4 stroke-[2.5]" />
                 <span>{isEdit ? 'Simpan Perubahan' : 'Tambah Game'}</span>
               </>
             )}
           </button>
         </div>
       </div>
-    </>
+    </div>,
+    document.body
   );
 }
 

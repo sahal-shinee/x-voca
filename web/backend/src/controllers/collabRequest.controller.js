@@ -1,4 +1,5 @@
 const { CollabRequest, User, AuditLog } = require('../models');
+const { pushNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
@@ -69,6 +70,19 @@ const createCollabRequest = async (req, res) => {
       });
     } catch (logErr) {
       console.warn('AuditLog creation skipped for collab request:', logErr.message);
+    }
+
+    // Push real-time notification to Firebase for admin
+    try {
+      await pushNotification({
+        userId: 'default',
+        type: 'collab_requested',
+        title: 'Request Kolaborasi Baru',
+        message: `Viewer merekomendasikan kolaborasi bersama @${requested_streamer_name.trim().replace(/^@/, '')}`,
+        link: '/admin/collab-requests'
+      });
+    } catch (notifErr) {
+      console.warn('Firebase notification skipped for collab request:', notifErr.message);
     }
 
     return res.status(201).json({

@@ -19,7 +19,7 @@ const TICKS = Array.from({ length: 72 }, (_, i) => {
   };
 });
 
-// Status gerbang diturunkan dari state form yang nyata (bukan dekorasi acak)
+// Status gerbang diturunkan dari state form yang nyata
 const GATE = {
   standby: { label: 'STANDBY', tone: 'text-text-muted', ring: 'opacity-30', pulse: false },
   typing: { label: 'CREDENTIALS PENDING', tone: 'text-accent-cyan', ring: 'opacity-40', pulse: false },
@@ -30,8 +30,7 @@ const GATE = {
 };
 
 /**
- * LoginPage - Halaman login untuk Creator/Admin
- * Referensi: UI_SPEC_WEB.md — HALAMAN 4
+ * LoginPage - Halaman login Creator dengan form khas original dan animasi roda/radar sirkular berputar
  */
 function LoginPage() {
   const navigate = useNavigate();
@@ -45,7 +44,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [expiredMessage, setExpiredMessage] = useState('');
 
-  // State khusus tampilan (tidak berhubungan dengan auth / data)
+  // State khusus tampilan
   const [capsOn, setCapsOn] = useState(false);
   const [emailInvalid, setEmailInvalid] = useState(false);
   const [shake, setShake] = useState(false);
@@ -78,20 +77,19 @@ function LoginPage() {
       const result = await login(email, password);
 
       if (result.success) {
-        // Redirect to the page they were trying to access, or dashboard
         const from = location.state?.from || '/admin/dashboard';
         navigate(from, { replace: true });
       } else {
         setError(result.message || 'Email atau password salah');
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Sorot cahaya halus mengikuti kursor (CSS variable, tanpa re-render)
+  // Sorot cahaya halus mengikuti kursor (CSS variable)
   const handleMouseMove = (e) => {
     const el = rootRef.current;
     if (!el) return;
@@ -142,7 +140,7 @@ function LoginPage() {
       {/* Background gradient radial */}
       <div className="absolute inset-0 bg-gradient-radial"></div>
 
-      {/* Grid halus dengan masker, memberi kesan panel kontrol */}
+      {/* Grid halus dengan masker */}
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none"
@@ -162,7 +160,7 @@ function LoginPage() {
         style={{ background: 'radial-gradient(480px circle at var(--mx) var(--my), rgba(126,224,210,0.06), transparent 65%)' }}
       />
 
-      {/* Cincin gerbang: warna dan aktivitasnya mengikuti status form */}
+      {/* ANIMASI RODA / RADAR SIRKULAR BERPUTAR: Warna dan aktivitasnya mengikuti status form */}
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(150vw,900px)] aspect-square transition-all duration-500 ${gate.tone} ${gate.ring}`}
@@ -203,13 +201,7 @@ function LoginPage() {
         </svg>
       </div>
 
-      {/* Decorative elements */}
-      <div className="absolute top-6 sm:top-8 inset-x-6 sm:inset-x-8 flex flex-col sm:flex-row sm:justify-between gap-1 text-[10px] sm:text-xs font-mono text-text-muted">
-        <span>NODE // TOKYO-03 · LATENCY 12ms</span>
-        <span>AUTH GATE // v2.0.3 STABLE</span>
-      </div>
-
-      {/* Login Card (pembungkus luar khusus untuk animasi getar) */}
+      {/* Login Card (pembungkus luar untuk animasi getar) */}
       <div className={`relative w-full max-w-[480px] ${shake ? 'lg-shake' : ''}`}>
         {/* Siku sudut bergaya HUD, warnanya ikut status gerbang */}
         <div aria-hidden="true" className={`pointer-events-none transition-colors duration-500 ${gate.tone}`}>
@@ -227,11 +219,11 @@ function LoginPage() {
             style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.55), transparent)' }}
           />
 
-          {/* Header */}
+          {/* Header Asli Tanpa Emoji */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <span className="lg-blink text-xl text-accent-cyan">|</span>
-              <h1 className="text-xl font-bold text-text-primary">X-VOCA 🔒</h1>
+              <h1 className="text-xl font-bold text-text-primary">X-VOCA</h1>
             </div>
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-input text-accent-gold text-xs font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-gold"></span>
@@ -239,7 +231,7 @@ function LoginPage() {
             </span>
           </div>
 
-          {/* Heading */}
+          {/* Heading Asli */}
           <div className="mb-8">
             <h2 className="text-2xl lg:text-[28px] font-bold text-text-primary mb-2">
               Creator Login
@@ -275,7 +267,7 @@ function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
+          {/* Form Asli yang Disukai User */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
@@ -371,7 +363,7 @@ function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button Asli */}
             <button
               type="submit"
               disabled={loading}
@@ -401,21 +393,6 @@ function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Forgot Password */}
-          <p className="text-center mt-6 text-sm text-text-muted">
-            Lupa password? Hubungi admin.
-          </p>
-
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-border-subtle text-center">
-            <p className="text-[11px] font-mono text-text-muted mb-1">
-              ● TLS 1.3 SECURE ENCLAVE
-            </p>
-            <p className="text-[10px] text-text-muted">
-              © 2025 X-VOCA REGALIA OPS · ENCRYPTED CREATOR SESSION
-            </p>
-          </div>
         </div>
       </div>
 
@@ -425,7 +402,6 @@ function LoginPage() {
           to="/" 
           className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full backdrop-blur-md bg-bg-card/50 border border-border-subtle/60 hover:bg-bg-card/90 hover:border-accent-cyan/50 hover:shadow-[0_0_20px_rgba(126,224,210,0.2)] transition-all duration-300 text-sm font-medium text-text-secondary hover:text-white overflow-hidden"
         >
-          {/* Subtle glow effect inside button on hover */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.08), transparent)' }}></div>
           
           <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1 group-hover:text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">

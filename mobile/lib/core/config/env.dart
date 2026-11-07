@@ -2,12 +2,12 @@ class Env {
   // Toggle antara Backend Lokal (Laptop) dan Production Railway
   static const bool useProduction = false;
 
-  // IP Lokal Laptop saat ini di jaringan Wi-Fi (Cek via `ipconfig`)
-  static const String localHostIp = '192.168.43.13';
+  // IP Lokal / Hostname (Gunakan localhost untuk ADB Reverse via USB)
+  static const String localHostIp = 'localhost';
   static const int backendPort = 3001;
 
   // Definisi URL
-  static const String localApiUrl = 'http://$localHostIp:$backendPort/api';
+  static const String localApiUrl = 'http://localhost:$backendPort/api';
   static const String railwayProductionUrl = 'https://xvoca-api.railway.app/api';
 
   // Base URL aktif yang digunakan oleh aplikasi

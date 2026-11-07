@@ -129,11 +129,14 @@ const getMe = async (req, res) => {
 /**
  * Toggle broadcasting status
  * PATCH /api/auth/broadcasting
+ * Supports both is_broadcasting and is_live (for mobile compatibility)
  */
 const toggleBroadcasting = async (req, res) => {
   try {
     const user = req.user;
-    const { is_broadcasting } = req.body;
+    const is_broadcasting = req.body.is_broadcasting !== undefined
+      ? Boolean(req.body.is_broadcasting)
+      : Boolean(req.body.is_live);
 
     // Update user broadcasting status
     user.is_broadcasting = is_broadcasting;
@@ -145,7 +148,8 @@ const toggleBroadcasting = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        is_broadcasting: user.is_broadcasting
+        is_broadcasting: user.is_broadcasting,
+        is_live: user.is_broadcasting
       },
       message: `Status broadcasting ${is_broadcasting ? 'diaktifkan' : 'dinonaktifkan'}.`
     });

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, AlertTriangle, Info } from 'lucide-react';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Modal Component - General purpose dialog
@@ -112,8 +114,18 @@ function Modal({
   const styles = variantStyles[variant] || variantStyles.default;
   const closeButtonText = cancelText !== undefined ? cancelText : (onConfirm ? 'Batal' : 'Tutup');
 
-  return (
+  let theme = 'dark';
+  try {
+    const themeCtx = useTheme();
+    if (themeCtx?.theme) theme = themeCtx.theme;
+  } catch {
+    theme = 'dark';
+  }
+
+  return createPortal(
     <div
+      data-admin-theme={theme}
+      data-theme={theme}
       className={`
         fixed inset-0 z-50
         flex items-center justify-center p-4
@@ -123,26 +135,26 @@ function Modal({
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-bg-base/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal Content */}
       <div
         className={`
           relative w-full ${modalSize}
           bg-bg-card border border-border-subtle
-          rounded-2xl shadow-2xl overflow-hidden
+          rounded-3xl shadow-2xl overflow-hidden
           transform transition-all duration-200
           ${isOpen && !isAnimatingOut ? 'scale-100' : 'scale-95'}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 md:p-6 border-b border-border-subtle">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-4">
             {/* Icon */}
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${styles.iconBox}`}>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${styles.iconBox}`}>
               {icon || styles.defaultIcon}
             </div>
-            <h2 className="text-lg font-bold text-text-primary">{title}</h2>
+            <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">{title}</h2>
           </div>
 
           {/* Close Button */}
@@ -150,22 +162,22 @@ function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card-hover border border-transparent hover:border-border-subtle transition-colors"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface border border-transparent hover:border-border-subtle transition-colors shrink-0"
               aria-label="Tutup modal"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
 
         {/* Body */}
-        <div className="p-5 md:p-6 max-h-[calc(85vh-140px)] overflow-y-auto">
+        <div className="p-7 sm:p-8 max-h-[calc(85vh-140px)] overflow-y-auto">
           {children}
         </div>
 
         {/* Footer */}
         {footer !== null && (
-          <div className="flex items-center justify-end gap-3 p-5 md:p-6 border-t border-border-subtle bg-bg-surface/30">
+          <div className="flex items-center justify-end gap-3.5 px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md">
             {footer ? (
               footer
             ) : (
@@ -174,7 +186,7 @@ function Modal({
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="px-4 py-2.5 rounded-xl bg-bg-card-hover border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-active text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {closeButtonText}
                 </button>
@@ -184,7 +196,7 @@ function Modal({
                     onClick={onConfirm}
                     disabled={loading}
                     className={`
-                      px-5 py-2.5 rounded-xl text-sm font-semibold
+                      px-6 py-2.5 rounded-xl text-xs font-bold
                       transition-all disabled:opacity-50 disabled:cursor-not-allowed
                       shadow-sm hover:shadow
                       ${styles.confirm}
@@ -220,7 +232,8 @@ function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

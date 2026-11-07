@@ -13,8 +13,9 @@ router.get('/me', authMiddleware, authController.getMe);
 // PATCH /api/auth/broadcasting - Toggle broadcasting status (protected)
 router.patch('/broadcasting', authMiddleware, authController.toggleBroadcasting);
 
-// PATCH /api/auth/profile - Update user profile (protected)
+// PATCH & PUT /api/auth/profile - Update user profile (protected, supports both PATCH and PUT)
 router.patch('/profile', authMiddleware, authController.updateProfile);
+router.put('/profile', authMiddleware, authController.updateProfile);
 
 // PATCH /api/auth/password - Change user password (protected)
 router.patch('/password', authMiddleware, authController.changePassword);

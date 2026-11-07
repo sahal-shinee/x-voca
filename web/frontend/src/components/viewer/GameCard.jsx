@@ -1,8 +1,29 @@
 import { useState } from 'react';
 
 /**
- * GameCard - Enhanced game card with modern design
- * Based on Figma Game Voting Design
+ * GamepadIcon - Clean vector SVG controller icon (no emojis)
+ */
+const GamepadVector = ({ className = 'w-10 h-10', opacity = 'opacity-40' }) => (
+  <svg
+    className={`${className} ${opacity}`}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="6" width="20" height="12" rx="4" />
+    <path d="M6 12h4" />
+    <path d="M8 10v4" />
+    <circle cx="15.5" cy="11.5" r=".75" fill="currentColor" />
+    <circle cx="17.5" cy="13.5" r=".75" fill="currentColor" />
+  </svg>
+);
+
+/**
+ * GameCard - Modern, clean, user-friendly game card (Zero AI Slop)
  */
 function GameCard({
   game,
@@ -15,39 +36,31 @@ function GameCard({
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Status configuration with enhanced colors
+  // Status configuration - Clean, harmonious color scheme
   const statusConfig = {
     playing: {
-      border: 'border-[#fbbf24] border-2',
-      badge: { text: '● PLAYING', bg: 'bg-[#fbbf24]', textColor: 'text-[#0f0a22]' },
-      button: { text: 'Sedang Dimainkan', bg: 'bg-[#fbbf24]/20', textColor: 'text-[#fbbf24]', borderColor: 'border-[#fbbf24]' },
-      progressGradient: 'from-[#fbbf24] to-[#7ee0d2]',
-      labelColor: '#fbbf24',
-      glowColor: 'rgba(251, 191, 36, 0.3)',
+      badge: { text: 'Sedang Dimainkan', bg: 'bg-amber-500/15', textColor: 'text-amber-300', dot: 'bg-amber-400' },
+      button: { text: 'Sedang Dimainkan di Stream', bg: 'bg-amber-500/10', textColor: 'text-amber-300', borderColor: 'border-amber-500/30' },
+      progressGradient: 'from-amber-400 to-[#7ee0d2]',
+      labelColor: 'text-amber-300',
     },
     accepted: {
-      border: 'border-[#c084fc] border-2',
-      badge: { text: '✦ ACCEPTED', bg: 'bg-[#c084fc]/20', textColor: 'text-[#c084fc]' },
-      button: { text: 'Vote untuk Game Ini', bg: 'bg-[#7ee0d2]/10', textColor: 'text-[#7ee0d2]', borderColor: 'border-[#7ee0d2]' },
-      progressGradient: 'from-[#c084fc] to-[#7ee0d2]',
-      labelColor: '#c084fc',
-      glowColor: 'rgba(192, 132, 252, 0.3)',
+      badge: { text: 'Diterima Komunitas', bg: 'bg-purple-500/15', textColor: 'text-purple-300' },
+      button: { text: 'Beri Suara', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
+      progressGradient: 'from-[#7ee0d2] to-[#c084fc]',
+      labelColor: 'text-purple-300',
     },
     requested: {
-      border: 'border-[#2a2645]',
-      badge: { text: '✦ REQUESTED', bg: 'bg-[#c084fc]/10', textColor: 'text-[#c084fc]' },
-      button: { text: 'Vote untuk Game Ini', bg: 'bg-[#7ee0d2]/10', textColor: 'text-[#7ee0d2]', borderColor: 'border-[#7ee0d2]' },
-      progressGradient: 'from-[#7ee0d2] to-[#c084fc]',
-      labelColor: '#7ee0d2',
-      glowColor: 'rgba(126, 224, 210, 0.3)',
+      badge: { text: 'Request Baru', bg: 'bg-cyan-500/15', textColor: 'text-cyan-300' },
+      button: { text: 'Beri Suara', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
+      progressGradient: 'from-[#7ee0d2] to-cyan-400',
+      labelColor: 'text-cyan-300',
     },
     done: {
-      border: 'border-[#2a2645]',
-      badge: { text: '✓ DONE', bg: 'bg-[#6b7280]/20', textColor: 'text-[#6b7280]' },
-      button: { text: 'Selesai Dimainkan', bg: 'bg-[#2a2645]', textColor: 'text-[#6b7280]', borderColor: 'border-[#2a2645]' },
-      progressGradient: 'from-[#6b7280] to-[#6b7280]',
-      labelColor: '#6b7280',
-      glowColor: 'rgba(107, 114, 128, 0.3)',
+      badge: { text: 'Selesai', bg: 'bg-white/10', textColor: 'text-[#a89ec0]' },
+      button: { text: 'Selesai Dimainkan', bg: 'bg-white/5', textColor: 'text-[#a89ec0]', borderColor: 'border-white/10' },
+      progressGradient: 'from-slate-500 to-slate-600',
+      labelColor: 'text-[#a89ec0]',
     },
   };
 
@@ -59,8 +72,8 @@ function GameCard({
     if (status === 'playing') {
       return (
         <span className="flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#fbbf24] animate-pulse"></span>
-          {config.button.text}
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span>Sedang Dimainkan di Stream</span>
         </span>
       );
     }
@@ -70,248 +83,181 @@ function GameCard({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          {config.button.text}
+          <span>Selesai Dimainkan</span>
         </span>
       );
     }
     if (hasVoted) {
       return (
-        <span className="flex items-center justify-center gap-2">
+        <span className="flex items-center justify-center gap-2 text-accent-cyan">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          Sudah Memberi Vote
+          <span>Sudah Memilih</span>
         </span>
       );
     }
     if (voting) {
       return (
         <span className="flex items-center justify-center gap-2">
-          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <svg className="animate-spin w-4 h-4 text-[#0c081e]" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          Memproses...
+          <span>Mencatat Suara...</span>
         </span>
       );
     }
     return (
       <span className="flex items-center justify-center gap-2">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        <svg className="w-4 h-4 fill-none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
         </svg>
-        {config.button.text}
+        <span>Beri Suara</span>
       </span>
     );
   };
 
   const isButtonDisabled = status === 'playing' || status === 'done' || hasVoted || voting;
-
-  // Top Candidate Badge Logic
   const isTopCandidate = status === 'accepted' && percentage > 30;
-  const topCandidateRank = isTopCandidate ? Math.ceil(percentage / 10) : null;
 
   return (
     <div
       className={`
-        relative
-        bg-[#1a1730] ${config.border}
-        rounded-2xl overflow-hidden
-        transition-all duration-300
-        ${isHovered ? 'transform -translate-y-2 shadow-xl' : ''}
-        ${status !== 'done' ? 'hover:shadow-lg' : 'opacity-80'}
+        relative flex flex-col rounded-2xl overflow-hidden
+        transition-all duration-300 group
+        bg-[#151128]/85 border
+        ${status === 'playing' ? 'border-amber-500/40 shadow-lg shadow-amber-500/10' : 'border-white/[0.08] hover:border-accent-cyan/40 shadow-xl'}
+        ${isHovered ? '-translate-y-1.5' : 'translate-y-0'}
+        ${status === 'done' ? 'opacity-75 hover:opacity-100' : ''}
       `}
-      style={{
-        transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
-        boxShadow: isHovered ? `0 20px 40px ${config.glowColor}` : '0 4px 20px rgba(0,0,0,0.3)',
-      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Cover Image with Badge */}
-      <div className="relative aspect-[16/9] overflow-hidden">
-        {/* Placeholder if no image */}
-        {!game.cover_image && (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#2d2855] to-[#1a1730] flex items-center justify-center">
-            {/* Ambient glow */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[#c084fc] blur-[40px]" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-[#7ee0d2] blur-[40px]" />
-            </div>
-            <span className="relative text-5xl opacity-50">🎮</span>
-          </div>
-        )}
-
-        {/* Actual image */}
-        {game.cover_image && (
+      {/* 16:9 Cover Image / Placeholder */}
+      <div className="relative aspect-video overflow-hidden bg-[#100c22]">
+        {game.cover_image ? (
           <img
             src={game.cover_image}
             alt={game.title}
-            className={`w-full h-full object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'}`}
+            className={`w-full h-full object-cover transition-transform duration-500 ease-out ${isHovered ? 'scale-105' : 'scale-100'}`}
             onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.parentElement.innerHTML = `
-                <div class="absolute inset-0 bg-gradient-to-br from-[#2d2855] to-[#1a1730] flex items-center justify-center">
-                  <span class="text-5xl opacity-50">🎮</span>
-                </div>
-              `;
+              e.currentTarget.style.display = 'none';
             }}
           />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1435] via-[#120e26] to-[#0c081e] p-6 text-center">
+            <GamepadVector className="w-10 h-10 text-accent-cyan/40 mb-2 transition-transform duration-300 group-hover:scale-110" />
+            <span className="text-[11px] font-mono uppercase tracking-wider text-white/40">
+              {game.genre || 'Game Stream'}
+            </span>
+          </div>
         )}
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1730] via-transparent to-transparent opacity-60" />
+        {/* Dark Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#151128] via-[#151128]/30 to-black/20" />
 
         {/* Status Badge - Top Right */}
-        <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-full ${config.badge.bg} ${config.badge.textColor} text-xs font-bold uppercase tracking-wider backdrop-blur-sm`}>
-          {config.badge.text}
+        <div className="absolute top-3 right-3 z-10">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${config.badge.bg} ${config.badge.textColor} text-[11px] font-semibold tracking-wide backdrop-blur-md border border-white/10 shadow-sm`}>
+            {status === 'playing' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />}
+            {status === 'done' && (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            <span>{config.badge.text}</span>
+          </span>
         </div>
 
-        {/* Top Candidate Badge */}
+        {/* Top Candidate Tag */}
         {isTopCandidate && (
-          <div
-            className="absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#fbbf24] text-[#0f0a22] shadow-lg"
-            style={{ boxShadow: '0 4px 15px rgba(251, 191, 36, 0.4)' }}
-          >
-            TOP CANDIDATE #{topCandidateRank}
+          <div className="absolute top-3 left-3 z-10">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-400 text-[#0c081e] shadow-md">
+              Peringkat Teratas
+            </span>
           </div>
         )}
 
-        {/* Playing duration */}
-        {status === 'playing' && (
-          <div className="absolute bottom-3 right-3 px-3 py-1 rounded-lg text-xs font-mono text-[#fbbf24] bg-[#0f0a22]/80 backdrop-blur-sm">
-            WEEK 3 ON AIR
-          </div>
-        )}
+        {/* Genre Tag Pill - Bottom Left */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/15 text-[11px] font-mono uppercase tracking-wider font-semibold text-accent-cyan">
+            {game.genre || 'Umum'}
+          </span>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {/* Genre Label */}
-        <div className="flex items-center justify-between mb-2">
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest"
-            style={{ color: config.labelColor }}
-          >
-            {game.genre || 'GAME'}
-          </span>
-          {status === 'done' && (
-            <span className="text-[10px] font-mono text-[#6b7280] uppercase tracking-wider">
-              ARCHIVED
-            </span>
-          )}
-        </div>
-
+      {/* Content Area */}
+      <div className="p-5 flex flex-col flex-1">
         {/* Title */}
-        <h3 className={`text-base font-bold text-white mb-3 leading-snug ${status === 'done' ? 'opacity-60' : ''}`}>
+        <h3 className="text-base font-bold text-white mb-3 line-clamp-2 leading-snug group-hover:text-accent-cyan transition-colors duration-200">
           {game.title}
         </h3>
 
-        {/* Vote Info */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-[#a89ec0]">Voting Pool Result</span>
+        {/* Vote Progress Section */}
+        <div className="mt-auto space-y-2 pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[#a89ec0]">Perolehan Suara</span>
             <span className="text-white font-mono font-semibold">
-              {votes.toLocaleString()} votes · {percentage.toFixed(1)}%
+              {votes.toLocaleString()} Suara · {percentage.toFixed(1)}%
             </span>
           </div>
 
-          {/* Enhanced Progress Bar */}
-          <div className="relative h-2 bg-[#0f0a22] rounded-full overflow-hidden">
-            {/* Background glow */}
+          {/* Progress Bar */}
+          <div className="relative h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
             <div
-              className="absolute inset-0 opacity-30 blur-sm"
-              style={{
-                background: `linear-gradient(90deg, ${config.labelColor}33, transparent)`,
-              }}
-            />
-            {/* Progress fill */}
-            <div
-              className={`relative h-full bg-gradient-to-r ${config.progressGradient} rounded-full transition-all duration-700`}
+              className={`h-full bg-gradient-to-r ${config.progressGradient} rounded-full transition-all duration-500`}
               style={{ width: `${Math.min(percentage, 100)}%` }}
-            >
-              {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent" />
-            </div>
+            />
           </div>
         </div>
 
-        {/* Vote Button */}
-        <button
-          onClick={() => !isButtonDisabled && onVote?.(game)}
-          disabled={isButtonDisabled}
-          className={`
-            w-full py-3 px-4
-            rounded-xl font-semibold text-sm
-            border transition-all duration-200
-            flex items-center justify-center
-            disabled:cursor-not-allowed
-            ${isButtonDisabled ? config.button.bg : `${config.button.bg}`}
-            ${config.button.textColor}
-            ${!isButtonDisabled ? `border ${config.button.borderColor} hover:shadow-lg` : ''}
-            ${hasVoted ? 'border-[#7ee0d2]/50' : ''}
-          `}
-          style={{
-            backgroundColor: isButtonDisabled
-              ? (status === 'done' ? '#1a1730' : config.button.bg)
-              : hasVoted
-                ? 'rgba(126, 224, 210, 0.15)'
-                : config.button.bg,
-            boxShadow: !isButtonDisabled && !hasVoted
-              ? `0 4px 15px ${config.glowColor}`
-              : 'none',
-          }}
-        >
-          {getButtonContent()}
-        </button>
+        {/* Action Button */}
+        <div className="pt-4 mt-2">
+          <button
+            type="button"
+            onClick={() => !isButtonDisabled && onVote?.(game)}
+            disabled={isButtonDisabled}
+            className={`
+              w-full py-2.5 px-4 rounded-xl text-xs font-semibold
+              transition-all duration-150 flex items-center justify-center
+              ${isButtonDisabled
+                ? (hasVoted
+                  ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 cursor-default'
+                  : 'bg-white/[0.04] text-[#a89ec0] border border-white/10 opacity-70 cursor-not-allowed')
+                : 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e] active:scale-95 shadow-md shadow-accent-cyan/20 cursor-pointer'
+              }
+            `}
+          >
+            {getButtonContent()}
+          </button>
+        </div>
 
-        {/* Done badge for completed games */}
+        {/* Completed note */}
         {status === 'done' && (
-          <div className="mt-3 pt-3 border-t border-[#2a2645] text-center">
-            <span className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">
-              ✦ VOD Available
-            </span>
-          </div>
+          <p className="text-[11px] font-mono text-[#a89ec0] text-center mt-2.5 opacity-75">
+            Sesi permainan telah selesai ditayangkan
+          </p>
         )}
       </div>
-
-      {/* Hover glow effect */}
-      {status !== 'done' && (
-        <div
-          className={`absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
-          style={{
-            boxShadow: `inset 0 0 30px ${config.glowColor}`,
-          }}
-        />
-      )}
     </div>
   );
 }
 
 /**
- * GameCard Skeleton - Loading placeholder
+ * GameCardSkeleton - Clean loading placeholder
  */
 export function GameCardSkeleton() {
   return (
-    <div className="bg-[#1a1730] border border-[#2a2645] rounded-2xl overflow-hidden">
-      {/* Image skeleton */}
-      <div className="aspect-[16/9] bg-[#231f42] animate-pulse relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#2d2855]/50 to-transparent animate-shimmer" />
-      </div>
-
-      {/* Content skeleton */}
-      <div className="p-4 space-y-3">
-        <div className="h-2 w-20 bg-[#231f42] rounded animate-pulse" />
-        <div className="h-5 w-3/4 bg-[#231f42] rounded animate-pulse" />
-
-        {/* Vote info */}
-        <div className="space-y-2 pt-2">
-          <div className="h-3 w-full bg-[#231f42] rounded animate-pulse" />
-          <div className="h-2 w-full bg-[#231f42] rounded-full animate-pulse" />
+    <div className="bg-[#151128]/70 border border-white/[0.08] rounded-2xl overflow-hidden animate-pulse">
+      <div className="aspect-video bg-white/[0.03]" />
+      <div className="p-5 space-y-3">
+        <div className="h-5 w-3/4 bg-white/5 rounded-lg" />
+        <div className="space-y-2 pt-3">
+          <div className="h-3 w-full bg-white/5 rounded" />
+          <div className="h-2 w-full bg-white/5 rounded-full" />
         </div>
-
-        {/* Button skeleton */}
-        <div className="h-10 w-full bg-[#231f42] rounded-xl animate-pulse" />
+        <div className="h-9 w-full bg-white/5 rounded-xl pt-2" />
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ class ScheduleModel {
   final String? gameCategory;
   final DateTime? scheduledAt;
   final String? description;
+  final String? collabGuest;
+  final String? collabSocial;
   final String? youtubeUrl;
   final String? thumbnailUrl;
   final String streamPlatform;
@@ -18,6 +20,8 @@ class ScheduleModel {
     this.gameCategory,
     this.scheduledAt,
     this.description,
+    this.collabGuest,
+    this.collabSocial,
     this.youtubeUrl,
     this.thumbnailUrl,
     this.streamPlatform = 'YouTube',
@@ -35,6 +39,8 @@ class ScheduleModel {
           ? DateTime.tryParse(json['scheduled_at'].toString())
           : null,
       description: json['description'],
+      collabGuest: json['collab_guest'],
+      collabSocial: json['collab_social'],
       youtubeUrl: json['youtube_url'],
       thumbnailUrl: json['thumbnail_url'],
       streamPlatform: json['stream_platform'] ?? 'YouTube',
@@ -50,6 +56,8 @@ class ScheduleModel {
     String? gameCategory,
     DateTime? scheduledAt,
     String? description,
+    String? collabGuest,
+    String? collabSocial,
     String? youtubeUrl,
     String? thumbnailUrl,
     String? streamPlatform,
@@ -63,6 +71,8 @@ class ScheduleModel {
       gameCategory: gameCategory ?? this.gameCategory,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       description: description ?? this.description,
+      collabGuest: collabGuest ?? this.collabGuest,
+      collabSocial: collabSocial ?? this.collabSocial,
       youtubeUrl: youtubeUrl ?? this.youtubeUrl,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       streamPlatform: streamPlatform ?? this.streamPlatform,
@@ -78,6 +88,8 @@ class ScheduleModel {
       'game_category': gameCategory,
       'scheduled_at': scheduledAt?.toIso8601String(),
       'description': description,
+      if (collabGuest != null && collabGuest!.isNotEmpty) 'collab_guest': collabGuest,
+      if (collabSocial != null && collabSocial!.isNotEmpty) 'collab_social': collabSocial,
       'youtube_url': youtubeUrl,
       'thumbnail_url': thumbnailUrl,
       'stream_platform': streamPlatform,

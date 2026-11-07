@@ -98,7 +98,7 @@ class AuthService {
     String? rigVersion,
   }) async {
     try {
-      final response = await _dio.put('/auth/profile', data: {
+      final response = await _dio.patch('/auth/profile', data: {
         'name': name,
         'rig_name': rigName,
         if (rigVersion != null) 'rig_version': rigVersion,

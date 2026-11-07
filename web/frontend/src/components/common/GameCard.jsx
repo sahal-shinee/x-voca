@@ -1,44 +1,38 @@
-import { Gamepad2, Check, Play, CheckCircle, Trash2, Square, SquareCheck } from 'lucide-react';
+import { Gamepad2, Check, Play, CheckCircle, Trash2, Square, SquareCheck, Calendar, ArrowUpRight } from 'lucide-react';
 
 /**
- * GameCard - Card-based game display for Voting Moderation
- *
- * Props:
- *  game          - game data object
- *  rank          - numeric rank in sorted list
- *  maxVotes      - highest vote count across all games (for % bar)
- *  selected      - bool, is this card selected for bulk action
- *  onSelect      - fn(id) toggle selection
- *  onAccept      - fn(game)
- *  onPlaying     - fn(game)
- *  onDone        - fn(game)
- *  onDelete      - fn(game)
+ * GameCard - Modern, rich, human-designed game card for Voting Moderation
+ * Features:
+ * - Clean horizontal layout that eliminates empty voids
+ * - High-contrast cover preview with status badge
+ * - Clear vote percentage bar
+ * - Direct "Jadwalkan Stream" action linking Voting to Schedule
+ * - 100% theme-adaptive (works in Light and Dark mode)
  */
 
-// Status → visual accent config
 const STATUS_CONFIG = {
   requested: {
-    accent: 'border-status-requested/50',
-    badgeBg: 'bg-status-requested/10 text-status-requested border-status-requested/20',
+    accent: 'border-border-subtle hover:border-amber-500/40',
+    badgeBg: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     label: 'REQUESTED',
     glow: '',
   },
   accepted: {
-    accent: 'border-accent-purple/50',
+    accent: 'border-border-subtle hover:border-accent-purple/40',
     badgeBg: 'bg-accent-purple/10 text-accent-purple border-accent-purple/20',
     label: 'ACCEPTED',
     glow: '',
   },
   playing: {
-    accent: 'border-accent-gold/60',
-    badgeBg: 'bg-accent-gold/10 text-accent-gold border-accent-gold/20',
+    accent: 'border-accent-gold/50 shadow-sm',
+    badgeBg: 'bg-accent-gold/15 text-accent-gold border-accent-gold/30',
     label: 'PLAYING',
-    glow: 'shadow-[0_0_16px_-2px] shadow-accent-gold/20',
+    glow: 'ring-1 ring-accent-gold/30',
   },
   done: {
-    accent: 'border-status-done/30',
-    badgeBg: 'bg-status-done/10 text-status-done border-status-done/20',
-    label: 'DONE',
+    accent: 'border-border-subtle hover:border-emerald-500/30',
+    badgeBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    label: 'SELESAI',
     glow: '',
   },
 };
@@ -53,188 +47,182 @@ export function GameCard({
   onPlaying,
   onDone,
   onDelete,
+  onSchedule,
 }) {
   const cfg = STATUS_CONFIG[game.status] || STATUS_CONFIG.requested;
-  // Support both snake_case (backend) and camelCase (frontend) field names
   const voteCount = game.vote_count || game.voteCount || 0;
   const percentage = maxVotes > 0 ? Math.round((voteCount / maxVotes) * 100) : 0;
   const isPlaying = game.status === 'playing';
   const isDone = game.status === 'done';
+  const isAccepted = game.status === 'accepted';
+  const isRequested = game.status === 'requested';
 
   return (
     <div
       className={`
-        relative bg-bg-card rounded-xl border transition-all duration-200
-        hover:-translate-y-0.5 hover:shadow-lg
+        relative bg-bg-card rounded-2xl border p-4 sm:p-5 transition-all duration-200
+        hover:shadow-md hover:bg-bg-card-hover
         ${cfg.accent} ${cfg.glow}
-        ${selected ? 'ring-2 ring-accent-cyan ring-offset-1 ring-offset-bg-base' : ''}
-        ${isPlaying ? 'bg-gradient-to-br from-accent-gold/5 to-transparent' : ''}
+        ${selected ? 'ring-2 ring-accent-cyan ring-offset-2 ring-offset-bg-base' : ''}
+        flex flex-col justify-between gap-4
       `}
     >
-      {/* ── Checkbox (top-left) ── */}
-      <button
-        onClick={() => onSelect?.(game.id)}
-        aria-label="Select game"
-        className="absolute top-3 left-3 z-10 text-text-muted hover:text-accent-cyan transition-colors"
-      >
-        {selected
-          ? <SquareCheck className="w-4 h-4 text-accent-cyan" />
-          : <Square className="w-4 h-4" />
-        }
-      </button>
+      {/* ── Top row: Checkbox, Status Pill, Rank ── */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => onSelect?.(game.id)}
+            aria-label="Pilih game untuk aksi massal"
+            className="text-text-muted hover:text-accent-cyan transition-colors"
+          >
+            {selected
+              ? <SquareCheck className="w-4 h-4 text-accent-cyan" />
+              : <Square className="w-4 h-4" />
+            }
+          </button>
 
-      {/* ── Rank badge (top-right) ── */}
-      <div className="absolute top-3 right-3 z-10">
-        <span className="text-xs font-mono font-bold text-text-muted bg-bg-surface border border-border-subtle rounded px-1.5 py-0.5">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-mono font-semibold rounded-full border ${cfg.badgeBg}`}>
+            {isPlaying && <span className="w-1.5 h-1.5 rounded-full bg-accent-gold animate-ping" />}
+            {cfg.label}
+          </span>
+        </div>
+
+        <span className="text-xs font-mono font-bold text-text-muted bg-bg-surface border border-border-subtle rounded-md px-2 py-0.5 shadow-sm">
           #{rank}
         </span>
       </div>
 
-      <div className="p-4">
-        {/* ── Cover + Info row ── */}
-        <div className="flex gap-4 mt-1">
-          {/* Cover image */}
-          <div className="w-20 h-20 rounded-lg bg-bg-surface border border-border-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
-            {game.thumbnail || game.cover ? (
-              <img
-                src={game.thumbnail || game.cover}
-                alt={game.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Gamepad2 className="w-8 h-8 text-text-muted opacity-40" />
+      {/* ── Middle: Cover + Title + Details ── */}
+      <div className="flex items-start gap-3.5">
+        {/* Cover / Icon */}
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-bg-surface border border-border-subtle flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm relative">
+          {game.cover_url || game.thumbnail || game.cover ? (
+            <img
+              src={game.cover_url || game.thumbnail || game.cover}
+              alt={game.title}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <Gamepad2 className="w-7 h-7 text-text-muted opacity-40" />
+          )}
+        </div>
+
+        {/* Info & Progress */}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm sm:text-base font-bold text-text-primary leading-tight truncate">
+            {game.title}
+          </h4>
+
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {(game.category || game.genre) && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-bg-surface border border-border-subtle text-text-secondary truncate max-w-[140px]">
+                {game.category || game.genre}
+              </span>
+            )}
+            {game.publisher && (
+              <span className="text-[10px] text-text-muted truncate max-w-[120px]">
+                {game.publisher}
+              </span>
             )}
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0 pt-1">
-            {/* Status badge */}
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono font-semibold rounded border mb-1.5 ${cfg.badgeBg}`}>
-              {isPlaying && <span className="w-1.5 h-1.5 rounded-full bg-accent-gold animate-pulse" />}
-              {cfg.label}
-            </span>
-
-            <p className="text-sm font-semibold text-text-primary leading-tight truncate">
-              {game.title}
-            </p>
-            <p className="text-xs text-text-muted mt-0.5">
-              {game.category || game.genre}
-              {game.publisher && <span className="text-text-muted"> • {game.publisher}</span>}
-            </p>
-
-            {/* Vote bar */}
-            <div className="mt-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-mono font-bold text-text-primary">
-                  {voteCount.toLocaleString()} <span className="text-text-muted font-normal">votes</span>
-                </span>
-                <span className="text-xs font-mono text-text-muted">{percentage}%</span>
-              </div>
-              <div className="h-1 bg-bg-surface rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-accent-cyan to-accent-purple rounded-full transition-all duration-500"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
+          {/* Vote Counter & Progress bar */}
+          <div className="mt-2.5">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-mono font-bold text-text-primary">
+                {voteCount.toLocaleString('id-ID')} <span className="text-text-muted font-normal">suara</span>
+              </span>
+              <span className="font-mono text-text-muted text-[11px]">{percentage}%</span>
+            </div>
+            <div className="h-1.5 bg-bg-surface rounded-full overflow-hidden border border-border-subtle p-[1px]">
+              <div
+                className="h-full bg-gradient-to-r from-accent-cyan to-accent-purple rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(percentage > 0 ? 8 : 0, percentage))}%` }}
+              />
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ── Requester info ── */}
-        <div className="mt-3 pt-3 border-t border-border-subtle flex items-center justify-between gap-2">
-          <p className="text-xs text-text-muted truncate">
-            <span className="text-text-secondary">Oleh:</span>{' '}
-            {game.addedBy || 'Unknown'}
-            {game.isOfficial && (
-              <span className="ml-1.5 text-accent-cyan font-medium">[Admin]</span>
-            )}
-          </p>
-        </div>
+      {/* ── Requester info ── */}
+      <div className="pt-2.5 border-t border-border-subtle flex items-center justify-between gap-2 text-xs text-text-muted">
+        <p className="truncate">
+          <span>Diusulkan oleh:</span>{' '}
+          <span className="font-medium text-text-secondary">
+            {game.addedBy || 'Viewer'}
+          </span>
+          {game.isOfficial && (
+            <span className="ml-1 text-[10px] text-accent-cyan font-semibold">[Admin]</span>
+          )}
+        </p>
+      </div>
 
-        {/* ── Action buttons ── */}
-        {!isDone && (
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            {/* Accept */}
+      {/* ── Action Buttons Deck ── */}
+      <div className="flex items-center gap-1.5 flex-wrap justify-between pt-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* If Requested: Accept button */}
+          {isRequested && (
             <button
+              type="button"
               onClick={() => onAccept?.(game)}
-              disabled={game.status !== 'requested'}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
-                ${game.status === 'requested'
-                  ? 'border-accent-cyan text-accent-cyan hover:bg-accent-cyan/10'
-                  : 'border-border-subtle text-text-muted opacity-30 cursor-not-allowed'
-                }
-              `}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan transition-all active:scale-95"
             >
               <Check className="w-3.5 h-3.5" />
-              Accept
+              <span>Terima Usulan</span>
             </button>
+          )}
 
-            {/* Set Playing */}
+          {/* If Accepted: Set Playing button */}
+          {isAccepted && (
             <button
+              type="button"
               onClick={() => onPlaying?.(game)}
-              disabled={game.status !== 'accepted'}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
-                ${game.status === 'accepted'
-                  ? 'border-accent-gold text-accent-gold hover:bg-accent-gold/10'
-                  : 'border-border-subtle text-text-muted opacity-30 cursor-not-allowed'
-                }
-              `}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent-gold/15 hover:bg-accent-gold/25 border border-accent-gold/35 text-accent-gold transition-all active:scale-95"
             >
               <Play className="w-3.5 h-3.5" />
-              Set Playing
+              <span>Mulai Mainkan</span>
             </button>
+          )}
 
-            {/* Mark Done */}
+          {/* If Playing: Mark Done button */}
+          {isPlaying && (
             <button
+              type="button"
               onClick={() => onDone?.(game)}
-              disabled={game.status !== 'playing'}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
-                ${game.status === 'playing'
-                  ? 'border-status-done text-status-done hover:bg-status-done/10'
-                  : 'border-border-subtle text-text-muted opacity-30 cursor-not-allowed'
-                }
-              `}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-500 transition-all active:scale-95"
             >
               <CheckCircle className="w-3.5 h-3.5" />
-              Mark Done
+              <span>Tandai Selesai</span>
             </button>
+          )}
 
-            {/* Delete — always available except when playing */}
+          {/* Fast Link to Schedule Stream for this game (for Accepted, Playing, Done) */}
+          {(isAccepted || isPlaying || isDone) && onSchedule && (
             <button
-              onClick={() => onDelete?.(game)}
-              disabled={isPlaying}
-              className={`
-                ml-auto p-1.5 rounded-lg border transition-colors
-                ${!isPlaying
-                  ? 'border-transparent text-status-live hover:bg-status-live/10 hover:border-status-live/30'
-                  : 'border-transparent text-text-muted opacity-30 cursor-not-allowed'
-                }
-              `}
-              aria-label="Delete game"
+              type="button"
+              onClick={() => onSchedule(game)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-accent-purple/10 hover:bg-accent-purple/20 border border-accent-purple/30 text-accent-purple transition-all"
+              title="Buat jadwal siaran untuk game ini"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Jadwalkan</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Done state — no actions */}
-        {isDone && (
-          <div className="mt-3 flex items-center gap-2">
-            <CheckCircle className="w-3.5 h-3.5 text-status-done opacity-60" />
-            <span className="text-xs text-text-muted">Sudah selesai ditayangkan</span>
-
-            {/* Still allow delete for done games */}
-            <button
-              onClick={() => onDelete?.(game)}
-              className="ml-auto p-1.5 rounded-lg border border-transparent text-status-live hover:bg-status-live/10 hover:border-status-live/30 transition-colors"
-              aria-label="Delete game"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {/* Delete button (available except when actively playing) */}
+        {!isPlaying && (
+          <button
+            type="button"
+            onClick={() => onDelete?.(game)}
+            className="p-1.5 rounded-lg text-text-muted hover:text-status-live hover:bg-status-live/10 transition-colors ml-auto"
+            aria-label="Hapus game"
+            title="Hapus game"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         )}
       </div>
     </div>
@@ -242,4 +230,3 @@ export function GameCard({
 }
 
 export default GameCard;
-
