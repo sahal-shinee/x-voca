@@ -50,9 +50,11 @@ class ApiService {
             return handler.next(error);
           }
 
-          // Coba fallback URL otomatis jika koneksi gagal (misal HP Fisik / Emulator)
+          // Coba fallback URL otomatis jika koneksi gagal atau timeout (misal HP Fisik / Emulator)
           if ((error.type == DioExceptionType.connectionError ||
-                  error.type == DioExceptionType.connectionTimeout) &&
+                  error.type == DioExceptionType.connectionTimeout ||
+                  error.type == DioExceptionType.receiveTimeout ||
+                  error.type == DioExceptionType.sendTimeout) &&
               error.requestOptions.extra['retry_fallback'] != true) {
             for (final fallbackUrl in Env.fallbackUrls) {
               if (fallbackUrl == _dio.options.baseUrl) continue;

@@ -90,12 +90,19 @@ const voteLimiter = new RateLimiter({
 // Strict rate limiter for auth endpoints
 const authLimiter = new RateLimiter({
   windowMs: 900000, // 15 minutes
-  max: 5 // Max 5 login attempts per 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 10 : 100
+});
+
+// Rate limiter for public collaboration requests (prevent spam)
+const collabLimiter = new RateLimiter({
+  windowMs: 600000, // 10 minutes
+  max: 5 // Max 5 requests per 10 minutes
 });
 
 module.exports = {
   globalLimiter,
   voteLimiter,
   authLimiter,
+  collabLimiter,
   RateLimiter
 };

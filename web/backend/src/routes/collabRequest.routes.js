@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const collabRequestController = require('../controllers/collabRequest.controller');
 const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
+const { collabLimiter } = require('../middleware/rateLimit.middleware');
 
-// Public route: Viewer submits collab request
-router.post('/', collabRequestController.createCollabRequest);
+// Public route: Viewer submits collab request (rate limited to prevent spam)
+router.post('/', collabLimiter.middleware(), collabRequestController.createCollabRequest);
 
 // Protected routes: Admin moderation & analytics
 // Note: /stats MUST be defined before /:id to prevent route shadowing
@@ -15,4 +16,3 @@ router.patch('/:id/review', authMiddleware, adminOnly, collabRequestController.r
 router.delete('/:id', authMiddleware, adminOnly, collabRequestController.deleteCollabRequest);
 
 module.exports = router;
-

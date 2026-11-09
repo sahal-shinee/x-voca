@@ -3,20 +3,19 @@ const { User, AuditLog } = require('../models');
 
 /**
  * JWT Authentication Middleware
- * Verifies the JWT token from Authorization header
+ * Verifies the cryptographic JWT token from Authorization header strictly.
+ * Unauthorized headers like x-user-id and dummy tokens are strictly forbidden.
  */
 const authMiddleware = async (req, res, next) => {
   try {
-    // Get token or x-user-id from headers
     const authHeader = req.headers.authorization;
-    const xUserId = req.headers['x-user-id'];
 
     let token = null;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     }
 
-    if (!token && !xUserId) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         data: null,
@@ -24,24 +23,19 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Verify token (mendukung dummy token dan x-user-id untuk development)
-    let decoded;
-    if (token === 'dummy_jwt_token_xvoca_creator' || (!token && xUserId)) {
-      decoded = { id: parseInt(xUserId || '1'), role: 'superadmin' };
-    } else {
-      try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET);
-      } catch (err) {
-        if (xUserId) {
-          decoded = { id: parseInt(xUserId), role: 'superadmin' };
-        } else {
-          throw err;
-        }
-      }
+    // Cryptographically verify token with server JWT secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        message: 'Token tidak valid.'
+      });
     }
 
-    // Get user from database
-    const user = (await User.findByPk(decoded.id)) || (await User.findByPk(1));
+    // Get user from database strictly by decoded ID
+    const user = await User.findByPk(decoded.id);
 
     if (!user) {
       return res.status(401).json({

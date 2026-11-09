@@ -34,7 +34,7 @@ class AuthService {
       // Fallback Dummy jika Backend belum menyala atau koneksi gagal
       if (e.type == DioExceptionType.connectionError || e.response == null) {
         final normEmail = email.toLowerCase().trim();
-        final isKnownUser = normEmail == 'xion@xvoca.id' || normEmail == 'xionregalia@gmail.com';
+        final isKnownUser = normEmail == 'xion@xvoca.id' || normEmail == 'xionregalia@gmail.com' || normEmail == 'xionregalia@gmailcom';
         final isCorrectPassword = password == 'password123' || password == 'xvoca2026';
 
         if (isKnownUser && isCorrectPassword) {
