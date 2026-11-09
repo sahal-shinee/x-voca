@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -630,13 +631,13 @@ const ScheduleSection = () => {
                   </p>
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
-                    <a
-                      href="#content"
+                    <Link
+                      to="/content"
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e] font-semibold text-xs tracking-wider uppercase font-mono transition-all active:scale-95 shadow-sm"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
                       <span>Buka Panduan Konten</span>
-                    </a>
+                    </Link>
 
                     <a
                       href="https://www.youtube.com/channel/UCtOvoDqWorYc6NqkuGmZgEg"

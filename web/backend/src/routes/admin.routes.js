@@ -8,6 +8,7 @@ const voteController = require('../controllers/vote.controller');
 const contentController = require('../controllers/content.controller');
 const dashboardController = require('../controllers/dashboard.controller');
 const youtubeController = require('../controllers/youtube.controller');
+const collabRequestController = require('../controllers/collabRequest.controller');
 
 const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
 
@@ -36,6 +37,13 @@ router.post('/votes/reset-period', adminOnly, voteController.resetPeriod);
 router.post('/content', adminOnly, contentController.createContent);
 router.patch('/content/:id', adminOnly, contentController.updateContent);
 router.delete('/content/:id', adminOnly, contentController.deleteContent);
+
+// --- Collab Request Moderation (Protected) ---
+router.get('/collab-requests/stats', adminOnly, collabRequestController.getCollabRequestStats);
+router.get('/collab-requests', adminOnly, collabRequestController.getCollabRequests);
+router.get('/collab-requests/:id', adminOnly, collabRequestController.getCollabRequestById);
+router.patch('/collab-requests/:id/review', adminOnly, collabRequestController.reviewCollabRequest);
+router.delete('/collab-requests/:id', adminOnly, collabRequestController.deleteCollabRequest);
 
 // --- YouTube (Protected) ---
 router.post('/youtube/fetch', adminOnly, youtubeController.fetchYouTubeInfo);
