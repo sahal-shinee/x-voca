@@ -26,4 +26,9 @@ class Env {
   ];
 
   static const String firebaseDatabaseUrl = 'https://xvoca-project.firebaseio.com';
+
+  // Portal Fansite Publik (Viewer Website)
+  static const String localWebUrl = 'http://$localHostIp:5173';
+  static const String vercelProductionUrl = 'https://x-voca.vercel.app';
+  static String get publicWebUrl => useProduction ? vercelProductionUrl : localWebUrl;
 }

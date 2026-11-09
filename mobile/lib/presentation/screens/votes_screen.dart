@@ -9,6 +9,7 @@ import '../../data/models/game_model.dart';
 import '../../data/models/collab_model.dart';
 import '../providers/game_provider.dart';
 import '../providers/collab_provider.dart';
+import '../providers/schedule_provider.dart';
 
 class VotesScreen extends ConsumerStatefulWidget {
   const VotesScreen({super.key});
@@ -1961,17 +1962,9 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                       color: isDark ? Colors.black : Colors.white,
                     ),
                   ),
-                  onPressed: () async {
+                  onPressed: () {
                     HapticFeedback.lightImpact();
-                    await ref.read(collabProvider.notifier).updateStatus(collab.id, 'scheduled');
-                    if (mounted) {
-                      _showFloatingToast(
-                        context,
-                        message: 'Status "${collab.requestedStreamerName}" diubah ke DIJADWALKAN!',
-                        isSuccess: true,
-                        icon: LucideIcons.calendar,
-                      );
-                    }
+                    _showScheduleActionSheet(context, collab, isDark);
                   },
                 ),
             ],
@@ -1982,6 +1975,201 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   }
 
   // Dialog Edit Catatan Admin Collab (Responsif terhadap Keyboard)
+  // Bottom Sheet Aksi Jadwalkan Kolaborasi Studio
+  void _showScheduleActionSheet(BuildContext context, CollabModel collab, bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: bgSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: borderSubtle, width: 1),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPurple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(LucideIcons.calendar, color: AppColors.accentPurple, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "JADWALKAN KOLABORASI",
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentCyan,
+                        ),
+                      ),
+                      Text(
+                        '@${collab.requestedStreamerName.replaceAll('@', '')}',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Option 1: Buat Jadwal Siaran Baru (Pre-filled)
+            InkWell(
+              onTap: () {
+                Navigator.pop(sheetContext);
+                HapticFeedback.lightImpact();
+                ref.read(pendingScheduleCollabProvider.notifier).state = collab;
+                ref.read(dashboardTabProvider.notifier).state = 1;
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPurple.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.accentPurple.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.calendar_plus, color: AppColors.accentPurple, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Buat Jadwal Siaran Sekarang",
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Buka form jadwal dengan nama streamer dan data sosmed otomatis terisi.",
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(LucideIcons.chevron_right, size: 18, color: AppColors.accentPurple),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Option 2: Tandai Status Saja (Dijadwalkan)
+            InkWell(
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                HapticFeedback.lightImpact();
+                try {
+                  await ref.read(collabProvider.notifier).updateStatus(collab.id, "scheduled");
+                  if (context.mounted) {
+                    _showFloatingToast(
+                      context,
+                      message: 'Status "${collab.requestedStreamerName}" diubah ke DIJADWALKAN!',
+                      isSuccess: true,
+                      icon: LucideIcons.calendar,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    _showFloatingToast(
+                      context,
+                      message: 'Gagal memperbarui status: $e',
+                      isSuccess: false,
+                      icon: LucideIcons.circle_alert,
+                    );
+                  }
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.bgInput : AppColors.bgInputLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderSubtle, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.check_check, color: AppColors.accentEmerald, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Tandai Status Saja (Dijadwalkan)",
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Perbarui status ke dijadwalkan tanpa membuat siaran baru di kalender.",
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   void _showEditCollabNoteDialog(CollabModel collab) {
     HapticFeedback.lightImpact();
     final noteController = TextEditingController(text: collab.reviewNotes ?? '');

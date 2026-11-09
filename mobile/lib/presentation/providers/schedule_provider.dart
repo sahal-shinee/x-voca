@@ -1,3 +1,4 @@
+import '../../data/models/collab_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/schedule_model.dart';
 import '../../data/services/schedule_service.dart';
@@ -114,6 +115,12 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
                 ? parsedCountdown
                 : s.countdownEnabled,
             status: updates['status'] ?? s.status,
+            collabGuest: updates.containsKey('collab_guest')
+                ? updates['collab_guest'] as String?
+                : s.collabGuest,
+            collabSocial: updates.containsKey('collab_social')
+                ? updates['collab_social'] as String?
+                : s.collabSocial,
           );
         }
         return s;
@@ -161,3 +168,5 @@ final scheduleProvider = StateNotifierProvider<ScheduleNotifier, ScheduleState>(
   final scheduleService = ref.watch(scheduleServiceProvider);
   return ScheduleNotifier(scheduleService, ref);
 });
+final dashboardTabProvider = StateProvider<int>((ref) => 0);
+final pendingScheduleCollabProvider = StateProvider<CollabModel?>((ref) => null);

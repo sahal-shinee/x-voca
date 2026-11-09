@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/schedule_model.dart';
 import '../providers/schedule_provider.dart';
+import '../providers/collab_provider.dart';
 import '../providers/auth_provider.dart' show dioProvider;
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -289,6 +290,29 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(pendingScheduleCollabProvider, (prev, collab) {
+      if (collab != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(pendingScheduleCollabProvider.notifier).state = null;
+          if (mounted) {
+            _showAddScheduleDialog(
+              context,
+              initialGuest: collab.requestedStreamerName,
+              initialSocial: collab.requestedStreamerSocial,
+              initialDescription: collab.message != null && collab.message!.isNotEmpty
+                  ? 'Usulan konten: ${collab.message}'
+                  : null,
+              onScheduleCreated: () async {
+                try {
+                  await ref.read(collabProvider.notifier).updateStatus(collab.id, "scheduled");
+                } catch (_) {}
+              },
+            );
+          }
+        });
+      }
+    });
+
     final scheduleState = ref.watch(scheduleProvider);
     final allSchedules = scheduleState.schedules;
 
@@ -1027,26 +1051,59 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             ),
           ],
 
-          // Collab Guest (opsional)
+          // Collab Guest (Badge Interaktif Obsidian Purple)
           if (schedule.collabGuest?.isNotEmpty == true) ...[
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(LucideIcons.users, color: AppColors.primary(isDark), size: 13),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Collab: ${schedule.collabGuest!}${schedule.collabSocial?.isNotEmpty == true ? " (${schedule.collabSocial})" : ""}',
-                    style: GoogleFonts.spaceMono(
-                      fontSize: 11,
-                      color: AppColors.primary(isDark),
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            GestureDetector(
+              onTap: () async {
+                final social = schedule.collabSocial?.trim();
+                if (social != null && social.isNotEmpty) {
+                  HapticFeedback.selectionClick();
+                  final uri = Uri.tryParse(social.startsWith('http') ? social : 'https://$social');
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    return;
+                  }
+                }
+                Clipboard.setData(ClipboardData(text: schedule.collabGuest!));
+                if (mounted) {
+                  _showFloatingBanner(
+                    context: context,
+                    message: 'Nama tamu "${schedule.collabGuest}" disalin ke clipboard',
+                    isSuccess: true,
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPurple.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.accentPurple.withValues(alpha: 0.35),
+                    width: 0.8,
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(LucideIcons.users, color: AppColors.accentPurple, size: 13),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Collab with @${schedule.collabGuest!.replaceAll('@', '')}',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: AppColors.accentPurple,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (schedule.collabSocial?.isNotEmpty == true) ...[
+                      const SizedBox(width: 5),
+                      const Icon(LucideIcons.external_link, color: AppColors.accentPurple, size: 11),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ],
 
@@ -1831,6 +1888,279 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
+  // WIDGET KOLABORASI STREAMER (STUDIO ACCORDION)
+  Widget _buildCollabInputSection({
+    required BuildContext context,
+    required bool isDark,
+    required TextEditingController collabGuestController,
+    required TextEditingController collabSocialController,
+    required bool isExpanded,
+    required ValueChanged<bool> onToggleExpanded,
+    required StateSetter setModalState,
+    bool isFromRequest = false,
+  }) {
+    final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    final guestName = collabGuestController.text.trim();
+    final hasCollabData = guestName.isNotEmpty || collabSocialController.text.trim().isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isExpanded
+            ? (isDark ? const Color(0xFF141322) : const Color(0xFFF7F4FD))
+            : (isDark ? bgInput.withValues(alpha: 0.5) : AppColors.bgSurfaceLight),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: (isExpanded || hasCollabData)
+              ? AppColors.accentPurple.withValues(alpha: 0.45)
+              : borderSubtle,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header / Accordion Clicker
+          InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onToggleExpanded(!isExpanded);
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentPurple.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      LucideIcons.users,
+                      size: 17,
+                      color: AppColors.accentPurple,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Kolaborasi Streamer",
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            if (isFromRequest)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentPurple.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: AppColors.accentPurple.withValues(alpha: 0.4),
+                                    width: 0.6,
+                                  ),
+                                ),
+                                child: Text(
+                                  "DARI REQUEST",
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.accentPurple,
+                                  ),
+                                ),
+                              )
+                            else if (hasCollabData)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentPurple.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: AppColors.accentPurple.withValues(alpha: 0.4),
+                                    width: 0.6,
+                                  ),
+                                ),
+                                child: Text(
+                                  "AKTIF",
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.accentPurple,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          guestName.isNotEmpty
+                              ? 'Tamu: @${guestName.replaceAll('@', '')}'
+                              : "Informasi guest creator atau streamer kolaborasi",
+                          style: GoogleFonts.spaceMono(
+                            fontSize: 10,
+                            color: guestName.isNotEmpty ? AppColors.accentPurple : textMuted,
+                            fontWeight: guestName.isNotEmpty ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    isExpanded ? LucideIcons.chevron_up : LucideIcons.chevron_down,
+                    size: 18,
+                    color: (isExpanded || hasCollabData) ? AppColors.accentPurple : textMuted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Body Form Kolaborasi
+          if (isExpanded) ...[
+            Divider(color: AppColors.accentPurple.withValues(alpha: 0.15), height: 1),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isFromRequest) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentPurple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.accentPurple.withValues(alpha: 0.25),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.sparkles, size: 14, color: AppColors.accentPurple),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Data kolaborasi diisi otomatis dari usulan penonton. Anda dapat mengubahnya sebelum disimpan.",
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 10.5,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // Field 1: Nama Streamer Tamu
+                  _buildSectionLabel("NAMA STREAMER / VTUBER TAMU", isDark),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: collabGuestController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                    onChanged: (_) => setModalState(() {}),
+                    decoration: InputDecoration(
+                      hintText: "@streamer atau Nama Partner",
+                      hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                      filled: true,
+                      fillColor: bgInput,
+                      prefixIcon: const Icon(LucideIcons.at_sign, size: 16, color: AppColors.accentPurple),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      suffixIcon: guestName.isNotEmpty
+                          ? SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(LucideIcons.x, size: 14, color: textMuted),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  collabGuestController.clear();
+                                  setModalState(() {});
+                                },
+                              ),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Field 2: Tautan Sosial / Kanal Tamu
+                  _buildSectionLabel("TAUTAN KANAL YOUTUBE / SOSMED TAMU", isDark),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: collabSocialController,
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                    onChanged: (_) => setModalState(() {}),
+                    decoration: InputDecoration(
+                      hintText: "https://youtube.com/@channel atau akun X",
+                      hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                      filled: true,
+                      fillColor: bgInput,
+                      prefixIcon: Icon(LucideIcons.link_2, size: 16, color: textMuted),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      suffixIcon: collabSocialController.text.isNotEmpty
+                          ? SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(LucideIcons.x, size: 14, color: textMuted),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  collabSocialController.clear();
+                                  setModalState(() {});
+                                },
+                              ),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(LucideIcons.info, size: 12, color: textMuted),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          "Badge @Tamu akan otomatis ditampilkan pada kartu jadwal siaran di fansite penonton.",
+                          style: GoogleFonts.spaceMono(fontSize: 9.5, color: textMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
   // HELPERS INPUT
   InputDecoration _inputDecoration(String hint, bool isDark) {
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
@@ -1922,13 +2252,24 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   // TAMBAH JADWAL MODAL
-  void _showAddScheduleDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
+  void _showAddScheduleDialog(
+    BuildContext context, {
+    String? initialGuest,
+    String? initialSocial,
+    String? initialTitle,
+    String? initialDescription,
+    VoidCallback? onScheduleCreated,
+  }) {
+    final titleController = TextEditingController(text: initialTitle ?? "");
+    final descriptionController = TextEditingController(text: initialDescription ?? "");
     final youtubeController = TextEditingController();
     final webUrlController = TextEditingController();
-    final collabGuestController = TextEditingController();
-    final collabSocialController = TextEditingController();
+    final collabGuestController = TextEditingController(text: initialGuest ?? "");
+    final collabSocialController = TextEditingController(text: initialSocial ?? "");
+
+    bool isCollabExpanded = (initialGuest != null && initialGuest.isNotEmpty) ||
+        (initialSocial != null && initialSocial.isNotEmpty);
+    final bool isFromRequest = initialGuest != null && initialGuest.isNotEmpty;
 
     String thumbnailMode = 'youtube'; // 'youtube' | 'upload' | 'url'
     String? thumbnailUrl;
@@ -2128,18 +2469,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  _buildSectionLabel('KOLABORASI / GUEST (OPSIONAL)', isDark),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: collabGuestController,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Nama Guest / VTuber (contoh: Kobo Kanaeru)', isDark),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: collabSocialController,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Handle / Akun Sosial (contoh: @kobokanaeru)', isDark),
+                  _buildCollabInputSection(
+                    context: modalContext,
+                    isDark: isDark,
+                    collabGuestController: collabGuestController,
+                    collabSocialController: collabSocialController,
+                    isExpanded: isCollabExpanded,
+                    onToggleExpanded: (val) => setModalState(() => isCollabExpanded = val),
+                    setModalState: setModalState,
+                    isFromRequest: isFromRequest,
                   ),
                   const SizedBox(height: 14),
 
@@ -2281,6 +2619,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
                         try {
                           await ref.read(scheduleProvider.notifier).addSchedule(newSchedule);
+                          onScheduleCreated?.call();
                           if (context.mounted) {
                             _showFloatingBanner(
                               context: context,
@@ -2322,8 +2661,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final titleController = TextEditingController(text: schedule.title);
     final descriptionController = TextEditingController(text: schedule.description ?? '');
     final youtubeController = TextEditingController(text: schedule.youtubeUrl ?? '');
-    final collabGuestController = TextEditingController(text: schedule.collabGuest ?? '');
-    final collabSocialController = TextEditingController(text: schedule.collabSocial ?? '');
+    final collabGuestController = TextEditingController(text: schedule.collabGuest ?? "");
+    final collabSocialController = TextEditingController(text: schedule.collabSocial ?? "");
+
+    bool isCollabExpanded = (schedule.collabGuest != null && schedule.collabGuest!.isNotEmpty) ||
+        (schedule.collabSocial != null && schedule.collabSocial!.isNotEmpty);
 
     String initialMode = 'youtube';
     if (schedule.thumbnailUrl?.startsWith('data:image') == true) {
@@ -2559,18 +2901,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  _buildSectionLabel('KOLABORASI / GUEST (OPSIONAL)', isDark),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: collabGuestController,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Nama Guest / VTuber (contoh: Kobo Kanaeru)', isDark),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: collabSocialController,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Handle / Akun Sosial (contoh: @kobokanaeru)', isDark),
+                  _buildCollabInputSection(
+                    context: modalContext,
+                    isDark: isDark,
+                    collabGuestController: collabGuestController,
+                    collabSocialController: collabSocialController,
+                    isExpanded: isCollabExpanded,
+                    onToggleExpanded: (val) => setModalState(() => isCollabExpanded = val),
+                    setModalState: setModalState,
+                    isFromRequest: false,
                   ),
                   const SizedBox(height: 14),
 

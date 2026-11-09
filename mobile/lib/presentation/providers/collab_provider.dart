@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import '../../core/config/env.dart';
 import '../../data/models/collab_model.dart';
 import '../../data/services/collab_service.dart';
 import 'auth_provider.dart';
@@ -110,27 +108,7 @@ class CollabNotifier extends StateNotifier<CollabState> {
 }
 
 final collabServiceProvider = Provider<CollabService>((ref) {
-  final dio = Dio(BaseOptions(
-    baseUrl: Env.apiBaseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
-
-  final userState = ref.watch(authProvider);
-
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final currentUser = userState.value;
-        if (currentUser != null && currentUser.id > 0) {
-          options.headers['x-user-id'] = currentUser.id.toString();
-        }
-        return handler.next(options);
-      },
-    ),
-  );
-
-  return CollabService(dio);
+  return CollabService(ref.watch(dioProvider));
 });
 
 final collabProvider =

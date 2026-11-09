@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/config/env.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/todo_model.dart';
 import '../../data/models/audit_log_model.dart';
@@ -12,6 +14,8 @@ import '../providers/schedule_provider.dart';
 import '../providers/game_provider.dart';
 import '../providers/audit_log_provider.dart';
 import '../providers/youtube_provider.dart';
+import '../providers/notification_provider.dart';
+import '../widgets/notification_sheet.dart';
 import '../widgets/countdown_widget.dart';
 import '../widgets/stat_card.dart';
 import 'schedule_screen.dart';
@@ -48,6 +52,330 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _pulseAnimation = CurvedAnimation(
       parent: _pulseController,
       curve: Curves.easeInOut,
+    );
+  }
+
+  // SHORTCUT FANSITE PUBLIK
+  Future<void> _openPublicWebsite(BuildContext context, {String? customUrl}) async {
+    HapticFeedback.lightImpact();
+    final url = customUrl ?? Env.publicWebUrl;
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        _showFloatingToast(
+          context,
+          message: 'Gagal membuka tautan: $url',
+          isSuccess: false,
+          icon: LucideIcons.circle_alert,
+        );
+      }
+    }
+  }
+
+  void _showWebsitePickerSheet(BuildContext context, bool isDark) {
+    HapticFeedback.lightImpact();
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: bgSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: borderSubtle, width: 1),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentCyan.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(LucideIcons.globe, color: AppColors.accentCyan, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PORTAL FANSITE PUBLIK',
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentCyan,
+                        ),
+                      ),
+                      Text(
+                        'Pilih Tujuan Fansite Web',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Option 1: Vercel Production
+            InkWell(
+              onTap: () {
+                Navigator.pop(ctx);
+                _openPublicWebsite(context, customUrl: Env.vercelProductionUrl);
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.accentCyan.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.accentCyan.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.external_link, color: AppColors.accentCyan, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Fansite Web Vercel (Production)',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentCyan.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'LIVE',
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.accentCyan,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            Env.vercelProductionUrl,
+                            style: GoogleFonts.spaceMono(
+                              fontSize: 11,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(LucideIcons.chevron_right, size: 18, color: AppColors.accentCyan),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Option 2: Local Vite Wi-Fi Server
+            InkWell(
+              onTap: () {
+                Navigator.pop(ctx);
+                _openPublicWebsite(context, customUrl: Env.localWebUrl);
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.bgInput : AppColors.bgInputLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderSubtle, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.laptop, color: AppColors.accentPurple, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Web Dev Laptop (Wi-Fi Lokal)',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentPurple.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'DEV',
+                                  style: GoogleFonts.spaceMono(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.accentPurple,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            Env.localWebUrl,
+                            style: GoogleFonts.spaceMono(
+                              fontSize: 11,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(LucideIcons.chevron_right, size: 18, color: textMuted),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPublicPortalCard(bool isDark) {
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.accentCyan.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3), width: 0.8),
+            ),
+            child: const Icon(LucideIcons.globe, color: AppColors.accentCyan, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Portal Fansite Publik',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentEmerald,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Pratinjau tampilan live banner & polling audiens',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 11, color: textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentCyan.withValues(alpha: 0.15),
+              foregroundColor: AppColors.accentCyan,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: AppColors.accentCyan.withValues(alpha: 0.4), width: 0.8),
+              ),
+            ),
+            icon: const Icon(LucideIcons.external_link, size: 13),
+            label: Text(
+              'Buka Web',
+              style: GoogleFonts.spaceMono(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onPressed: () {
+              _showWebsitePickerSheet(context, isDark);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -115,6 +443,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(dashboardTabProvider, (prev, next) {
+      if (mounted && _currentIndex != next) {
+        setState(() {
+          _currentIndex = next;
+          _visitedTabs.add(next);
+        });
+      }
+    });
+
     ref.listen(scheduleProvider, (previous, next) {
       final isAnyLive = next.schedules.any((s) => s.status.toLowerCase() == 'live');
       if (mounted && _isBroadcasting != isAnyLive) {
@@ -221,6 +558,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
         actions: [
+          // Shortcut Buka Fansite Web Publik
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: IconButton(
+              tooltip: 'Kunjungi Web Fansite',
+              icon: Icon(LucideIcons.globe, color: textSecondary, size: 19),
+              onPressed: () {
+                _showWebsitePickerSheet(context, isDark);
+              },
+            ),
+          ),
+          // Lonceng Notifikasi Studio
+          Consumer(
+            builder: (ctx, ref, _) {
+              final unreadCount = ref.watch(unreadNotificationsCountProvider);
+              return SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  tooltip: 'Notifikasi Studio',
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(LucideIcons.bell, color: unreadCount > 0 ? AppColors.accentCyan : textSecondary, size: 20),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: -3,
+                          right: -4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentRed,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: bgSurface, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accentRed.withValues(alpha: 0.5),
+                                  blurRadius: 4,
+                                  spreadRadius: 0.5,
+                                ),
+                              ],
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            alignment: Alignment.center,
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: GoogleFonts.spaceMono(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  onPressed: () {
+                    NotificationSheet.show(context);
+                  },
+                ),
+              );
+            },
+          ),
           SizedBox(
             width: 44,
             height: 44,
@@ -339,6 +740,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           currentIndex: _currentIndex,
           onTap: (index) {
             HapticFeedback.selectionClick();
+            ref.read(dashboardTabProvider.notifier).state = index;
             setState(() {
               _currentIndex = index;
               _visitedTabs.add(index);
@@ -434,6 +836,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildBroadcastingCard(isDark),
+            const SizedBox(height: 12),
+            _buildPublicPortalCard(isDark),
             const SizedBox(height: 16),
 
             CountdownWidget(
