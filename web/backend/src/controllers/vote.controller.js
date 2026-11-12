@@ -1,5 +1,5 @@
 const { Game, Vote, AuditLog } = require('../models');
-const { updateVoteCount, updateAllGamesVotes, resetVotingPeriod } = require('../utils/firebase.helper');
+const { updateVoteCount, updateAllGamesVotes, resetVotingPeriod, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
@@ -184,6 +184,21 @@ const submitGameRequest = async (req, res) => {
       detail: 'Viewer mengajukan usulan baru',
       sub_detail: title
     });
+
+    // Send FCM push notification to creator_alerts topic
+    try {
+      await sendTopicNotification('creator_alerts', {
+        title: '🎮 Request Game Baru',
+        body: `${game.title} — diusulkan oleh ${game.requester_info || 'Viewer'}`,
+        data: {
+          type: 'NEW_GAME_REQUEST',
+          gameId: String(game.id),
+          url: '/admin/voting'
+        }
+      });
+    } catch (fcmErr) {
+      console.warn('FCM game request notification skipped:', fcmErr.message);
+    }
 
     return res.status(201).json({
       success: true,

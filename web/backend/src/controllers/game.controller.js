@@ -1,5 +1,5 @@
 const { Game, Vote, AuditLog } = require('../models');
-const { updateVoteCount, updateAllGamesVotes, pushNotification } = require('../utils/firebase.helper');
+const { updateVoteCount, updateAllGamesVotes, pushNotification, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op, fn, col, literal } = require('sequelize');
 
 /**
@@ -169,6 +169,20 @@ const createGame = async (req, res) => {
         });
       } catch (notifErr) {
         console.warn('Firebase notification skipped for game request:', notifErr.message);
+      }
+
+      try {
+        await sendTopicNotification('creator_alerts', {
+          title: '🎮 Request Game Baru',
+          body: `${title} — diusulkan oleh ${requester_info || 'Viewer'}`,
+          data: {
+            type: 'NEW_GAME_REQUEST',
+            gameId: String(game.id),
+            url: '/admin/voting'
+          }
+        });
+      } catch (fcmErr) {
+        console.warn('FCM game request notification skipped:', fcmErr.message);
       }
     }
 
