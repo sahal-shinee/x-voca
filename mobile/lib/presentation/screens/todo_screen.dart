@@ -18,7 +18,7 @@ class TodoScreen extends ConsumerStatefulWidget {
 
 class _TodoScreenState extends ConsumerState<TodoScreen> {
   int _selectedStatusIndex = 0;
-  final List<String> _statusFilters = ['Semua', 'Pending', 'Dikerjakan', 'Selesai'];
+  final List<String> _statusFilters = ['ALL', 'PENDING', 'IN PROGRESS', 'DONE'];
 
   String _selectedCategory = 'Semua Kategori';
   final List<String> _categories = [
@@ -260,11 +260,11 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(child: _buildMiniStatItem('PENDING', '$pendingCount', AppColors.gold(isDark), isDark)),
                 Container(width: 1, height: 26, color: borderSubtle),
-                Expanded(child: _buildMiniStatItem('PROGRES', '$inProgressCount', AppColors.secondary(isDark), isDark)),
+                Expanded(child: _buildMiniStatItem('IN PROGRESS', '$inProgressCount', AppColors.secondary(isDark), isDark)),
                 Container(width: 1, height: 26, color: borderSubtle),
-                Expanded(child: _buildMiniStatItem('SELESAI', '$completedCount', AppColors.emerald(isDark), isDark)),
+                Expanded(child: _buildMiniStatItem('DONE', '$completedCount', AppColors.emerald(isDark), isDark)),
                 Container(width: 1, height: 26, color: borderSubtle),
-                Expanded(child: _buildMiniStatItem('TERLAMBAT', '$overdueCount', AppColors.red(isDark), isDark)),
+                Expanded(child: _buildMiniStatItem('OVERDUE', '$overdueCount', AppColors.red(isDark), isDark)),
               ],
             ),
           ),

@@ -365,7 +365,7 @@ function ContentManagementPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
-                Manajemen Content Guide
+                Content Guide
               </h1>
               <p className="text-xs sm:text-sm text-text-muted mt-0.5">
                 Kelola katalog konten, arsip video, dan playlist YouTube untuk portal penonton

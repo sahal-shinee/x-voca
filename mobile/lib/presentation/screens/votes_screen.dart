@@ -671,7 +671,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStatItem(
-                    title: 'SELESAI',
+                    title: 'DONE',
                     value: '$doneCount',
                     color: textMuted,
                     isDark: isDark,
@@ -737,7 +737,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     final filters = [
-      {'key': 'all', 'label': 'Semua', 'count': games.length},
+      {'key': 'all', 'label': 'ALL', 'count': games.length},
       {
         'key': 'requested',
         'label': 'Requested',

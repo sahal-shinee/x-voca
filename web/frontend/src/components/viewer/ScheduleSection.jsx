@@ -444,14 +444,14 @@ const ScheduleSection = () => {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 backdrop-blur-md shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-          <span className="font-bold text-[11px] tracking-wider uppercase font-mono">LIVE SEKARANG</span>
+          <span className="font-bold text-[11px] tracking-wider uppercase font-mono">LIVE</span>
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7ee0d2]/15 border border-[#7ee0d2]/35 text-[#7ee0d2] backdrop-blur-md shadow-sm">
         <Clock className="w-3 h-3 text-[#7ee0d2]" />
-        <span className="font-bold text-[11px] tracking-wider uppercase font-mono">AKAN DATANG</span>
+        <span className="font-bold text-[11px] tracking-wider uppercase font-mono">UPCOMING</span>
       </span>
     );
   };

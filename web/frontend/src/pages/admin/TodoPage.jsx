@@ -907,10 +907,10 @@ function TodoPage() {
           {/* Status Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
             {[
-              { key: 'all',         label: 'SEMUA',       count: stats.total },
+              { key: 'all',         label: 'ALL',         count: stats.total },
               { key: 'pending',     label: 'PENDING',     count: stats.pending },
-              { key: 'in_progress', label: 'DIKERJAKAN',  count: stats.inProgress },
-              { key: 'completed',   label: 'SELESAI',     count: stats.completed },
+              { key: 'in_progress', label: 'IN PROGRESS', count: stats.inProgress },
+              { key: 'completed',   label: 'DONE',        count: stats.completed },
             ].map((tab) => {
               const isActive = statusFilter === tab.key;
               return (

@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Maximize2, X } from 'lucide-react';
 import heroCharacter from '../../assets/hero-character.png';
 import TopNav from './TopNav';
 import { getNextSchedule } from '../../services/scheduleService';
@@ -507,12 +509,29 @@ function CharacterStage({ moodIndex, onMoodChange }) {
   const stageRef = useRef(null);
   const frameRef = useRef(0);
   const [lineIndex, setLineIndex] = useState(0);
+  const [isFullBodyOpen, setIsFullBodyOpen] = useState(false);
 
   const mood = MOODS[moodIndex];
   const line = mood.lines[lineIndex % mood.lines.length];
   const typed = useTypewriter(line);
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
+
+  useEffect(() => {
+    if (!isFullBodyOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsFullBodyOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isFullBodyOpen]);
 
   // Pakai ref + CSS variable, bukan state, supaya tidak re-render setiap gerakan mouse
   const handleMove = (e) => {
@@ -638,30 +657,101 @@ function CharacterStage({ moodIndex, onMoodChange }) {
         </div>
       </div>
 
-      {/* Pemilih mood */}
+      {/* Pemilih mood & tombol Full Body */}
       <div className="mt-5 flex flex-col items-center gap-2">
-        <div role="group" aria-label="Pilih mood Xion" className="inline-flex items-center gap-1 p-1 rounded-full bg-[rgba(35,31,66,0.85)] border border-[rgba(61,53,96,0.6)]">
-          {MOODS.map((m, i) => {
-            const active = i === moodIndex;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => selectMood(i)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold font-sans transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] ${active ? 'text-[#18132B]' : 'text-[#a89ec0] hover:text-white'}`}
-                style={active ? { backgroundColor: m.color } : undefined}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: active ? '#18132B' : m.color }}></span>
-                {m.label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <div role="group" aria-label="Pilih mood Xion" className="inline-flex items-center gap-1 p-1 rounded-full bg-[rgba(35,31,66,0.85)] border border-[rgba(61,53,96,0.6)]">
+            {MOODS.map((m, i) => {
+              const active = i === moodIndex;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => selectMood(i)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold font-sans transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2] ${active ? 'text-[#18132B]' : 'text-[#a89ec0] hover:text-white'}`}
+                  style={active ? { backgroundColor: m.color } : undefined}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: active ? '#18132B' : m.color }}></span>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsFullBodyOpen(true)}
+            aria-label="Lihat tampilan Full Body Xion Regalia"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#15102a]/80 backdrop-blur-md border border-white/15 hover:border-white/35 hover:bg-[#1f193c]/90 text-[10px] sm:text-[11px] font-semibold font-sans text-white/90 hover:text-white transition-all duration-200 shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
+          >
+            <Maximize2 className="w-3 h-3" style={{ color: mood.color }} />
+            <span>Full Body</span>
+          </button>
         </div>
         <span className="text-[10px] sm:text-xs text-[#a89ec0] font-body">
           Klik Xion untuk menyapa · Sekarang: {mood.status}
         </span>
       </div>
+
+      {/* Modal / Lightbox Full Body */}
+      {isFullBodyOpen && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tampilan Full Body Xion Regalia"
+          onClick={() => setIsFullBodyOpen(false)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8 bg-[#090714]/85 backdrop-blur-md animate-fade-in"
+        >
+          {/* Tombol Close (X) pojok kanan atas */}
+          <button
+            type="button"
+            onClick={() => setIsFullBodyOpen(false)}
+            aria-label="Tutup tampilan Full Body"
+            className="fixed top-4 right-4 sm:top-6 sm:right-6 z-20 p-2.5 rounded-full bg-[#15102a]/85 backdrop-blur-md border border-white/15 hover:border-white/35 text-white/80 hover:text-white transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7ee0d2]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Kontainer Gambar & Glow */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex flex-col items-center justify-center max-w-full max-h-full"
+          >
+            {/* Efek Glow Dinamis Sesuai Mood Aktif */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-4 sm:inset-0 rounded-full blur-3xl opacity-60 pointer-events-none transition-all duration-500"
+              style={{
+                background: `radial-gradient(circle, rgba(${mood.glow},0.45) 0%, rgba(${mood.glow},0.12) 55%, transparent 75%)`,
+              }}
+            />
+
+            <img
+              src="/images/xion-fullbody.png"
+              alt="Xion Regalia - Full Body"
+              draggable={false}
+              className="relative z-10 max-h-[82vh] max-w-[90vw] w-auto h-auto object-contain select-none"
+              style={{
+                filter: `drop-shadow(0 0 28px rgba(${mood.glow},0.35))`,
+                transition: 'filter 0.5s ease',
+              }}
+            />
+
+            {/* Badge Info Karakter */}
+            <div className="relative z-10 mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#15102a]/85 backdrop-blur-md border border-white/10">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: mood.color }}
+              />
+              <span className="text-[10px] sm:text-xs font-mono tracking-wider uppercase text-white/90">
+                XION REGALIA · {mood.label}
+              </span>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -928,7 +1018,7 @@ function HeroSection({ onRequestCollab }) {
 
               <div className="max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-4 sm:mt-5 animate-fade-in" style={{ animationDelay: '0.15s' }}>
                 <p className="font-normal text-[#94a3b8] text-sm sm:text-base leading-6 lg:leading-[26px] font-body">
-                  Your space to follow every stream, vote for what comes next, and discover every journey.
+                  Ruang santai buat ngikutin setiap siaran, ikut voting game berikutnya, dan nemenin tiap perjalanan bareng.
                 </p>
               </div>
 
@@ -955,7 +1045,7 @@ function HeroSection({ onRequestCollab }) {
                     <div className="flex items-center gap-2">
                       <CalendarIcon />
                       <span className="font-semibold text-[#94a3b8] text-[9px] sm:text-[11px] tracking-wider uppercase font-mono">
-                        Stream Berikutnya
+                        NEXT STREAM
                       </span>
                     </div>
 
@@ -964,14 +1054,14 @@ function HeroSection({ onRequestCollab }) {
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse"></div>
                         <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
-                          MEMUAT...
+                          LOADING...
                         </span>
                       </div>
                     ) : countdown.isEmpty ? (
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]"></div>
                         <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
-                          TIDAK ADA JADWAL
+                          NO SCHEDULE
                         </span>
                       </div>
                     ) : countdown.isLive ? (

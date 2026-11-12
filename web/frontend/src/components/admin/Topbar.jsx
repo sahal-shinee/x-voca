@@ -44,8 +44,8 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
   // Page title mapping
   const pageNames = {
     '/admin/dashboard': 'Dashboard',
-    '/admin/schedules': 'Jadwal Stream',
-    '/admin/voting': 'Game Voting',
+    '/admin/schedules': 'Schedule',
+    '/admin/voting': 'Voting',
     '/admin/collab-requests': 'Collab Requests',
     '/admin/content': 'Content Guide',
     '/admin/todos': 'Todo List',

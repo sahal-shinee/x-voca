@@ -568,7 +568,7 @@ function VotingPage() {
               {/* Clean Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 mb-4">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
-                <span className="text-[#7ee0d2] text-[11px] font-semibold tracking-wider uppercase">Voting Game Komunitas</span>
+                <span className="text-[#7ee0d2] text-[11px] font-semibold tracking-wider uppercase">COMMUNITY VOTING</span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 font-sans tracking-tight">
@@ -578,7 +578,7 @@ function VotingPage() {
                 </span>
               </h1>
               <p className="text-[#A09BB8] text-sm max-w-xl leading-relaxed">
-                Tentukan game yang akan dimainkan di sesi live streaming berikutnya. Setiap suara kamu berkontribusi langsung pada konten siaran.
+                Pilih game yang pengen kamu tonton di sesi live streaming berikutnya. Tiap suara kamu langsung ikut nentuin konten siaran!
               </p>
             </div>
 
@@ -665,7 +665,7 @@ function VotingPage() {
           ) : (
             <div className="py-6 px-4 rounded-xl bg-[#141126] border border-white/5 text-center flex flex-col items-center justify-center">
               <p className="text-xs text-[#8E8AAB]">
-                Belum ada game aktif dalam nominasi voting cepat saat ini. Kamu dapat mengajukan usulan game baru melalui tombol Request Game di bawah.
+                Belum ada game aktif di daftar Quick Vote saat ini. Kamu bisa ngajuin usulan game baru lewat tombol Request Game di bawah.
               </p>
             </div>
           )}
@@ -691,7 +691,7 @@ function VotingPage() {
                 <div className="flex items-center gap-2 mb-0.5">
                   <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">Ajukan Usulan Game Baru</h3>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider text-[#7ee0d2] bg-[#7ee0d2]/10 border border-[#7ee0d2]/20">
-                    Buka
+                    OPEN
                   </span>
                 </div>
                 <p className="text-xs text-[#8E8AAB] leading-relaxed max-w-lg">
@@ -876,8 +876,8 @@ function VotingPage() {
       <Modal
         isOpen={showConfirmModal}
         onClose={() => { setShowConfirmModal(false); setConfirmData(null); }}
-        title="Konfirmasi Pilihan Suara"
-        confirmText="Ya, Beri Suara"
+        title="Konfirmasi Vote"
+        confirmText="Ya, Vote Sekarang"
         variant="success"
         onConfirm={confirmVote}
       >

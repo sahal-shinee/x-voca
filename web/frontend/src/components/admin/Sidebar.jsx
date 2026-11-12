@@ -58,13 +58,13 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
     },
     {
       path: '/admin/schedules',
-      label: 'Jadwal Stream',
+      label: 'Schedule',
       icon: Calendar,
       iconHoverClass: 'group-hover:scale-115 group-hover:-translate-y-0.5 group-hover:text-accent-cyan',
     },
     {
       path: '/admin/voting',
-      label: 'Game Voting',
+      label: 'Voting',
       icon: Gamepad2,
       iconHoverClass: 'group-hover:scale-125 group-hover:rotate-12 group-hover:text-accent-purple',
     },

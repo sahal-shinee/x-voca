@@ -81,7 +81,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           color: AppColors.accentGold,
           bg: AppColors.accentGold.withValues(alpha: 0.12),
           border: AppColors.accentGold.withValues(alpha: 0.35),
-          label: 'JADWAL',
+          label: 'SCHEDULE',
         );
       case 'BROADCASTING_START':
         return _NotificationTypeConfig(
@@ -97,7 +97,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           color: isDark ? AppColors.textSecondary : AppColors.textSecondaryLight,
           bg: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
           border: isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight,
-          label: 'SISTEM',
+          label: 'SYSTEM',
         );
     }
   }

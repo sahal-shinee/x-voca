@@ -158,7 +158,7 @@ function SettingsPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
-                Pengaturan Studio
+                Settings
               </h1>
               <p className="text-xs sm:text-sm text-text-muted mt-0.5">
                 Kelola profil akun, keamanan otentikasi, dan preferensi platform streaming

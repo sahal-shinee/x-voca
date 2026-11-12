@@ -756,8 +756,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           items: const [
             BottomNavigationBarItem(icon: Icon(LucideIcons.layout_dashboard), label: 'Dashboard'),
             BottomNavigationBarItem(icon: Icon(LucideIcons.calendar), label: 'Schedule'),
-            BottomNavigationBarItem(icon: Icon(LucideIcons.vote), label: 'Votes'),
-            BottomNavigationBarItem(icon: Icon(LucideIcons.square_check), label: 'To-Do'),
+            BottomNavigationBarItem(icon: Icon(LucideIcons.vote), label: 'Voting'),
+            BottomNavigationBarItem(icon: Icon(LucideIcons.square_check), label: 'Todo List'),
             BottomNavigationBarItem(icon: Icon(LucideIcons.settings), label: 'Settings'),
           ],
         ),

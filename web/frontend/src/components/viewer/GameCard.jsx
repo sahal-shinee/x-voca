@@ -39,25 +39,25 @@ function GameCard({
   // Status configuration - Clean, harmonious color scheme
   const statusConfig = {
     playing: {
-      badge: { text: 'Sedang Dimainkan', bg: 'bg-amber-500/15', textColor: 'text-amber-300', dot: 'bg-amber-400' },
+      badge: { text: 'PLAYING', bg: 'bg-amber-500/15', textColor: 'text-amber-300', dot: 'bg-amber-400' },
       button: { text: 'Sedang Dimainkan di Stream', bg: 'bg-amber-500/10', textColor: 'text-amber-300', borderColor: 'border-amber-500/30' },
       progressGradient: 'from-amber-400 to-[#7ee0d2]',
       labelColor: 'text-amber-300',
     },
     accepted: {
-      badge: { text: 'Diterima Komunitas', bg: 'bg-purple-500/15', textColor: 'text-purple-300' },
-      button: { text: 'Beri Suara', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
+      badge: { text: 'ACCEPTED', bg: 'bg-purple-500/15', textColor: 'text-purple-300' },
+      button: { text: 'Vote', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
       progressGradient: 'from-[#7ee0d2] to-[#c084fc]',
       labelColor: 'text-purple-300',
     },
     requested: {
-      badge: { text: 'Request Baru', bg: 'bg-cyan-500/15', textColor: 'text-cyan-300' },
-      button: { text: 'Beri Suara', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
+      badge: { text: 'REQUESTED', bg: 'bg-cyan-500/15', textColor: 'text-cyan-300' },
+      button: { text: 'Vote', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
       progressGradient: 'from-[#7ee0d2] to-cyan-400',
       labelColor: 'text-cyan-300',
     },
     done: {
-      badge: { text: 'Selesai', bg: 'bg-white/10', textColor: 'text-[#a89ec0]' },
+      badge: { text: 'DONE', bg: 'bg-white/10', textColor: 'text-[#a89ec0]' },
       button: { text: 'Selesai Dimainkan', bg: 'bg-white/5', textColor: 'text-[#a89ec0]', borderColor: 'border-white/10' },
       progressGradient: 'from-slate-500 to-slate-600',
       labelColor: 'text-[#a89ec0]',

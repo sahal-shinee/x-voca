@@ -301,7 +301,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             Text(
-              'Pengaturan & Konfigurasi',
+              'Settings',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

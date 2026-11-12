@@ -39,11 +39,11 @@ import { collabRequestService } from '../../services/collabRequestService';
  * Filter status tabs (Alur Kerja Kreator)
  */
 const STATUS_TABS = [
-  { key: 'all',       label: 'SEMUA',       statKey: 'total' },
-  { key: 'pending',   label: 'BARU',        statKey: 'pending' },
-  { key: 'approved',  label: 'DISIMPAN',    statKey: 'approved' },
-  { key: 'scheduled', label: 'DIJADWALKAN', statKey: 'scheduled' },
-  { key: 'rejected',  label: 'ARSIP',       statKey: 'rejected' },
+  { key: 'all',       label: 'ALL',       statKey: 'total' },
+  { key: 'pending',   label: 'NEW',       statKey: 'pending' },
+  { key: 'approved',  label: 'APPROVED',  statKey: 'approved' },
+  { key: 'scheduled', label: 'SCHEDULED', statKey: 'scheduled' },
+  { key: 'rejected',  label: 'ARCHIVED',  statKey: 'rejected' },
 ];
 
 /**

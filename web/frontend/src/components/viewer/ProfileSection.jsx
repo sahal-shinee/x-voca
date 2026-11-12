@@ -328,7 +328,7 @@ const ProfileSection = () => {
 
         {/* Heading */}
         <h2 className={`text-center text-2xl lg:text-[28px] font-bold text-white tracking-[-0.7px] mb-8 font-display transition-all duration-700 delay-100 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          The Solitary Voice in Deep Space
+          Suara Tenang di Tengah Sunyinya Semesta
         </h2>
 
         {/* Bento Grid: Logo Card + Profile Card */}
@@ -442,7 +442,7 @@ const ProfileSection = () => {
                 </div>
 
                 <p className="text-[#a89ec0] text-sm leading-relaxed mb-6 font-body">
-                  A quiet sanctuary under midnight skies. Streaming late-night introspective journeys, atmospheric indie games, and acoustic soundscapes for those who seek solace in the quiet hours.
+                  Tempat singgah santai di bawah langit malam. Nemenin kamu lewat siaran larut malam, game indie penuh suasana, dan obrolan akustik buat yang lagi butuh teman di jam-jam sunyi.
                 </p>
 
                 {/* Stats Grid: Total Sesi, Total Video, Debut */}

@@ -334,10 +334,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     }).length;
 
     final filterLabels = [
-      'SEMUA (${allSchedules.length})',
+      'ALL (${allSchedules.length})',
       'LIVE ($liveCount)',
       'UPCOMING ($upcomingCount)',
-      'SELESAI ($doneCount)',
+      'ENDED ($doneCount)',
     ];
 
     final filteredSchedules = allSchedules.where((s) {
@@ -368,7 +368,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
             ),
             Text(
-              'Manajemen Jadwal',
+              'Schedule',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -439,7 +439,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 Container(width: 1, height: 26, color: borderSubtle),
                 Expanded(
                   child: _buildMiniStat(
-                    title: 'Selesai',
+                    title: 'ENDED',
                     value: '$doneCount Sesi',
                     color: AppColors.emerald(isDark),
                     isDark: isDark,
@@ -790,7 +790,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     switch (statusLower) {
       case 'live':
         statusColor = AppColors.accentRed;
-        statusLabel = 'LIVE NOW';
+        statusLabel = 'LIVE';
         statusIcon = LucideIcons.radio;
         break;
       case 'done':
@@ -798,7 +798,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       case 'past':
       case 'completed':
         statusColor = AppColors.accentEmerald;
-        statusLabel = 'SELESAI';
+        statusLabel = 'ENDED';
         statusIcon = LucideIcons.circle_check;
         break;
       default:

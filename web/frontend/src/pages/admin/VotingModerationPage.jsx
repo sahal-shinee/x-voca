@@ -36,11 +36,11 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FILTER_TABS = [
-  { key: 'all',       label: 'SEMUA' },
-  { key: 'requested', label: 'MENUNGGU' },
-  { key: 'accepted',  label: 'DITERIMA' },
-  { key: 'playing',   label: 'DIMAINKAN' },
-  { key: 'done',      label: 'SELESAI' },
+  { key: 'all',       label: 'ALL' },
+  { key: 'requested', label: 'REQUESTED' },
+  { key: 'accepted',  label: 'ACCEPTED' },
+  { key: 'playing',   label: 'PLAYING' },
+  { key: 'done',      label: 'DONE' },
 ];
 
 const STATUS_META = {
@@ -485,7 +485,7 @@ function VotingModerationPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
-                Moderasi Voting Game
+                Voting
               </h1>
               <p className="text-xs sm:text-sm text-text-muted mt-0.5">
                 Kelola usulan komunitas, pantau voting real-time, dan jadwalkan game siaran

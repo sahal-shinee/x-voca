@@ -66,19 +66,19 @@ const normalizeSchedule = (schedule) => ({
 
 // Tab filter options
 const FILTER_TABS = [
-  { key: 'all', label: 'SEMUA' },
+  { key: 'all', label: 'ALL' },
   { key: 'live', label: 'LIVE' },
   { key: 'upcoming', label: 'UPCOMING' },
-  { key: 'done', label: 'SELESAI' },
+  { key: 'done', label: 'ENDED' },
 ];
 
 // Status badge configuration
 const getStatusBadge = (status) => {
   const statusMap = {
-    live: { label: 'LIVE ON AIR', class: 'bg-status-live/15 text-status-live border-status-live/30', icon: Radio },
+    live: { label: 'LIVE', class: 'bg-status-live/15 text-status-live border-status-live/30', icon: Radio },
     upcoming: { label: 'UPCOMING', class: 'bg-accent-purple/15 text-accent-purple border-accent-purple/30', icon: Clock },
-    done: { label: 'SELESAI', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
-    archived: { label: 'SELESAI', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
+    done: { label: 'ENDED', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
+    archived: { label: 'ENDED', class: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
   };
   return statusMap[status] || statusMap.upcoming;
 };
@@ -415,7 +415,7 @@ function SchedulePage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
-            Manajemen Jadwal
+            Schedule
           </h1>
           <p className="text-xs sm:text-sm text-text-secondary mt-1">
             Kelola sesi streaming Xion, koordinasi kolaborasi, dan sinkronisasi hitung mundur publik.
