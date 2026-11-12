@@ -12,6 +12,7 @@ const auditLogRoutes = require('./auditLog.routes');
 const collabRequestRoutes = require('./collabRequest.routes');
 const todoRoutes = require('./todo.routes');
 const youtubeRoutes = require('./youtube.routes');
+const notificationRoutes = require('./notification.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -25,6 +26,7 @@ router.use('/audit-logs', auditLogRoutes);
 router.use('/collab-requests', collabRequestRoutes);
 router.use('/todos', todoRoutes);
 router.use('/youtube', youtubeRoutes);
+router.use('/notifications', notificationRoutes);
 
 module.exports = {
   router,
@@ -38,6 +40,7 @@ module.exports = {
   auditLogRoutes,
   collabRequestRoutes,
   todoRoutes,
-  youtubeRoutes
+  youtubeRoutes,
+  notificationRoutes
 };
 

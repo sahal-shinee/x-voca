@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Schedule } = require('../models');
 const { generateToken } = require('../middleware/auth.middleware');
 const firebaseDb = require('../config/firebase');
 
@@ -125,6 +125,26 @@ const toggleBroadcasting = async (req, res) => {
 
     // Update Firebase
     await firebaseDb.updateBroadcasting(is_broadcasting);
+
+    // Send FCM push notification when live status turns ON
+    if (is_broadcasting) {
+      try {
+        const liveSchedule = await Schedule.findOne({
+          where: { status: 'live' },
+          order: [['scheduled_at', 'DESC']]
+        });
+        await firebaseDb.sendTopicNotification('stream_alerts', {
+          title: '🔴 Xion Regalia Sedang LIVE!',
+          body: liveSchedule?.title || 'Yuk gabung dan nonton siaran langsung sekarang!',
+          data: {
+            type: 'BROADCASTING_START',
+            url: '/#schedule'
+          }
+        });
+      } catch (fcmErr) {
+        console.warn('FCM broadcast notification skipped:', fcmErr.message);
+      }
+    }
 
     return res.status(200).json({
       success: true,

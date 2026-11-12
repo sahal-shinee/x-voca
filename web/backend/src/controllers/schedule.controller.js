@@ -1,5 +1,5 @@
 const { Schedule, User, Game, AuditLog } = require('../models');
-const { updateNextSchedule, clearNextSchedule, updateBroadcastingStatus } = require('../utils/firebase.helper');
+const { updateNextSchedule, clearNextSchedule, updateBroadcastingStatus, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
@@ -252,6 +252,22 @@ const createSchedule = async (req, res) => {
       await updateNextSchedule(schedule);
     }
 
+    // Send FCM notification to stream_alerts for newly created schedule
+    try {
+      const wibTime = toWIB(schedule.scheduled_at);
+      await sendTopicNotification('stream_alerts', {
+        title: '📅 Jadwal Stream Baru!',
+        body: `${schedule.title}${wibTime ? ` • ${wibTime} WIB` : ''}`,
+        data: {
+          type: 'SCHEDULE_CREATED',
+          scheduleId: String(schedule.id),
+          url: '/#schedule'
+        }
+      });
+    } catch (fcmErr) {
+      console.warn('FCM new schedule notification skipped:', fcmErr.message);
+    }
+
     return res.status(201).json({
       success: true,
       data: addWIBField(schedule),
@@ -286,6 +302,8 @@ const updateSchedule = async (req, res) => {
       });
     }
 
+    const previousStatus = schedule.status;
+
     // Update fields
     const allowedFields = [
       'title', 'game_category', 'scheduled_at', 'description',
@@ -305,6 +323,23 @@ const updateSchedule = async (req, res) => {
     });
 
     await schedule.save();
+
+    // Send FCM notification if status transitioned to 'live'
+    if (previousStatus !== 'live' && schedule.status === 'live') {
+      try {
+        await sendTopicNotification('stream_alerts', {
+          title: '🔴 Xion Regalia Sedang LIVE!',
+          body: schedule.title || 'Yuk gabung dan nonton siaran langsung sekarang!',
+          data: {
+            type: 'BROADCASTING_START',
+            scheduleId: String(schedule.id),
+            url: '/#schedule'
+          }
+        });
+      } catch (fcmErr) {
+        console.warn('FCM live schedule notification skipped:', fcmErr.message);
+      }
+    }
 
     // Create audit log
     await AuditLog.create({

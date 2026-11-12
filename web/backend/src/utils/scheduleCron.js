@@ -11,7 +11,7 @@
  */
 
 const { Schedule, Game } = require('../models');
-const { updateNextSchedule } = require('./firebase.helper');
+const { updateNextSchedule, sendTopicNotification } = require('./firebase.helper');
 const { Op } = require('sequelize');
 
 // Stream duration before auto-archive (in hours)
@@ -100,6 +100,21 @@ const updateScheduleStatuses = async () => {
 
       // Mark this schedule as just went live - skip in Part 2 this run
       justWentLiveThisRun.add(schedule.id);
+
+      // Send FCM live notification
+      try {
+        await sendTopicNotification('stream_alerts', {
+          title: '🔴 Xion Regalia Sedang LIVE!',
+          body: schedule.title || 'Yuk gabung dan nonton siaran langsung sekarang!',
+          data: {
+            type: 'BROADCASTING_START',
+            scheduleId: String(schedule.id),
+            url: '/#schedule'
+          }
+        });
+      } catch (fcmErr) {
+        console.warn('[Cron] FCM live notification skipped:', fcmErr.message);
+      }
 
       // Auto-update game status to 'playing'
       // Skip if already updated in this cron run (prevents race condition)

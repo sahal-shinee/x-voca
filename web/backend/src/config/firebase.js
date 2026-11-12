@@ -22,5 +22,9 @@ module.exports = {
   updateAllGamesVotes: firebaseHelper.updateAllGamesVotes,
 
   // Broadcasting operations
-  updateBroadcasting: firebaseHelper.updateBroadcastingStatus
+  updateBroadcasting: firebaseHelper.updateBroadcastingStatus,
+
+  // FCM Push Notification operations
+  subscribeTokenToTopic: firebaseHelper.subscribeTokenToTopic,
+  sendTopicNotification: firebaseHelper.sendTopicNotification
 };

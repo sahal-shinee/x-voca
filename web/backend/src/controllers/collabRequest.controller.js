@@ -1,5 +1,5 @@
 const { CollabRequest, User, AuditLog } = require('../models');
-const { pushNotification } = require('../utils/firebase.helper');
+const { pushNotification, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
@@ -83,6 +83,22 @@ const createCollabRequest = async (req, res) => {
       });
     } catch (notifErr) {
       console.warn('Firebase notification skipped for collab request:', notifErr.message);
+    }
+
+    // Send FCM push notification to creator_alerts topic
+    try {
+      const cleanName = requested_streamer_name.trim().replace(/^@/, '');
+      await sendTopicNotification('creator_alerts', {
+        title: '🤝 Collab Request Baru',
+        body: `Pengajuan collab untuk @${cleanName}`,
+        data: {
+          type: 'NEW_COLLAB_REQUEST',
+          collabId: String(collabRequest.id),
+          url: '/admin/collab-requests'
+        }
+      });
+    } catch (fcmErr) {
+      console.warn('FCM collab request notification skipped:', fcmErr.message);
     }
 
     return res.status(201).json({

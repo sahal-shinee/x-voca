@@ -8,6 +8,21 @@
 // Firebase SDK imports
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
+import { getMessaging, getToken, isSupported } from 'firebase/messaging';
+
+// Fallback Web Push config (FCM)
+const FCM_FALLBACK_CONFIG = {
+  apiKey: "AIzaSyAjymvKw1OcEVIh3uet6OFwp5tBj0XhLx4",
+  authDomain: "x-voca.firebaseapp.com",
+  projectId: "x-voca",
+  storageBucket: "x-voca.firebasestorage.app",
+  messagingSenderId: "74861176052",
+  appId: "1:74861176052:web:6825086462e8210facaaa1"
+};
+
+const FCM_VAPID_KEY =
+  import.meta.env.VITE_FIREBASE_VAPID_KEY ||
+  "BJVmlLnOdpZQGAGj3ZSh0QTa_PQCYuHvYIip1wWcKKMPYBjB-9sY6n_Hw9xeSTEviCF-pWV45nP4eNbEIN5h5QY";
 
 // Firebase configuration dari environment
 const firebaseConfig = {
@@ -73,10 +88,65 @@ export function isFirebaseConfigured() {
   return !!firebaseConfig.databaseURL;
 }
 
+/**
+ * Request browser notification permission, register SW, and get FCM Web Push token
+ * @returns {Promise<string>} FCM registration token
+ */
+export async function requestWebPushToken() {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    throw new Error('Browser kamu belum mendukung notifikasi push.');
+  }
+
+  const supported = await isSupported().catch(() => false);
+  if (!supported || !('serviceWorker' in navigator)) {
+    throw new Error('Browser ini belum mendukung Firebase Cloud Messaging.');
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    throw new Error(
+      permission === 'denied'
+        ? 'Izin notifikasi diblokir browser. Aktifkan izin notifikasi di pengaturan situs.'
+        : 'Izin notifikasi belum disetujui.'
+    );
+  }
+
+  const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+  // Ensure a Firebase App instance exists for Messaging (using env config or FCM fallback)
+  let messagingApp = getApps().find((a) => a.name === 'xvoca-fcm') || null;
+  if (!messagingApp) {
+    const fcmConfig = firebaseConfig.apiKey && firebaseConfig.projectId
+      ? {
+          apiKey: firebaseConfig.apiKey,
+          authDomain: firebaseConfig.authDomain || FCM_FALLBACK_CONFIG.authDomain,
+          projectId: firebaseConfig.projectId,
+          storageBucket: firebaseConfig.storageBucket || FCM_FALLBACK_CONFIG.storageBucket,
+          messagingSenderId: firebaseConfig.messagingSenderId || FCM_FALLBACK_CONFIG.messagingSenderId,
+          appId: firebaseConfig.appId || FCM_FALLBACK_CONFIG.appId,
+        }
+      : FCM_FALLBACK_CONFIG;
+    messagingApp = initializeApp(fcmConfig, 'xvoca-fcm');
+  }
+
+  const messaging = getMessaging(messagingApp);
+  const token = await getToken(messaging, {
+    vapidKey: FCM_VAPID_KEY,
+    serviceWorkerRegistration: swRegistration,
+  });
+
+  if (!token) {
+    throw new Error('Gagal mendapatkan token notifikasi dari browser.');
+  }
+
+  return token;
+}
+
 // Export default instances
 export default {
   getFirebaseApp,
   getFirebaseDatabase,
   isFirebaseConfigured,
+  requestWebPushToken,
   firebaseConfig,
 };

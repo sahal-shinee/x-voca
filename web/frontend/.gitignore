@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# High Risk Secrets & Firebase Admin
+serviceAccountKey.json
+*firebase-adminsdk*.json
+
+# Environment Variables (Database Railway, API Key, JWT)
+.env
+.env.*
+!.env.example
+
+# Android Release Signing Keys
+*.jks
+*.keystore
+key.properties

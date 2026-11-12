@@ -13,6 +13,7 @@
 const adminModule = require('firebase-admin');
 const admin = adminModule.default || adminModule;
 const { getDatabase } = require('firebase-admin/database');
+const { getMessaging } = require('firebase-admin/messaging');
 const path = require('path');
 const fs = require('fs');
 
@@ -87,12 +88,14 @@ const getFirebaseAdmin = () => {
         console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
       }
     }
-    // 3. Default: cari di root project
+    // 3. Default: cari di root project (serviceAccountKey.json atau firebase-service-account.json)
     else {
-      const defaultPath = path.resolve(__dirname, '../../firebase-service-account.json');
-      if (fs.existsSync(defaultPath)) {
-        serviceAccount = require(defaultPath);
-        console.log(`📡 Firebase: Loading service account from default file: ${defaultPath}`);
+      const keyPath = path.resolve(__dirname, '../../serviceAccountKey.json');
+      const legacyPath = path.resolve(__dirname, '../../firebase-service-account.json');
+      const resolvedDefault = fs.existsSync(keyPath) ? keyPath : legacyPath;
+      if (fs.existsSync(resolvedDefault)) {
+        serviceAccount = require(resolvedDefault);
+        console.log(`📡 Firebase: Loading service account from default file: ${resolvedDefault}`);
       } else {
         console.warn('⚠️ Firebase: Tidak ada service account configured');
       }
@@ -403,6 +406,87 @@ const pushNotification = async ({ userId = 'default', type = 'SYSTEM_UPDATE', ti
   }
 };
 
+/**
+ * Subscribe a Web/Mobile FCM registration token to a topic
+ * @param {string} token - FCM registration token
+ * @param {string} topic - Topic name (e.g. 'stream_alerts', 'creator_alerts')
+ */
+const subscribeTokenToTopic = async (token, topic = 'stream_alerts') => {
+  try {
+    const app = getFirebaseAdmin();
+    if (!app) {
+      return { success: false, message: 'Firebase Admin SDK belum dikonfigurasi.' };
+    }
+    const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
+    const response = await messaging.subscribeToTopic(token, topic);
+    console.log(`✅ FCM: Subscribed token to topic "${topic}" (successCount: ${response.successCount})`);
+    return { success: true, response };
+  } catch (error) {
+    console.error(`❌ FCM subscribeTokenToTopic(${topic}) error:`, error.message);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
+ * Send push notification via FCM to a topic
+ * @param {string} topic - Target topic ('stream_alerts' | 'creator_alerts')
+ * @param {{ title: string, body: string, data?: Record<string, string> }} payload
+ */
+const sendTopicNotification = async (topic, { title, body, data = {} }) => {
+  try {
+    const app = getFirebaseAdmin();
+    if (!app) {
+      console.warn(`⚠️ FCM: Skip topic "${topic}" notification (Firebase Admin belum siap).`);
+      return false;
+    }
+
+    const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
+    const stringData = Object.fromEntries(
+      Object.entries(data || {}).map(([k, v]) => [String(k), String(v ?? '')])
+    );
+
+    const message = {
+      topic,
+      notification: {
+        title,
+        body,
+      },
+      data: stringData,
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'xvoca_high_importance_channel',
+          priority: 'max',
+          sound: 'default',
+          defaultSound: true,
+          visibility: 'public',
+        },
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+        notification: {
+          title,
+          body,
+          icon: '/images/logo_xion.png',
+          badge: '/images/logo_xion.png',
+        },
+        fcmOptions: {
+          link: stringData.url || '/',
+        },
+      },
+    };
+
+    const messageId = await messaging.send(message);
+    console.log(`✅ FCM: Sent notification to topic "${topic}" (ID: ${messageId})`);
+    return true;
+  } catch (error) {
+    console.error(`❌ FCM sendTopicNotification(${topic}) error:`, error.message);
+    return false;
+  }
+};
+
 module.exports = {
   updateNextSchedule,
   clearNextSchedule,
@@ -412,6 +496,8 @@ module.exports = {
   updateAllGamesVotes,
   triggerContentUpdate,
   pushNotification,
+  subscribeTokenToTopic,
+  sendTopicNotification,
   getFirebaseAdmin,
   getDb
 };

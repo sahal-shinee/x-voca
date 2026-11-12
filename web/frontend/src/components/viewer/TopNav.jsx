@@ -7,16 +7,31 @@ import {
   ChevronRight,
   ExternalLink,
   Radio,
+  Bell,
+  BellRing,
+  Loader2,
 } from 'lucide-react';
 import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase';
+import api from '../../services/api';
+import { requestWebPushToken } from '../../utils/firebase';
+import { useToast } from '../common/Toast';
 import logoXion from '../../assets/logo_xion.png';
 import logoSaweria from '../../assets/logo_saweria.jpeg';
 
 const TopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      localStorage.getItem('xvoca_stream_alerts_subscribed') === 'true' &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+  );
 
   // Live broadcast status from Firebase RTDB
   const { isLive } = useBroadcastingStatus();
@@ -86,6 +101,25 @@ const TopNav = () => {
       }
     } else {
       navigate('/#schedule');
+    }
+  };
+
+  // Subscribe browser to FCM stream alerts
+  const handleSubscribeAlerts = async () => {
+    if (notifLoading) return;
+    setNotifLoading(true);
+    try {
+      const token = await requestWebPushToken();
+      await api.post('/api/notifications/subscribe', { token });
+      localStorage.setItem('xvoca_stream_alerts_subscribed', 'true');
+      setIsSubscribed(true);
+      toast.success('Pengingat siaran aktif! Kamu bakal dapet notif saat Xion LIVE atau ada jadwal baru.');
+    } catch (err) {
+      console.error('Web Push subscribe error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Gagal mengaktifkan pengingat notifikasi.';
+      toast.error(msg);
+    } finally {
+      setNotifLoading(false);
     }
   };
 
@@ -206,6 +240,35 @@ const TopNav = () => {
 
         {/* ── 3. Right: Sleek Action Controls ───────────────────────────────── */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
+          {/* Web Push Notification Subscribe Button (Glassmorphism Nocturne) */}
+          <button
+            type="button"
+            onClick={handleSubscribeAlerts}
+            disabled={notifLoading}
+            title={isSubscribed ? 'Pengingat siaran aktif' : 'Aktifkan notifikasi saat Xion LIVE'}
+            aria-label={isSubscribed ? 'Pengingat siaran aktif' : 'Ingatkan Live'}
+            className={`
+              h-8.5 sm:h-9 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-full
+              backdrop-blur-md border text-xs sm:text-[13px] font-semibold tracking-wide
+              transition-all duration-200 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer
+              ${isSubscribed
+                ? 'bg-accent-cyan/15 border-accent-cyan/45 text-accent-cyan shadow-[0_0_14px_rgba(94,234,212,0.2)]'
+                : 'bg-white/[0.04] border-white/[0.12] text-white/85 hover:text-accent-cyan hover:bg-accent-cyan/10 hover:border-accent-cyan/45 hover:shadow-[0_0_14px_rgba(94,234,212,0.18)]'
+              }
+            `}
+          >
+            {notifLoading ? (
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-accent-cyan" />
+            ) : isSubscribed ? (
+              <BellRing className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-cyan" />
+            ) : (
+              <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            )}
+            <span className="hidden lg:inline font-sans">
+              {isSubscribed ? 'Pengingat Aktif' : 'Ingatkan Live'}
+            </span>
+          </button>
+
           {/* Saweria Creator Appreciation Button (Harmonious Idle Glass & Official Mascot Logo) */}
           <a
             href="https://saweria.co/xionregalia"
@@ -283,6 +346,33 @@ const TopNav = () => {
                 <Radio className={`w-4 h-4 ${isCurrentlyLive ? 'text-status-live animate-pulse' : 'text-accent-purple'}`} />
                 <span>{isCurrentlyLive ? '🔴 Tonton Siaran Langsung (Live)' : 'Jadwal & Agenda Siaran'}</span>
               </div>
+              <ChevronRight className="w-4 h-4 opacity-40" />
+            </button>
+
+            {/* Stream Alert Subscribe (Mobile) */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                handleSubscribeAlerts();
+              }}
+              disabled={notifLoading}
+              className={`py-2 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between transition-all border ${
+                isSubscribed
+                  ? 'text-accent-cyan bg-accent-cyan/15 border-accent-cyan/35'
+                  : 'text-white/90 bg-white/[0.04] border-white/10 hover:border-accent-cyan/40 hover:text-accent-cyan'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                {notifLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-accent-cyan" />
+                ) : isSubscribed ? (
+                  <BellRing className="w-4 h-4 text-accent-cyan" />
+                ) : (
+                  <Bell className="w-4 h-4 text-accent-cyan" />
+                )}
+                <span>{isSubscribed ? 'Pengingat Siaran Aktif' : 'Ingatkan Live'}</span>
+              </span>
               <ChevronRight className="w-4 h-4 opacity-40" />
             </button>
 
