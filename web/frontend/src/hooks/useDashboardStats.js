@@ -29,18 +29,6 @@ export function useDashboardStats() {
   const [synced, setSynced] = useState(false); // true if Firebase is connected
   const refreshTimerRef = useRef(null);
 
-  // Fallback mock data
-  const getMockStats = () => ({
-    totalVotes: 1247,
-    votesToday: 42,
-    votesGrowth: 12,
-    upcomingSchedules: 3,
-    pendingTodos: 5,
-    activeContent: 18,
-    urgentTodos: 2,
-    lastUpdated: new Date().toISOString(),
-  });
-
   // Fetch from REST API
   const fetchFromAPI = useCallback(async () => {
     try {
@@ -59,9 +47,8 @@ export function useDashboardStats() {
         setError(null);
       }
     } catch (err) {
-      console.error('useDashboardStats: API fetch failed, using mock data', err);
-      setStats(getMockStats());
-      setError('API unavailable - showing demo data');
+      console.error('useDashboardStats: API fetch failed:', err.message);
+      setError('Gagal memuat statistik terkini.');
     } finally {
       setLoading(false);
     }

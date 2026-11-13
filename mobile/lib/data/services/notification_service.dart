@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../models/notification_model.dart';
 
 /// Top-level background message handler required by Firebase Messaging.
 @pragma('vm:entry-point')
@@ -28,6 +30,9 @@ class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  static final StreamController<NotificationModel> notificationStream =
+      StreamController<NotificationModel>.broadcast();
 
   bool _initialized = false;
 
@@ -103,6 +108,30 @@ class NotificationService {
     if (title.isEmpty && body.isEmpty) return;
 
     try {
+      final type = message.data['type'] ?? 'SYSTEM_UPDATE';
+      int? targetTab;
+      if (type.contains('GAME') || type.contains('VOTE')) {
+        targetTab = 2;
+      } else if (type.contains('COLLAB')) {
+        targetTab = 2;
+      } else if (type.contains('SCHEDULE') || type.contains('BROADCAST')) {
+        targetTab = 1;
+      } else if (type.contains('TODO')) {
+        targetTab = 3;
+      }
+
+      final notifModel = NotificationModel(
+        id: message.messageId ?? 'fcm_${DateTime.now().millisecondsSinceEpoch}',
+        type: type,
+        title: title,
+        message: body,
+        read: false,
+        createdAt: DateTime.now(),
+        targetTab: targetTab,
+        link: message.data['url'],
+      );
+      notificationStream.add(notifModel);
+
       await _localNotifications.show(
         message.hashCode,
         title,

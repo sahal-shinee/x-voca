@@ -25,108 +25,110 @@ console.log('[Firebase] Apps type:', typeof admin?.apps);
 
 // Lazy initialization untuk Firebase Admin SDK
 let firebaseAdmin = null;
+let rtdbApp = null;
+let fcmApp = null;
 let initializationAttempted = false;
 
-const getFirebaseAdmin = () => {
-  // Return cached instance if available
-  if (firebaseAdmin) return firebaseAdmin;
+const getCredentials = () => {
+  let primaryKey = null;
+  let rtdbKey = null;
 
-  // Prevent multiple initialization attempts
-  if (initializationAttempted) {
-    return null;
+  // 1. Production/Railway: Membaca teks JSON dari environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
+      let cleanValue = envValue;
+      if (typeof envValue === 'string' && envValue.includes('\\n')) {
+        cleanValue = envValue.replace(/\\n/g, '\n');
+      }
+      primaryKey = JSON.parse(cleanValue);
+    } catch (err) {
+      console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
+    }
   }
+
+  // 2. Baca file lokal
+  const serviceAccountKeyPath = path.resolve(__dirname, '../../serviceAccountKey.json');
+  const legacyKeyPath = path.resolve(__dirname, '../../firebase-service-account.json');
+
+  if (!primaryKey && fs.existsSync(serviceAccountKeyPath)) {
+    try {
+      primaryKey = require(serviceAccountKeyPath);
+    } catch (_) {}
+  }
+  if (!primaryKey && fs.existsSync(legacyKeyPath)) {
+    try {
+      primaryKey = require(legacyKeyPath);
+    } catch (_) {}
+  }
+
+  // RTDB key (khusus jika xvoca-project punya database terpisah)
+  if (fs.existsSync(legacyKeyPath)) {
+    try {
+      rtdbKey = require(legacyKeyPath);
+    } catch (_) {}
+  }
+  if (!rtdbKey) {
+    rtdbKey = primaryKey;
+  }
+
+  return { primaryKey, rtdbKey };
+};
+
+const getFirebaseAdmin = () => {
+  if (firebaseAdmin) return firebaseAdmin;
+  if (initializationAttempted) return firebaseAdmin;
   initializationAttempted = true;
 
-  console.log('[Firebase] Starting initialization...');
-  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT env set:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
-  console.log('[Firebase] FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
-
-  // Safety check - pastikan firebase-admin loaded dengan benar
   if (!admin) {
     console.error('⚠️ Firebase Admin SDK not available');
     return null;
   }
 
-  // Jika sudah ada app instance, reuse
-  if (admin.apps && admin.apps.length > 0) {
-    firebaseAdmin = admin;
-    console.log('✅ Firebase Admin reused existing app instance');
-    return firebaseAdmin;
-  }
-
   try {
-    let serviceAccount = null;
+    const { primaryKey, rtdbKey } = getCredentials();
 
-    // 1. Opsi Utama (Production/Railway): Membaca teks JSON dari environment variable
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      try {
-        const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
-
-        // Handle escaped newlines in Railway environment variables
-        let cleanValue = envValue;
-        if (typeof envValue === 'string' && envValue.includes('\\n')) {
-          cleanValue = envValue.replace(/\\n/g, '\n');
-          console.log('[Firebase] Detected escaped newlines, cleaned for Railway');
-        }
-
-        serviceAccount = JSON.parse(cleanValue);
-        console.log('[Firebase] Service account parsed from env var:', !!serviceAccount);
-        console.log('[Firebase] Has private_key:', !!(serviceAccount?.private_key));
-        console.log('[Firebase] Project ID:', serviceAccount?.project_id);
-      } catch (err) {
-        console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
-        console.error('[Firebase] Env value preview:', process.env.FIREBASE_SERVICE_ACCOUNT?.substring(0, 100) + '...');
-      }
-    }
-    // 2. Development: Path ke file service account JSON
-    else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-      const resolvedPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
-      if (fs.existsSync(resolvedPath)) {
-        serviceAccount = require(resolvedPath);
-        console.log(`📡 Firebase: Loading service account from file: ${resolvedPath}`);
-      } else {
-        console.warn(`⚠️ Firebase: File service account tidak ditemukan di path: ${resolvedPath}`);
-      }
-    }
-    // 3. Default: cari di root project (serviceAccountKey.json atau firebase-service-account.json)
-    else {
-      const keyPath = path.resolve(__dirname, '../../serviceAccountKey.json');
-      const legacyPath = path.resolve(__dirname, '../../firebase-service-account.json');
-      const resolvedDefault = fs.existsSync(keyPath) ? keyPath : legacyPath;
-      if (fs.existsSync(resolvedDefault)) {
-        serviceAccount = require(resolvedDefault);
-        console.log(`📡 Firebase: Loading service account from default file: ${resolvedDefault}`);
-      } else {
-        console.warn('⚠️ Firebase: Tidak ada service account configured');
-      }
-    }
-
-    // Initialize jika service account berhasil dimuat
-    if (serviceAccount && serviceAccount.private_key) {
-      const databaseURL = process.env.FIREBASE_DATABASE_URL || 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
-
-      const certCredential = admin.credential?.cert
-        ? admin.credential.cert(serviceAccount)
-        : (admin.cert ? admin.cert(serviceAccount) : adminModule.cert(serviceAccount));
-
-      const app = admin.initializeApp({
-        credential: certCredential,
-        databaseURL: databaseURL
-      });
-
-      firebaseAdmin = app || admin;
-      console.log('✅ Firebase Admin SDK initialized successfully');
-      console.log(`📍 Database URL: ${databaseURL}`);
-      return firebaseAdmin;
-    } else {
-      console.warn('⚠️ Firebase: Service account invalid or missing. Real-time features will be limited.');
-      console.warn('[Firebase] serviceAccount:', !!serviceAccount);
-      console.warn('[Firebase] private_key:', !!(serviceAccount?.private_key));
+    if (!primaryKey?.private_key && !rtdbKey?.private_key) {
+      console.warn('⚠️ Firebase: Tidak ada service account credentials.');
       return null;
     }
+
+    const certCredential = (acc) =>
+      admin.credential?.cert
+        ? admin.credential.cert(acc)
+        : (admin.cert ? admin.cert(acc) : adminModule.cert(acc));
+
+    // 1. Inisialisasi default / FCM app
+    if (primaryKey?.private_key) {
+      const existing = admin.apps?.find((a) => a.name === '[DEFAULT]');
+      fcmApp = existing || admin.initializeApp({
+        credential: certCredential(primaryKey),
+        projectId: primaryKey.project_id || 'x-voca'
+      });
+      firebaseAdmin = fcmApp;
+      console.log(`✅ Firebase FCM initialized for project: ${primaryKey.project_id || 'x-voca'}`);
+    }
+
+    // 2. Inisialisasi Realtime Database app
+    if (rtdbKey?.private_key) {
+      const rtdbUrl =
+        process.env.FIREBASE_DATABASE_URL && !process.env.FIREBASE_DATABASE_URL.includes('xvoca-project.firebaseio.com')
+          ? process.env.FIREBASE_DATABASE_URL
+          : 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+      const existingRtdb = admin.apps?.find((a) => a.name === 'xvoca-rtdb');
+      rtdbApp = existingRtdb || admin.initializeApp({
+        credential: certCredential(rtdbKey),
+        databaseURL: rtdbUrl
+      }, 'xvoca-rtdb');
+      console.log(`✅ Firebase RTDB initialized for URL: ${rtdbUrl}`);
+    } else {
+      rtdbApp = fcmApp;
+    }
+
+    return firebaseAdmin;
   } catch (error) {
     console.error('❌ Firebase Admin initialization error:', error.message);
-    console.error('[Firebase] Error stack:', error.stack);
     return null;
   }
 };
@@ -135,17 +137,14 @@ const getFirebaseAdmin = () => {
  * Get Realtime Database instance safely
  */
 const getDb = () => {
-  const fb = getFirebaseAdmin();
-  if (!fb) return null;
+  getFirebaseAdmin();
+  const targetApp = rtdbApp || fcmApp;
+  if (!targetApp) return null;
   try {
-    return getDatabase();
+    return getDatabase(targetApp);
   } catch (err) {
-    try {
-      return getDatabase(fb);
-    } catch (fallbackErr) {
-      console.error('❌ Firebase getDb error:', fallbackErr.message);
-      return null;
-    }
+    console.error('❌ Firebase getDb error:', err.message);
+    return null;
   }
 };
 
@@ -480,9 +479,115 @@ const sendTopicNotification = async (topic, { title, body, data = {} }) => {
 
     const messageId = await messaging.send(message);
     console.log(`✅ FCM: Sent notification to topic "${topic}" (ID: ${messageId})`);
+
+    // Synchronously write to Realtime Database so Web & Mobile in-app bells receive it in real time
+    try {
+      await pushNotification({
+        userId: 'default',
+        type: stringData.type || (topic === 'stream_alerts' ? 'BROADCASTING_START' : 'SYSTEM_UPDATE'),
+        title,
+        message: body,
+        link: stringData.url || null
+      });
+    } catch (pushErr) {
+      console.warn('Realtime database pushNotification warning:', pushErr.message);
+    }
+
     return true;
   } catch (error) {
     console.error(`❌ FCM sendTopicNotification(${topic}) error:`, error.message);
+    return false;
+  }
+};
+
+/**
+ * Get all notifications from Firebase RTDB (with sorting by newest)
+ */
+const getNotificationsFromDb = async (userId = 'default', limit = 50) => {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const snapshot = await db.ref(`notifications/${userId}`).limitToLast(limit).once('value');
+    const val = snapshot.val();
+    if (!val) return [];
+    return Object.entries(val).map(([id, notif]) => ({
+      id,
+      ...notif,
+      createdAt: notif.createdAt || Date.now()
+    })).sort((a, b) => b.createdAt - a.createdAt);
+  } catch (err) {
+    console.error('getNotificationsFromDb error:', err.message);
+    return [];
+  }
+};
+
+/**
+ * Mark a single notification as read
+ */
+const markNotificationRead = async (notificationId, userId = 'default') => {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    await db.ref(`notifications/${userId}/${notificationId}`).update({
+      read: true,
+      readAt: Date.now()
+    });
+    return true;
+  } catch (err) {
+    console.error('markNotificationRead error:', err.message);
+    return false;
+  }
+};
+
+/**
+ * Mark all notifications as read
+ */
+const markAllNotificationsRead = async (userId = 'default') => {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    const snapshot = await db.ref(`notifications/${userId}`).once('value');
+    const val = snapshot.val();
+    if (!val) return true;
+    const updates = {};
+    Object.keys(val).forEach((k) => {
+      updates[`notifications/${userId}/${k}/read`] = true;
+      updates[`notifications/${userId}/${k}/readAt`] = Date.now();
+    });
+    await db.ref().update(updates);
+    return true;
+  } catch (err) {
+    console.error('markAllNotificationsRead error:', err.message);
+    return false;
+  }
+};
+
+/**
+ * Delete a single notification
+ */
+const deleteNotificationById = async (notificationId, userId = 'default') => {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    await db.ref(`notifications/${userId}/${notificationId}`).remove();
+    return true;
+  } catch (err) {
+    console.error('deleteNotificationById error:', err.message);
+    return false;
+  }
+};
+
+/**
+ * Clear all notifications
+ */
+const clearAllNotifications = async (userId = 'default') => {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    await db.ref(`notifications/${userId}`).remove();
+    return true;
+  } catch (err) {
+    console.error('clearAllNotifications error:', err.message);
     return false;
   }
 };
@@ -498,6 +603,11 @@ module.exports = {
   pushNotification,
   subscribeTokenToTopic,
   sendTopicNotification,
+  getNotificationsFromDb,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotificationById,
+  clearAllNotifications,
   getFirebaseAdmin,
   getDb
 };

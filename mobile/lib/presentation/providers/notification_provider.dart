@@ -1,5 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/config/env.dart';
 import '../../data/models/notification_model.dart';
+import '../../data/services/notification_service.dart';
+import 'auth_provider.dart' show dioProvider;
 
 class NotificationState {
   final bool isLoading;
@@ -28,101 +38,182 @@ class NotificationState {
 }
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
-  NotificationNotifier() : super(NotificationState()) {
-    _loadInitialNotifications();
+  final Dio _dio;
+  static const String _storageKey = 'xvoca_cached_notifications_v1';
+  StreamSubscription? _fcmSubscription;
+  StreamSubscription? _rtdbSubscription;
+
+  NotificationNotifier(this._dio) : super(NotificationState(isLoading: true)) {
+    _init();
   }
 
-  void _loadInitialNotifications() {
-    final now = DateTime.now();
-    // Default studio notifications matching the Web platform (NotificationContext.jsx)
-    final initialList = [
-      NotificationModel(
-        id: 'notif_1',
-        type: 'VOTE_SPIKE',
-        title: 'Vote Spike Terdeteksi',
-        message: 'Game "Elden Ring" mendapat 50 vote dalam 10 menit terakhir',
-        read: false,
-        createdAt: now.subtract(const Duration(minutes: 5)),
-        targetTab: 2, // Game Voting Tab
-      ),
-      NotificationModel(
-        id: 'notif_2',
-        type: 'NEW_GAME_REQUEST',
-        title: 'Request Game Baru',
-        message: '"Signalis" telah diminta oleh viewer untuk voting komunitas',
-        read: false,
-        createdAt: now.subtract(const Duration(minutes: 30)),
-        targetTab: 2, // Game Voting Tab
-      ),
-      NotificationModel(
-        id: 'notif_3',
-        type: 'TODO_DEADLINE',
-        title: 'Deadline Mendekat',
-        message: 'Tugas "Edit Thumbnail Stream" harus selesai dalam 2 jam',
-        read: true,
-        createdAt: now.subtract(const Duration(hours: 2)),
-        targetTab: 3, // Todo Tab
-      ),
-      NotificationModel(
-        id: 'notif_4',
-        type: 'SCHEDULE_REMINDER',
-        title: 'Reminder Jadwal',
-        message: 'Stream "Cyberpunk 2077 Night Stream" akan dimulai dalam 1 jam',
-        read: true,
-        createdAt: now.subtract(const Duration(days: 1)),
-        targetTab: 1, // Schedule Tab
-      ),
-      NotificationModel(
-        id: 'notif_5',
-        type: 'collab_requested',
-        title: 'Request Collab Baru',
-        message: 'Viewer mengajukan usulan collab bersama @KoboKanaeru',
-        read: false,
-        createdAt: now.subtract(const Duration(minutes: 15)),
-        targetTab: 2, // Collab Requests Tab
-      ),
-    ];
+  Future<void> _init() async {
+    // 1. Load from local cache first for instant UI response
+    await _loadFromLocal();
 
-    state = state.copyWith(notifications: initialList);
+    // 2. Fetch fresh list from backend API
+    await fetchNotifications();
+
+    // 3. Listen to FCM foreground push messages in real-time
+    _fcmSubscription = NotificationService.notificationStream.stream.listen((notif) {
+      addNotification(notif);
+    });
+
+    // 4. Listen to Firebase Realtime Database at /notifications/default
+    _listenToFirebaseRTDB();
+  }
+
+  void _listenToFirebaseRTDB() {
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        final db = FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL: Env.firebaseDatabaseUrl,
+        );
+
+        _rtdbSubscription = db.ref('notifications/default').onValue.listen(
+          (event) {
+            final data = event.snapshot.value;
+            if (data is Map) {
+              final List<NotificationModel> list = [];
+              data.forEach((k, v) {
+                if (v is Map) {
+                  final map = Map<String, dynamic>.from(v);
+                  map['id'] = k.toString();
+                  try {
+                    list.add(NotificationModel.fromJson(map));
+                  } catch (e) {
+                    debugPrint('[RTDB] Parse error: $e');
+                  }
+                }
+              });
+
+              list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              if (list.isNotEmpty) {
+                state = state.copyWith(notifications: list, isLoading: false);
+                _saveToLocal(list);
+              }
+            }
+          },
+          onError: (err) {
+            debugPrint('[RTDB] notifications listener error: $err');
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('[RTDB] notifications init warning: $e');
+    }
+  }
+
+  Future<void> _loadFromLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_storageKey);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List decoded = jsonDecode(jsonStr);
+        final list = decoded.map((e) => NotificationModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        state = state.copyWith(notifications: list, isLoading: false);
+      }
+    } catch (e) {
+      debugPrint('[Notif] Local load error: $e');
+    }
+  }
+
+  Future<void> _saveToLocal(List<NotificationModel> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(list.take(50).map((n) => n.toJson()).toList());
+      await prefs.setString(_storageKey, jsonStr);
+    } catch (e) {
+      debugPrint('[Notif] Local save error: $e');
+    }
+  }
+
+  Future<void> fetchNotifications() async {
+    try {
+      final res = await _dio.get('/notifications');
+      if (res.data != null && res.data['success'] == true) {
+        final List raw = res.data['data'] ?? [];
+        final list = raw.map((e) => NotificationModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        state = state.copyWith(notifications: list, isLoading: false);
+        await _saveToLocal(list);
+      }
+    } catch (e) {
+      debugPrint('[Notif] fetch error: $e');
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  void _safeApiCall(Future<dynamic> Function() call) {
+    unawaited(() async {
+      try {
+        await call();
+      } catch (_) {}
+    }());
   }
 
   void markAsRead(String id) {
-    state = state.copyWith(
-      notifications: state.notifications.map((n) {
-        if (n.id == id) {
-          return n.copyWith(read: true);
-        }
-        return n;
-      }).toList(),
-    );
+    final updated = state.notifications.map((n) {
+      if (n.id == id) {
+        return n.copyWith(read: true);
+      }
+      return n;
+    }).toList();
+
+    state = state.copyWith(notifications: updated);
+    _saveToLocal(updated);
+
+    _safeApiCall(() => _dio.patch('/notifications/$id/read'));
   }
 
   void markAllAsRead() {
-    state = state.copyWith(
-      notifications: state.notifications.map((n) => n.copyWith(read: true)).toList(),
-    );
+    final updated = state.notifications.map((n) => n.copyWith(read: true)).toList();
+    state = state.copyWith(notifications: updated);
+    _saveToLocal(updated);
+
+    _safeApiCall(() => _dio.patch('/notifications/read-all'));
   }
 
   void deleteNotification(String id) {
-    state = state.copyWith(
-      notifications: state.notifications.where((n) => n.id != id).toList(),
-    );
+    final updated = state.notifications.where((n) => n.id != id).toList();
+    state = state.copyWith(notifications: updated);
+    _saveToLocal(updated);
+
+    _safeApiCall(() => _dio.delete('/notifications/$id'));
   }
 
   void clearAll() {
     state = state.copyWith(notifications: const []);
+    _saveToLocal(const []);
+
+    _safeApiCall(() => _dio.delete('/notifications'));
   }
 
   void addNotification(NotificationModel notif) {
-    state = state.copyWith(
-      notifications: [notif, ...state.notifications],
-    );
+    final existingIndex = state.notifications.indexWhere((n) => n.id == notif.id);
+    List<NotificationModel> updated;
+    if (existingIndex >= 0) {
+      updated = List.from(state.notifications);
+      updated[existingIndex] = notif;
+    } else {
+      updated = [notif, ...state.notifications];
+    }
+    state = state.copyWith(notifications: updated);
+    _saveToLocal(updated);
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    _rtdbSubscription?.cancel();
+    super.dispose();
   }
 }
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  return NotificationNotifier();
+  final dio = ref.watch(dioProvider);
+  return NotificationNotifier(dio);
 });
 
 final unreadNotificationsCountProvider = Provider<int>((ref) {

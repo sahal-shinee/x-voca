@@ -8,7 +8,7 @@
 // Firebase SDK imports
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
-import { getMessaging, getToken, isSupported } from 'firebase/messaging';
+import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 
 // Fallback Web Push config (FCM)
 const FCM_FALLBACK_CONFIG = {
@@ -24,15 +24,17 @@ const FCM_VAPID_KEY =
   import.meta.env.VITE_FIREBASE_VAPID_KEY ||
   "BJVmlLnOdpZQGAGj3ZSh0QTa_PQCYuHvYIip1wWcKKMPYBjB-9sY6n_Hw9xeSTEviCF-pWV45nP4eNbEIN5h5QY";
 
-// Firebase configuration dari environment
+const RTDB_FALLBACK_URL = 'https://xvoca-project-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// Firebase configuration dari environment (dengan fallback siap pakai ke project X-VOCA)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAjymvKw1OcEVIh3uet6OFwp5tBj0XhLx4",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "x-voca.firebaseapp.com",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || RTDB_FALLBACK_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "x-voca",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "x-voca.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "74861176052",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:74861176052:web:6825086462e8210facaaa1",
 };
 
 // Singleton instances
@@ -140,6 +142,24 @@ export async function requestWebPushToken() {
   }
 
   return token;
+}
+
+/**
+ * Listen to foreground FCM push notifications
+ */
+export function listenForegroundMessages(callback) {
+  try {
+    const messagingApp = getApps().find((a) => a.name === 'xvoca-fcm');
+    if (!messagingApp) return () => {};
+    const messaging = getMessaging(messagingApp);
+    return onMessage(messaging, (payload) => {
+      if (typeof callback === 'function') {
+        callback(payload);
+      }
+    });
+  } catch (_) {
+    return () => {};
+  }
 }
 
 // Export default instances

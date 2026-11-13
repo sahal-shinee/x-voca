@@ -1,6 +1,7 @@
-const { User, Schedule } = require('../models');
+const { User, Schedule, Game, AuditLog } = require('../models');
 const { generateToken } = require('../middleware/auth.middleware');
 const firebaseDb = require('../config/firebase');
+const { updateNextSchedule, clearNextSchedule } = require('../utils/firebase.helper');
 
 /**
  * Login controller
@@ -123,7 +124,59 @@ const toggleBroadcasting = async (req, res) => {
     user.is_broadcasting = is_broadcasting;
     await user.save();
 
-    // Update Firebase
+    // Sinkronisasi status jadwal stream dan game terkait
+    if (is_broadcasting) {
+      // 1. Jika diaktifkan ke LIVE: cari jadwal upcoming terdekat untuk dijadikan live (jika belum ada yang live)
+      const existingLive = await Schedule.findOne({ where: { status: 'live' } });
+      if (!existingLive) {
+        let targetSchedule = await Schedule.findOne({
+          where: { status: 'upcoming' },
+          order: [['scheduled_at', 'ASC']]
+        });
+        if (!targetSchedule) {
+          targetSchedule = await Schedule.findOne({
+            order: [['created_at', 'DESC']]
+          });
+        }
+        if (targetSchedule) {
+          targetSchedule.status = 'live';
+          targetSchedule.live_started_at = new Date();
+          await targetSchedule.save();
+          await updateNextSchedule(targetSchedule);
+        }
+      }
+    } else {
+      // 2. Jika dimatikan (OFF): ubah semua jadwal berstatus 'live' menjadi 'done'
+      const liveSchedules = await Schedule.findAll({ where: { status: 'live' } });
+      for (const s of liveSchedules) {
+        s.status = 'done';
+        s.manually_ended = true;
+        await s.save();
+
+        if (s.game_category) {
+          const game = await Game.findOne({
+            where: { title: s.game_category, status: 'playing' }
+          });
+          if (game) {
+            game.status = 'done';
+            await game.save();
+          }
+        }
+      }
+
+      // Ambil jadwal upcoming berikutnya untuk ditampilkan di banner/countdown
+      const nextUpcoming = await Schedule.findOne({
+        where: { status: 'upcoming' },
+        order: [['scheduled_at', 'ASC']]
+      });
+      if (nextUpcoming) {
+        await updateNextSchedule(nextUpcoming);
+      } else {
+        await clearNextSchedule();
+      }
+    }
+
+    // Update Firebase RTDB broadcasting flag
     await firebaseDb.updateBroadcasting(is_broadcasting);
 
     // Send FCM push notification when live status turns ON

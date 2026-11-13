@@ -13,6 +13,7 @@ router.get('/stats', authMiddleware, adminOnly, collabRequestController.getColla
 router.get('/', authMiddleware, adminOnly, collabRequestController.getCollabRequests);
 router.get('/:id', authMiddleware, adminOnly, collabRequestController.getCollabRequestById);
 router.patch('/:id/review', authMiddleware, adminOnly, collabRequestController.reviewCollabRequest);
+router.patch('/:id/status', authMiddleware, adminOnly, collabRequestController.reviewCollabRequest);
 router.delete('/:id', authMiddleware, adminOnly, collabRequestController.deleteCollabRequest);
 
 module.exports = router;

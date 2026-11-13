@@ -496,7 +496,7 @@ function VotingPage() {
       }
     } catch (err) {
       console.error('Request error:', err);
-      toast.error('Terjadi kesalahan. Silakan coba lagi.');
+      toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setSubmittingRequest(false);
     }

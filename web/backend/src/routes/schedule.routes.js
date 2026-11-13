@@ -17,6 +17,7 @@ router.post('/', authMiddleware, scheduleController.createSchedule);
 
 // PATCH /api/schedules/:id - Update schedule (protected)
 router.patch('/:id', authMiddleware, scheduleController.updateSchedule);
+router.put('/:id', authMiddleware, scheduleController.updateSchedule);
 
 // DELETE /api/schedules/:id - Delete schedule (protected)
 router.delete('/:id', authMiddleware, scheduleController.deleteSchedule);

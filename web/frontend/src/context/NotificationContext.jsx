@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ref, onValue, off } from 'firebase/database';
-import { getFirebaseDatabase, isFirebaseConfigured } from '../utils/firebase';
+import { getFirebaseDatabase, isFirebaseConfigured, listenForegroundMessages } from '../utils/firebase';
 
 const NotificationContext = createContext(null);
 
@@ -105,20 +105,33 @@ export const NOTIFICATION_TYPES = {
 };
 
 export function NotificationProvider({ children, userId = 'default' }) {
-  const [notifications, setNotifications] = useState(() =>
-    !isFirebaseConfigured() ? getMockNotifications() : []
-  );
-  const [loading, setLoading] = useState(() => isFirebaseConfigured());
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch notifications from Firebase
+  // Fetch notifications from Firebase RTDB & API fallback
   useEffect(() => {
+    // 1. Initial hydration from REST API (with audit log fallback)
+    import('../services/api').then(({ default: api }) => {
+      api.get(`/api/notifications?userId=${userId}`).then((res) => {
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setNotifications((prev) => (prev.length === 0 ? res.data.data : prev));
+        }
+      }).catch((e) => console.warn('API notification fallback skipped:', e.message));
+    });
+
     if (!isFirebaseConfigured()) {
+      setLoading(false);
       return;
     }
 
     try {
       const database = getFirebaseDatabase();
+      if (!database) {
+        setLoading(false);
+        return;
+      }
+
       const notificationsRef = ref(database, `notifications/${userId}`);
 
       const unsubscribe = onValue(
@@ -132,30 +145,41 @@ export function NotificationProvider({ children, userId = 'default' }) {
               createdAt: notification.createdAt || Date.now(),
             })).sort((a, b) => b.createdAt - a.createdAt);
             setNotifications(notificationList);
-          } else {
-            setNotifications([]);
           }
           setLoading(false);
         },
         (err) => {
-          console.error('Error fetching notifications:', err);
+          console.warn('RTDB notifications listener warning:', err.message);
           setError(err.message);
           setLoading(false);
-          // Fallback to mock data
-          setNotifications(getMockNotifications());
         }
       );
+
+      // Listen to foreground FCM messages
+      const unsubscribeFCM = listenForegroundMessages((payload) => {
+        const notif = payload.notification || {};
+        const data = payload.data || {};
+        const newNotif = {
+          id: payload.messageId || `fcm_${Date.now()}`,
+          type: data.type || 'SYSTEM_UPDATE',
+          title: notif.title || data.title || 'Notifikasi Baru',
+          message: notif.body || data.body || '',
+          link: data.url || null,
+          read: false,
+          createdAt: Date.now()
+        };
+        setNotifications((prev) => [newNotif, ...prev]);
+      });
 
       return () => {
         off(notificationsRef);
         unsubscribe();
+        if (typeof unsubscribeFCM === 'function') unsubscribeFCM();
       };
     } catch (err) {
-      console.error('Notification setup error:', err);
+      console.warn('Notification setup error:', err.message);
       setError(err.message);
       setLoading(false);
-      // Fallback to mock data
-      setNotifications(getMockNotifications());
     }
   }, [userId]);
 
@@ -284,57 +308,6 @@ export function useNotifications() {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }
   return context;
-}
-
-// Mock notifications for development
-function getMockNotifications() {
-  return [
-    {
-      id: 'notif_1',
-      type: 'VOTE_SPIKE',
-      title: 'Vote Spike Terdeteksi',
-      message: 'Game "Elden Ring" mendapat 50 vote dalam 10 menit terakhir',
-      read: false,
-      createdAt: Date.now() - 5 * 60 * 1000, // 5 minutes ago
-      link: '/admin/voting',
-    },
-    {
-      id: 'notif_2',
-      type: 'NEW_GAME_REQUEST',
-      title: 'Request Game Baru',
-      message: '"Signalis" telah diminta oleh viewer',
-      read: false,
-      createdAt: Date.now() - 30 * 60 * 1000, // 30 minutes ago
-      link: '/admin/voting',
-    },
-    {
-      id: 'notif_3',
-      type: 'TODO_DEADLINE',
-      title: 'Deadline Mendekat',
-      message: 'Tugas "Edit Thumbnail" harus selesai dalam 2 jam',
-      read: true,
-      createdAt: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
-      link: '/admin/todos',
-    },
-    {
-      id: 'notif_4',
-      type: 'SCHEDULE_REMINDER',
-      title: 'Reminder Jadwal',
-      message: 'Stream "Cyberpunk 2077" akan dimulai dalam 1 jam',
-      read: true,
-      createdAt: Date.now() - 24 * 60 * 60 * 1000, // 1 day ago
-      link: '/admin/schedules',
-    },
-    {
-      id: 'notif_5',
-      type: 'collab_requested',
-      title: 'Request Collab Baru',
-      message: 'Viewer mengajukan collab dengan @KoboKanaeru',
-      read: false,
-      createdAt: Date.now() - 15 * 60 * 1000, // 15 minutes ago
-      link: '/admin/collab-requests',
-    },
-  ];
 }
 
 export default NotificationContext;

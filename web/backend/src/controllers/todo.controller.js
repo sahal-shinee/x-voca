@@ -126,14 +126,15 @@ const getTodoById = async (req, res) => {
  */
 const createTodo = async (req, res) => {
   try {
+    const body = req.body || {};
+    const title = body.title || body.task;
     const {
-      title,
       description,
       priority,
       deadline,
       tags,
       resource_info
-    } = req.body;
+    } = body;
 
     // Validate required fields
     if (!title) {
@@ -177,7 +178,14 @@ const createTodo = async (req, res) => {
 const updateTodo = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
+
+    if (updates.task !== undefined && updates.title === undefined) {
+      updates.title = updates.task;
+    }
+    if (updates.is_completed !== undefined && updates.status === undefined) {
+      updates.status = updates.is_completed ? 'completed' : 'pending';
+    }
 
     const todo = await Todo.findOne({
       where: {

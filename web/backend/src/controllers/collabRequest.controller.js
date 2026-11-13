@@ -13,12 +13,11 @@ const { Op } = require('sequelize');
  */
 const createCollabRequest = async (req, res) => {
   try {
-    const {
-      requested_streamer_name,
-      requested_streamer_social,
-      message,
-      viewer_identifier: bodyViewerIdentifier
-    } = req.body;
+    const body = req.body || {};
+    const requested_streamer_name = body.requested_streamer_name || body.guest_name;
+    const requested_streamer_social = body.requested_streamer_social || body.guest_channel_url || body.collab_social;
+    const message = body.message || body.notes;
+    const bodyViewerIdentifier = body.viewer_identifier;
 
     // Validate required fields
     if (!requested_streamer_name || !requested_streamer_name.trim()) {

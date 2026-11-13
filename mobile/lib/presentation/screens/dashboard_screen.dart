@@ -53,6 +53,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       parent: _pulseController,
       curve: Curves.easeInOut,
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final schedules = ref.read(scheduleProvider).schedules;
+        final isAnyLive = schedules.any((s) => s.status.toLowerCase() == 'live');
+        final user = ref.read(authProvider).value;
+        final initialBroadcast = isAnyLive || (user?.isBroadcasting ?? false);
+        if (_isBroadcasting != initialBroadcast) {
+          setState(() => _isBroadcasting = initialBroadcast);
+        }
+      }
+    });
   }
 
   // SHORTCUT FANSITE PUBLIK
@@ -456,6 +468,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       final isAnyLive = next.schedules.any((s) => s.status.toLowerCase() == 'live');
       if (mounted && _isBroadcasting != isAnyLive) {
         setState(() => _isBroadcasting = isAnyLive);
+      }
+    });
+
+    ref.listen(authProvider, (previous, next) {
+      final isBroadcasting = next.value?.isBroadcasting ?? false;
+      final schedules = ref.read(scheduleProvider).schedules;
+      final isAnyLive = schedules.any((s) => s.status.toLowerCase() == 'live');
+      final effectiveLive = isBroadcasting || isAnyLive;
+      if (mounted && _isBroadcasting != effectiveLive) {
+        setState(() => _isBroadcasting = effectiveLive);
       }
     });
 
@@ -1275,6 +1297,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           data: {'is_live': val},
                         );
 
+                        ref.read(authProvider.notifier).setBroadcasting(val);
                         setState(() => _isBroadcasting = val);
                         await ref.read(scheduleProvider.notifier).fetchSchedules();
                         ref.read(auditLogProvider.notifier).fetchLogs();

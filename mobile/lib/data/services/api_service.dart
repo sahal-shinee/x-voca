@@ -62,6 +62,8 @@ class ApiService {
                 debugPrint('[DIO FALLBACK] Mencoba koneksi ke: $fallbackUrl');
                 final newOptions = error.requestOptions;
                 newOptions.baseUrl = fallbackUrl;
+                newOptions.connectTimeout = const Duration(seconds: 3);
+                newOptions.receiveTimeout = const Duration(seconds: 5);
                 newOptions.extra['retry_fallback'] = true;
                 final response = await _dio.fetch(newOptions);
                 _dio.options.baseUrl = fallbackUrl;

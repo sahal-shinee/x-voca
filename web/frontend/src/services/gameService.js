@@ -87,6 +87,9 @@ export const requestGame = async (data) => {
     const response = await api.post('/api/votes/request', data);
     return response.data;
   } catch (error) {
+    if (error.response?.data) {
+      return error.response.data;
+    }
     console.error('Error requesting game:', error);
     throw error;
   }

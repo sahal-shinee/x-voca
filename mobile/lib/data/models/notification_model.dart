@@ -55,17 +55,27 @@ class NotificationModel {
   }
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    DateTime parseCreatedAt(dynamic val) {
+      if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+      if (val is num) return DateTime.fromMillisecondsSinceEpoch(val.toInt());
+      if (val is String) {
+        final parsedInt = int.tryParse(val);
+        if (parsedInt != null) return DateTime.fromMillisecondsSinceEpoch(parsedInt);
+        final parsedDate = DateTime.tryParse(val);
+        if (parsedDate != null) return parsedDate;
+      }
+      return DateTime.now();
+    }
+
     return NotificationModel(
-      id: json['id'] ?? '',
-      type: json['type'] ?? 'SYSTEM_UPDATE',
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
+      id: json['id']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'SYSTEM_UPDATE',
+      title: json['title']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
       read: json['read'] == true,
-      createdAt: json['createdAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int)
-          : DateTime.now(),
-      targetTab: json['targetTab'],
-      link: json['link'],
+      createdAt: parseCreatedAt(json['createdAt']),
+      targetTab: json['targetTab'] is int ? json['targetTab'] as int : null,
+      link: json['link']?.toString(),
     );
   }
 }

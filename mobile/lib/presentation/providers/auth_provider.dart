@@ -59,6 +59,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     state = const AsyncValue.data(null);
   }
 
+  void setBroadcasting(bool isBroadcasting) {
+    final currentUser = state.value;
+    if (currentUser != null) {
+      state = AsyncValue.data(currentUser.copyWith(isBroadcasting: isBroadcasting));
+    }
+  }
+
   Future<void> updateProfile({
     required String name,
     required String rigName,

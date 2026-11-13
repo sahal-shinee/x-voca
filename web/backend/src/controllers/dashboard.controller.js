@@ -201,6 +201,17 @@ const getDashboardStats = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
+        totalVotes: currentVotes,
+        votesToday: currentVotes,
+        votesGrowth: voteChange,
+        upcomingSchedules,
+        completedSchedules,
+        pendingTodos,
+        activeContent: visibleContent,
+        urgentTodos,
+        pendingCollabs,
+        pendingGames: requestedGames,
+        active_period: currentPeriod,
         stats,
         recentActivity
       },

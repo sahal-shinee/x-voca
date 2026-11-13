@@ -31,30 +31,12 @@ class AuthService {
         throw Exception(response.data['message'] ?? 'Login gagal');
       }
     } on DioException catch (e) {
-      // Fallback Dummy jika Backend belum menyala atau koneksi gagal
-      if (e.type == DioExceptionType.connectionError || e.response == null) {
-        final normEmail = email.toLowerCase().trim();
-        final isKnownUser = normEmail == 'xion@xvoca.id' || normEmail == 'xionregalia@gmail.com' || normEmail == 'xionregalia@gmailcom';
-        final isCorrectPassword = password == 'password123' || password == 'xvoca2026';
-
-        if (isKnownUser && isCorrectPassword) {
-          const dummyToken = 'dummy_jwt_token_xvoca_creator';
-          await _storage.write(key: 'xvoca_token', value: dummyToken);
-          await _storage.write(key: 'xvoca_user_id', value: '1');
-          return UserModel(
-            id: 1,
-            name: 'Xion Regalia',
-            email: normEmail,
-            role: 'superadmin',
-            rigName: 'Obsidian Rig #03',
-            rigVersion: 'v3.4',
-            isBroadcasting: false,
-          );
-        } else {
-          throw Exception('Gagal terhubung ke backend server.\n(Demo offline: xionregalia@gmail.com / xvoca2026)');
-        }
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.response == null) {
+        throw Exception('Gagal terhubung ke server backend X-VOCA. Periksa jaringan Anda.');
       }
-      final msg = e.response?.data?['message'] ?? 'Gagal terhubung ke server';
+      final msg = e.response?.data?['message'] ?? 'Login gagal. Periksa kembali email dan password Anda.';
       throw Exception(msg);
     }
   }
@@ -62,23 +44,12 @@ class AuthService {
   Future<void> logout() async {
     await _storage.delete(key: 'xvoca_token');
     await _storage.delete(key: 'xvoca_user_id');
+    await _storage.delete(key: 'keep_session');
   }
 
   Future<UserModel?> getMe() async {
     final token = await _storage.read(key: 'xvoca_token');
     if (token == null || token.isEmpty) return null;
-
-    // Jika token adalah dummy, kembalikan dummy user tanpa hit API
-    if (token == 'dummy_jwt_token_xvoca_creator') {
-      return UserModel(
-        id: 1,
-        name: 'Xion Regalia',
-        email: 'xionregalia@gmail.com',
-        role: 'superadmin',
-        rigName: 'Obsidian Rig #03',
-        rigVersion: 'v3.4',
-      );
-    }
 
     try {
       final response = await _dio.get('/auth/me');
@@ -87,7 +58,7 @@ class AuthService {
       }
       return null;
     } catch (_) {
-      // Token ada tapi tidak bisa hit API (offline) → hapus token, suruh login ulang
+      // Token tidak valid atau sesi berakhir
       return null;
     }
   }

@@ -44,4 +44,26 @@ class UserModel {
       'is_broadcasting': isBroadcasting,
     };
   }
+
+  UserModel copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? role,
+    String? avatarUrl,
+    String? rigName,
+    String? rigVersion,
+    bool? isBroadcasting,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      rigName: rigName ?? this.rigName,
+      rigVersion: rigVersion ?? this.rigVersion,
+      isBroadcasting: isBroadcasting ?? this.isBroadcasting,
+    );
+  }
 }

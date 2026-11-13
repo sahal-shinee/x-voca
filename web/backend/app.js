@@ -15,6 +15,7 @@ const auditLogRoutes = require('./src/routes/auditLog.routes');
 const collabRequestRoutes = require('./src/routes/collabRequest.routes');
 const todoRoutes = require('./src/routes/todo.routes');
 const youtubeRoutes = require('./src/routes/youtube.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
 
 // Import middleware
 const { globalLimiter } = require('./src/middleware/rateLimit.middleware');
@@ -122,6 +123,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collab-requests', collabRequestRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/todos', todoRoutes);
 
 // Legacy protected routes (for backward compatibility)
