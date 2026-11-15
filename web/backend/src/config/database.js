@@ -1,21 +1,34 @@
 const { Sequelize } = require('sequelize');
 
+const isRemoteDb =
+  process.env.DB_SSL === 'true' ||
+  (process.env.DB_HOST &&
+    !process.env.DB_HOST.includes('localhost') &&
+    !process.env.DB_HOST.includes('127.0.0.1'));
+
 const sequelize = new Sequelize(
   process.env.DB_NAME || process.env.MYSQLDATABASE || 'railway',
   process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  // Membaca DB_PASS, DB_PASSWORD, atau MYSQLPASSWORD agar tidak lagi terjadi mismatch
   process.env.DB_PASS || process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
   {
     host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
     port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: isRemoteDb
+      ? {
+          ssl: {
+            minVersion: 'TLSv1.2',
+            rejectUnauthorized: true
+          }
+        }
+      : {},
     pool: {
       max: 5,
       min: 0,
-      acquire: 60000, // Increase timeout to 60s
+      acquire: 60000,
       idle: 10000,
-      connectTimeout: 60000, // Connection timeout
+      connectTimeout: 60000
     },
     define: {
       timestamps: true,

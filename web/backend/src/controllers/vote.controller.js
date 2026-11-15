@@ -240,10 +240,8 @@ const resetPeriod = async (req, res) => {
       await game.save();
     }
 
-    // Delete all vote records (archived data stays, just reset active ones)
-    await Vote.destroy({
-      where: {}
-    });
+    // Sesuai DATABASE_SCHEMA.md: Data votes lama tetap tersimpan sebagai arsip berharga (tidak dihapus)
+    // Pemisahan vote antar periode diatur secara otomatis oleh kolom period_key dan unique index
 
     // Create audit log
     await AuditLog.create({
