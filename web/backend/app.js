@@ -103,17 +103,36 @@ if (process.env.NODE_ENV === 'development') {
 // ROUTES
 // ============================================================
 
-// Health check (public) - supports both /health and /api/health
-app.get(['/health', '/api/health'], (req, res) => {
+// Import Schedule Cron Handler
+const { updateScheduleStatuses } = require('./src/utils/scheduleCron');
+
+// Health check and root status (public) - supports /, /health, /api/health
+app.get(['/', '/health', '/api/health'], (req, res) => {
   res.json({
     success: true,
     data: {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      service: 'X-VOCA Backend API'
     },
-    message: 'Server is running.'
+    message: 'Server is running smoothly.'
   });
+});
+
+// Cron webhook for auto-updating schedules (e.g. triggered by cron-job.org or Vercel cron)
+app.get(['/cron/schedules', '/api/cron/schedules'], async (req, res) => {
+  try {
+    const result = await updateScheduleStatuses();
+    res.json({
+      success: true,
+      message: 'Schedule cron executed successfully',
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // API Routes

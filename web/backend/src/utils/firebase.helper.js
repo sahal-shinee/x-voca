@@ -47,6 +47,20 @@ const getCredentials = () => {
     }
   }
 
+  // Support dedicated RTDB service account (e.g. xvoca-project) if FCM is separate project
+  if (process.env.FIREBASE_RTDB_SERVICE_ACCOUNT) {
+    try {
+      const rtdbEnv = process.env.FIREBASE_RTDB_SERVICE_ACCOUNT;
+      let cleanRtdb = rtdbEnv;
+      if (typeof rtdbEnv === 'string' && rtdbEnv.includes('\\n')) {
+        cleanRtdb = rtdbEnv.replace(/\\n/g, '\n');
+      }
+      rtdbKey = JSON.parse(cleanRtdb);
+    } catch (err) {
+      console.error('❌ Firebase: Gagal parse FIREBASE_RTDB_SERVICE_ACCOUNT JSON:', err.message);
+    }
+  }
+
   // 2. Baca file lokal
   const serviceAccountKeyPath = path.resolve(__dirname, '../../serviceAccountKey.json');
   const legacyKeyPath = path.resolve(__dirname, '../../firebase-service-account.json');

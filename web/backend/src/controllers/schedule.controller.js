@@ -1,6 +1,21 @@
 const { Schedule, User, Game, AuditLog } = require('../models');
 const { updateNextSchedule, clearNextSchedule, updateBroadcastingStatus, sendTopicNotification } = require('../utils/firebase.helper');
+const { updateScheduleStatuses } = require('../utils/scheduleCron');
 const { Op } = require('sequelize');
+
+// Lazy Cron Throttle (runs at most once every 30 seconds on serverless requests)
+let lastLazyCronRun = 0;
+const runLazyCronCheck = async () => {
+  const now = Date.now();
+  if (now - lastLazyCronRun > 30000) {
+    lastLazyCronRun = now;
+    try {
+      await updateScheduleStatuses();
+    } catch (err) {
+      console.error('[LazyCron] Auto-sync error:', err.message);
+    }
+  }
+};
 
 /**
  * Convert UTC date to WIB (UTC+7)
@@ -34,6 +49,9 @@ const addWIBFieldToArray = (schedules) => {
  */
 const getSchedules = async (req, res) => {
   try {
+    // Lazy sync schedule statuses in serverless environment
+    await runLazyCronCheck();
+
     const { status, limit = 10, page = 1 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -90,6 +108,9 @@ const getSchedules = async (req, res) => {
  */
 const getNextSchedule = async (req, res) => {
   try {
+    // Lazy sync schedule statuses before querying next schedule
+    await runLazyCronCheck();
+
     const now = new Date();
     console.log('[getNextSchedule] Request received at:', now.toISOString());
 
