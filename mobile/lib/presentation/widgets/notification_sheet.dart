@@ -7,9 +7,18 @@ import '../../core/theme/app_theme.dart';
 import '../providers/notification_provider.dart';
 import '../providers/schedule_provider.dart' show dashboardTabProvider;
 
+/// Modal Bottom Sheet untuk menampilkan panel pusat notifikasi studio.
+///
+/// Fitur utama:
+/// - Filter notifikasi: Semua vs Belum Dibaca.
+/// - Menandai satu atau seluruh notifikasi sebagai sudah dibaca.
+/// - Menghapus notifikasi individual (swipe-to-dismiss) atau menghapus seluruh riwayat.
+/// - Navigasi langsung (*deep link*) ke tab aplikasi terkait saat notifikasi diklik.
+/// - Ikon dan badge warna yang disesuaikan secara visual berdasarkan jenis/kategori notifikasi.
 class NotificationSheet extends ConsumerStatefulWidget {
   const NotificationSheet({super.key});
 
+  /// Helper statis untuk memunculkan modal bottom sheet notifikasi.
   static Future<void> show(BuildContext context) {
     HapticFeedback.lightImpact();
     return showModalBottomSheet(
@@ -25,8 +34,10 @@ class NotificationSheet extends ConsumerStatefulWidget {
 }
 
 class _NotificationSheetState extends ConsumerState<NotificationSheet> {
-  int _selectedFilter = 0; // 0: Semua, 1: Belum Dibaca
+  /// Index filter tab: `0` untuk Semua, `1` untuk Belum Dibaca.
+  int _selectedFilter = 0;
 
+  /// Helper untuk memformat waktu relatif (misal: "Baru saja", "5m lalu", "2j lalu").
   String _formatTimeAgo(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
@@ -37,6 +48,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     return '${diff.inDays}h lalu';
   }
 
+  /// Menentukan konfigurasi ikon, warna, latar, dan label teks berdasarkan jenis notifikasi.
   _NotificationTypeConfig _getTypeConfig(String type, bool isDark) {
     switch (type.toUpperCase()) {
       case 'VOTE_SPIKE':
@@ -111,11 +123,15 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
-    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
-    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
+    // Filter daftar notifikasi sesuai chip yang dipilih pengguna
     final displayedList = _selectedFilter == 1
         ? allNotifications.where((n) => !n.read).toList()
         : allNotifications;
@@ -132,7 +148,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag Handle
+          // Handle drag modal di bagian atas
           Center(
             child: Container(
               width: 36,
@@ -145,7 +161,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
             ),
           ),
 
-          // Header
+          // Header Panel Notifikasi
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
@@ -164,7 +180,11 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                           width: 0.8,
                         ),
                       ),
-                      child: const Icon(LucideIcons.bell, color: AppColors.accentCyan, size: 18),
+                      child: const Icon(
+                        LucideIcons.bell,
+                        color: AppColors.accentCyan,
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -180,11 +200,15 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                           ),
                         ),
                         Text(
-                          unreadCount > 0 ? '$unreadCount belum dibaca' : 'Semua sudah dibaca',
+                          unreadCount > 0
+                              ? '$unreadCount belum dibaca'
+                              : 'Semua sudah dibaca',
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: unreadCount > 0 ? AppColors.accentCyan : textMuted,
+                            color: unreadCount > 0
+                                ? AppColors.accentCyan
+                                : textMuted,
                           ),
                         ),
                       ],
@@ -192,21 +216,32 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                   ],
                 ),
 
+                // Tombol Aksi Cepat (Tandai semua dibaca, Hapus semua, Tutup)
                 Row(
                   children: [
                     if (unreadCount > 0)
                       IconButton(
                         tooltip: 'Tandai semua dibaca',
-                        icon: const Icon(LucideIcons.check_check, size: 18, color: AppColors.accentCyan),
+                        icon: const Icon(
+                          LucideIcons.check_check,
+                          size: 18,
+                          color: AppColors.accentCyan,
+                        ),
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          ref.read(notificationProvider.notifier).markAllAsRead();
+                          ref
+                              .read(notificationProvider.notifier)
+                              .markAllAsRead();
                         },
                       ),
                     if (allNotifications.isNotEmpty)
                       IconButton(
                         tooltip: 'Hapus semua',
-                        icon: Icon(LucideIcons.trash, size: 18, color: textMuted),
+                        icon: Icon(
+                          LucideIcons.trash,
+                          size: 18,
+                          color: textMuted,
+                        ),
                         onPressed: () async {
                           HapticFeedback.lightImpact();
                           final confirm = await showDialog<bool>(
@@ -219,7 +254,11 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                               ),
                               title: Row(
                                 children: [
-                                  const Icon(LucideIcons.trash, color: AppColors.accentRed, size: 20),
+                                  const Icon(
+                                    LucideIcons.trash,
+                                    color: AppColors.accentRed,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Hapus Notifikasi',
@@ -233,21 +272,36 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                               ),
                               content: Text(
                                 'Semua riwayat notifikasi akan dihapus dari daftar.',
-                                style: GoogleFonts.spaceGrotesk(color: textSecondary, fontSize: 13),
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: textSecondary,
+                                  fontSize: 13,
+                                ),
                               ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),
-                                  child: Text('Batal', style: GoogleFonts.spaceGrotesk(color: textMuted)),
+                                  child: Text(
+                                    'Batal',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      color: textMuted,
+                                    ),
+                                  ),
                                 ),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.accentRed,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text('Hapus Semua',
-                                      style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'Hapus Semua',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -269,7 +323,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
             ),
           ),
 
-          // Filter Chips (Semua vs Belum Dibaca)
+          // Chips Filter: Semua vs Belum Dibaca
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             child: Row(
@@ -298,18 +352,27 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           const SizedBox(height: 8),
           Divider(color: borderSubtle.withValues(alpha: 0.5), height: 1),
 
-          // Notification List
+          // Daftar Item Notifikasi (Scrollable ListView)
           Expanded(
             child: displayedList.isEmpty
-                ? _buildEmptyState(textPrimary, textMuted, borderSubtle, isDark)
+                ? _buildEmptyState(
+                    textPrimary,
+                    textMuted,
+                    borderSubtle,
+                    isDark,
+                  )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     itemCount: displayedList.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (ctx, index) {
                       final notif = displayedList[index];
                       final config = _getTypeConfig(notif.type, isDark);
 
+                      // Widget Dismissible untuk aksi swipe-to-delete
                       return Dismissible(
                         key: ValueKey(notif.id),
                         direction: DismissDirection.endToStart,
@@ -320,11 +383,17 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                             color: AppColors.accentRed.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(LucideIcons.trash, color: AppColors.accentRed, size: 20),
+                          child: const Icon(
+                            LucideIcons.trash,
+                            color: AppColors.accentRed,
+                            size: 20,
+                          ),
                         ),
                         onDismissed: (_) {
                           HapticFeedback.lightImpact();
-                          ref.read(notificationProvider.notifier).deleteNotification(notif.id);
+                          ref
+                              .read(notificationProvider.notifier)
+                              .deleteNotification(notif.id);
                         },
                         child: Material(
                           color: Colors.transparent,
@@ -332,11 +401,15 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                             onTap: () {
                               HapticFeedback.selectionClick();
                               if (!notif.read) {
-                                ref.read(notificationProvider.notifier).markAsRead(notif.id);
+                                ref
+                                    .read(notificationProvider.notifier)
+                                    .markAsRead(notif.id);
                               }
                               Navigator.pop(context);
+                              // Arahkan ke tab modul terkait jika ada targetTab
                               if (notif.targetTab != null) {
-                                ref.read(dashboardTabProvider.notifier).state = notif.targetTab!;
+                                ref.read(dashboardTabProvider.notifier).state =
+                                    notif.targetTab!;
                               }
                             },
                             borderRadius: BorderRadius.circular(14),
@@ -344,12 +417,17 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: !notif.read
-                                    ? AppColors.accentCyan.withValues(alpha: isDark ? 0.05 : 0.04)
-                                    : (isDark ? bgInput.withValues(alpha: 0.4) : Colors.white),
+                                    ? AppColors.accentCyan.withValues(
+                                        alpha: isDark ? 0.05 : 0.04,
+                                      )
+                                    : (isDark
+                                        ? bgInput.withValues(alpha: 0.4)
+                                        : Colors.white),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: !notif.read
-                                      ? AppColors.accentCyan.withValues(alpha: 0.4)
+                                      ? AppColors.accentCyan
+                                          .withValues(alpha: 0.4)
                                       : borderSubtle,
                                   width: !notif.read ? 1.2 : 0.8,
                                 ),
@@ -357,7 +435,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Left unread bar indicator
+                                  // Indikator garis vertikal untuk notifikasi belum dibaca
                                   if (!notif.read)
                                     Container(
                                       width: 3.5,
@@ -369,33 +447,44 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                                       ),
                                     ),
 
-                                  // Type Icon
+                                  // Kontainer Ikon Jenis Notifikasi
                                   Container(
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
                                       color: config.bg,
                                       borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: config.border, width: 0.8),
+                                      border: Border.all(
+                                        color: config.border,
+                                        width: 0.8,
+                                      ),
                                     ),
-                                    child: Icon(config.icon, color: config.color, size: 18),
+                                    child: Icon(
+                                      config.icon,
+                                      color: config.color,
+                                      size: 18,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
 
-                                  // Content
+                                  // Konten Teks Notifikasi
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
                                               child: Text(
                                                 notif.title,
                                                 style: GoogleFonts.spaceGrotesk(
                                                   fontSize: 13,
-                                                  fontWeight: notif.read ? FontWeight.w600 : FontWeight.bold,
+                                                  fontWeight: notif.read
+                                                      ? FontWeight.w600
+                                                      : FontWeight.bold,
                                                   color: textPrimary,
                                                 ),
                                                 maxLines: 1,
@@ -417,7 +506,9 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                                           notif.message,
                                           style: GoogleFonts.spaceGrotesk(
                                             fontSize: 11.5,
-                                            color: notif.read ? textMuted : textSecondary,
+                                            color: notif.read
+                                                ? textMuted
+                                                : textSecondary,
                                             height: 1.3,
                                           ),
                                           maxLines: 2,
@@ -425,14 +516,23 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                                         ),
                                         const SizedBox(height: 6),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: config.bg,
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: config.border, width: 0.6),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: config.border,
+                                                  width: 0.6,
+                                                ),
                                               ),
                                               child: Text(
                                                 config.label,
@@ -448,14 +548,21 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
                                                 children: [
                                                   Text(
                                                     'Buka',
-                                                    style: GoogleFonts.spaceMono(
+                                                    style:
+                                                        GoogleFonts.spaceMono(
                                                       fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.accentCyan,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors.accentCyan,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 2),
-                                                  const Icon(LucideIcons.chevron_right, size: 12, color: AppColors.accentCyan),
+                                                  const Icon(
+                                                    LucideIcons.chevron_right,
+                                                    size: 12,
+                                                    color: AppColors.accentCyan,
+                                                  ),
                                                 ],
                                               ),
                                           ],
@@ -477,6 +584,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     );
   }
 
+  /// Membangun tombol chip filter kategori notifikasi.
   Widget _buildFilterChip({
     required String label,
     required int index,
@@ -501,7 +609,9 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
           border: Border.all(
             color: isSelected
                 ? AppColors.accentCyan.withValues(alpha: 0.5)
-                : (isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight),
+                : (isDark
+                    ? AppColors.borderSubtle
+                    : AppColors.borderSubtleLight),
             width: 0.8,
           ),
         ),
@@ -517,7 +627,13 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
     );
   }
 
-  Widget _buildEmptyState(Color textPrimary, Color textMuted, Color borderSubtle, bool isDark) {
+  /// Tampilan kosong (Empty State) ketika tidak ada notifikasi yang ditemukan.
+  Widget _buildEmptyState(
+    Color textPrimary,
+    Color textMuted,
+    Color borderSubtle,
+    bool isDark,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -528,11 +644,16 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderSubtle, width: 0.8),
               ),
-              child: Icon(LucideIcons.bell, size: 24, color: textMuted.withValues(alpha: 0.5)),
+              child: Icon(
+                LucideIcons.bell,
+                size: 24,
+                color: textMuted.withValues(alpha: 0.5),
+              ),
             ),
             const SizedBox(height: 14),
             Text(
@@ -560,6 +681,7 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet> {
   }
 }
 
+/// Konfigurasi visual untuk setiap jenis notifikasi (ikon, warna, latar, border, label).
 class _NotificationTypeConfig {
   final IconData icon;
   final Color color;

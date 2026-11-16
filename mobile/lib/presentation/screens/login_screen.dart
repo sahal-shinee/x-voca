@@ -5,6 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
+/// Halaman Login Creator Portal aplikasi X-VOCA Mobile.
+///
+/// Fitur utama:
+/// - Formulir autentikasi akun (Email & Password) dengan validasi input.
+/// - Fitur toggle visibilitas password (eye icon).
+/// - Opsi "Keep session active" agar token tetap tersimpan secara permanen di storage.
+/// - Tombol submit Call-to-Action dengan gradien dinamis dan indikator pemuatan.
+/// - Penanganan feedback SnackBar saat login berhasil atau gagal.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -14,9 +22,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Nilai default untuk mempermudah proses testing & demonstrasi pengembang
   final _emailController = TextEditingController(text: 'xion@xvoca.id');
   final _passwordController = TextEditingController(text: 'password123');
-  
+
   bool _obscurePassword = true;
   bool _keepSession = true;
   bool _isLoading = false;
@@ -28,6 +37,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Menjalankan validasi form dan memicu proses autentikasi via [authProvider].
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -67,10 +77,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
-    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
-    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     return Scaffold(
       backgroundColor: bgBase,
@@ -82,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header Logo
+                // Header Logo & Brand X-VOCA
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -121,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 36),
 
-                // Form Container
+                // Kontainer Kartu Formulir Login
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -134,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Label Email
+                        // Input Field: Email
                         Text(
                           'EMAIL ADDRESS',
                           style: GoogleFonts.spaceMono(
@@ -148,8 +161,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: 'creator@xvoca.id',
-                            hintStyle: GoogleFonts.spaceGrotesk(color: textMuted),
-                            prefixIcon: Icon(LucideIcons.mail, color: textSecondary, size: 20),
+                            hintStyle:
+                                GoogleFonts.spaceGrotesk(color: textMuted),
+                            prefixIcon: Icon(
+                              LucideIcons.mail,
+                              color: textSecondary,
+                              size: 20,
+                            ),
                             filled: true,
                             fillColor: bgInput,
                             border: OutlineInputBorder(
@@ -161,11 +179,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               borderSide: BorderSide(color: borderSubtle),
                             ),
                           ),
-                          validator: (val) => val == null || val.isEmpty ? 'Email wajib diisi' : null,
+                          validator: (val) => val == null || val.isEmpty
+                              ? 'Email wajib diisi'
+                              : null,
                         ),
                         const SizedBox(height: 18),
 
-                        // Label Password
+                        // Input Field: Password
                         Text(
                           'SECURITY PASSWORD',
                           style: GoogleFonts.spaceMono(
@@ -180,15 +200,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: '••••••••',
-                            hintStyle: GoogleFonts.spaceGrotesk(color: textMuted),
-                            prefixIcon: Icon(LucideIcons.lock, color: textSecondary, size: 20),
+                            hintStyle:
+                                GoogleFonts.spaceGrotesk(color: textMuted),
+                            prefixIcon: Icon(
+                              LucideIcons.lock,
+                              color: textSecondary,
+                              size: 20,
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword ? LucideIcons.eye_off : LucideIcons.eye,
+                                _obscurePassword
+                                    ? LucideIcons.eye_off
+                                    : LucideIcons.eye,
                                 color: textSecondary,
                                 size: 20,
                               ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                             filled: true,
                             fillColor: bgInput,
@@ -201,11 +230,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               borderSide: BorderSide(color: borderSubtle),
                             ),
                           ),
-                          validator: (val) => val == null || val.isEmpty ? 'Password wajib diisi' : null,
+                          validator: (val) => val == null || val.isEmpty
+                              ? 'Password wajib diisi'
+                              : null,
                         ),
                         const SizedBox(height: 14),
 
-                        // Checkbox Keep Session
+                        // Checkbox: Keep Session Active
                         Row(
                           children: [
                             SizedBox(
@@ -215,7 +246,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 value: _keepSession,
                                 activeColor: AppColors.primary(isDark),
                                 checkColor: Colors.black,
-                                onChanged: (val) => setState(() => _keepSession = val ?? true),
+                                onChanged: (val) =>
+                                    setState(() => _keepSession = val ?? true),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -228,10 +260,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const Spacer(),
                             IconButton(
-                              icon: Icon(LucideIcons.fingerprint_pattern, color: AppColors.primary(isDark)),
+                              icon: Icon(
+                                LucideIcons.fingerprint_pattern,
+                                color: AppColors.primary(isDark),
+                              ),
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Biometric auth siap digunakan saat rilis.')),
+                                  const SnackBar(
+                                    content: Text(
+                                      'Biometric auth siap digunakan saat rilis.',
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -239,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Gradient Submit Button
+                        // Tombol Sign In dengan CTA Gradient
                         Container(
                           width: double.infinity,
                           height: 50,
@@ -262,7 +301,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      color: Colors.black,
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : Text(
                                     'Sign In to Dashboard →',

@@ -9,6 +9,15 @@ import '../providers/todo_provider.dart';
 
 String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
+/// Halaman Manajemen Tugas Persiapan Stream (Todo Screen) X-VOCA.
+///
+/// Fitur utama:
+/// - Filter status: ALL, PENDING, IN PROGRESS, DONE.
+/// - Filter kategori produksi (Stream & Jadwal, Konten, Aset/Teknis, Sosmed).
+/// - Pencarian dinamis tugas berdasarkan teks judul atau tag.
+/// - Metrik ringkas tugas (Total, Selesai, Pending, dan Lewat Deadline / Overdue).
+/// - Formulir modal pembuatan dan pengeditan tugas lengkap dengan deadline picker dan tag chip.
+/// - Checklist interaktif dengan efek haptic feedback dan pembaruan optimis.
 class TodoScreen extends ConsumerStatefulWidget {
   const TodoScreen({super.key});
 
@@ -983,6 +992,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
   }
 
   // Modal Form Tambah/Edit Todo (Responsif & Rapi)
+  /// Menampilkan modal bottom sheet untuk membuat tugas baru atau mengedit tugas yang ada.
   void _showTodoFormModal(BuildContext context, {TodoModel? todoToEdit}) {
     HapticFeedback.lightImpact();
     final isEdit = todoToEdit != null;

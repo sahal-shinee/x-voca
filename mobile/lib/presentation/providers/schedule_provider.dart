@@ -4,6 +4,9 @@ import '../../data/models/schedule_model.dart';
 import '../../data/services/schedule_service.dart';
 import 'auth_provider.dart' show dioProvider, authProvider;
 
+/// State penampung daftar jadwal streaming (Schedule State).
+///
+/// Menyimpan list jadwal [schedules], status loading [isLoading], dan pesan [error].
 class ScheduleState {
   final bool isLoading;
   final List<ScheduleModel> schedules;
@@ -15,6 +18,7 @@ class ScheduleState {
     this.error,
   });
 
+  /// Menggandakan state secara immutable.
   ScheduleState copyWith({
     bool? isLoading,
     List<ScheduleModel>? schedules,
@@ -28,6 +32,13 @@ class ScheduleState {
   }
 }
 
+/// StateNotifier yang mengatur CRUD jadwal streaming VTuber.
+///
+/// Menggunakan Optimistic Update untuk operasi:
+/// - Penambahan jadwal baru (`addSchedule`).
+/// - Pembaruan info/status jadwal (`updateSchedule`).
+/// - Penghapusan jadwal (`deleteSchedule`).
+/// Dilengkapi rollback otomatis ke state sebelumnya jika terjadi error jaringan.
 class ScheduleNotifier extends StateNotifier<ScheduleState> {
   final ScheduleService _scheduleService;
   final Ref _ref;
@@ -36,6 +47,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     fetchSchedules();
   }
 
+  /// Mengambil daftar semua jadwal siaran dari backend (`GET /schedules`).
   Future<void> fetchSchedules() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -46,6 +58,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     }
   }
 
+  /// Menambahkan jadwal streaming baru dengan Optimistic UI insertion.
   Future<void> addSchedule(ScheduleModel schedule) async {
     final activeUser = _ref.read(authProvider).value;
     final activeUserId = (activeUser != null && activeUser.id > 0)
@@ -53,41 +66,49 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
         : (schedule.userId > 0 ? schedule.userId : 1);
 
     final previousSchedules = state.schedules;
-    final tempId = schedule.id > 0 ? schedule.id : -DateTime.now().millisecondsSinceEpoch;
-    final optimisticSchedule = schedule.copyWith(id: tempId, userId: activeUserId);
+    final tempId = schedule.id > 0
+        ? schedule.id
+        : -DateTime.now().millisecondsSinceEpoch;
+    final optimisticSchedule =
+        schedule.copyWith(id: tempId, userId: activeUserId);
 
-    // Optimistic Update: Langsung tambahkan ke UI
+    // 1. Optimistic Update: Langsung tambahkan ke list jadwal lokal
     state = state.copyWith(schedules: [optimisticSchedule, ...state.schedules]);
 
     try {
+      // 2. Kirim ke backend
       final newSchedule = await _scheduleService.createSchedule(
         optimisticSchedule,
         userId: activeUserId,
       );
-      // Sinkronkan ID & data resmi dari server tanpa re-fetch
+      // 3. Sinkronkan ID resmi yang digenerate oleh server
       state = state.copyWith(
-        schedules: state.schedules.map((s) => s.id == tempId ? newSchedule : s).toList(),
+        schedules: state.schedules
+            .map((s) => s.id == tempId ? newSchedule : s)
+            .toList(),
       );
     } catch (e) {
-      // Rollback jika request server gagal
+      // 4. Rollback jika request server gagal
       state = state.copyWith(schedules: previousSchedules);
       rethrow;
     }
   }
 
+  /// Memperbarui rincian jadwal streaming dengan Optimistic Update lokal.
   Future<void> updateSchedule(int id, Map<String, dynamic> updates) async {
     final activeUser = _ref.read(authProvider).value;
-    final activeUserId = (activeUser != null && activeUser.id > 0) ? activeUser.id : 1;
+    final activeUserId =
+        (activeUser != null && activeUser.id > 0) ? activeUser.id : 1;
 
     final previousSchedules = state.schedules;
 
-    // Parsir countdownEnabled agar selalu bertipe bool bagi ScheduleModel.copyWith
+    // Normalisasi countdownEnabled agar selalu bertipe bool
     final dynamic rawCountdown = updates['countdown_enabled'];
     final bool parsedCountdown = rawCountdown is bool
         ? rawCountdown
         : (rawCountdown == 1 || rawCountdown == '1' || rawCountdown == true);
 
-    // Optimistic Update: Perbarui item di lokal seketika
+    // 1. Optimistic Update lokal seketika
     state = state.copyWith(
       schedules: state.schedules.map((s) {
         if (s.id == id) {
@@ -99,7 +120,8 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
             scheduledAt: updates['scheduled_at'] != null
                 ? (updates['scheduled_at'] is DateTime
                     ? updates['scheduled_at'] as DateTime
-                    : DateTime.tryParse(updates['scheduled_at'].toString()) ?? s.scheduledAt)
+                    : DateTime.tryParse(updates['scheduled_at'].toString()) ??
+                        s.scheduledAt)
                 : s.scheduledAt,
             description: updates.containsKey('description')
                 ? updates['description'] as String?
@@ -128,24 +150,32 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     );
 
     try {
-      final updated = await _scheduleService.updateSchedule(id, updates, userId: activeUserId);
+      // 2. Kirim update ke server
+      final updated = await _scheduleService.updateSchedule(
+        id,
+        updates,
+        userId: activeUserId,
+      );
       state = state.copyWith(
-        schedules: state.schedules.map((s) => s.id == id ? updated : s).toList(),
+        schedules:
+            state.schedules.map((s) => s.id == id ? updated : s).toList(),
       );
     } catch (e) {
-      // Rollback jika request server gagal
+      // 3. Rollback jika server error
       state = state.copyWith(schedules: previousSchedules);
       rethrow;
     }
   }
 
+  /// Menghapus jadwal streaming dengan Optimistic UI removal.
   Future<void> deleteSchedule(int id) async {
     final activeUser = _ref.read(authProvider).value;
-    final activeUserId = (activeUser != null && activeUser.id > 0) ? activeUser.id : 1;
+    final activeUserId =
+        (activeUser != null && activeUser.id > 0) ? activeUser.id : 1;
 
     final previousSchedules = state.schedules;
 
-    // Optimistic Update: Langsung hapus dari UI tanpa menunggu response server
+    // Langsung hapus dari UI tanpa menunggu response server
     state = state.copyWith(
       schedules: state.schedules.where((s) => s.id != id).toList(),
     );
@@ -153,20 +183,26 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     try {
       await _scheduleService.deleteSchedule(id, userId: activeUserId);
     } catch (e) {
-      // Rollback jika gagal menghapus di server
       state = state.copyWith(schedules: previousSchedules);
       rethrow;
     }
   }
 }
 
+/// Provider instance [ScheduleService].
 final scheduleServiceProvider = Provider<ScheduleService>((ref) {
   return ScheduleService(ref.watch(dioProvider));
 });
 
-final scheduleProvider = StateNotifierProvider<ScheduleNotifier, ScheduleState>((ref) {
+/// Provider global daftar jadwal streaming.
+final scheduleProvider =
+    StateNotifierProvider<ScheduleNotifier, ScheduleState>((ref) {
   final scheduleService = ref.watch(scheduleServiceProvider);
   return ScheduleNotifier(scheduleService, ref);
 });
+
+/// Provider state indeks tab navigasi aktif pada Dashboard.
 final dashboardTabProvider = StateProvider<int>((ref) => 0);
+
+/// Provider penampung sementara data collab yang akan dikonversi menjadi jadwal stream.
 final pendingScheduleCollabProvider = StateProvider<CollabModel?>((ref) => null);

@@ -3,13 +3,34 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 
+/// Widget kartu metrik statistik ringkas (StatCard) untuk Dashboard.
+///
+/// Menampilkan:
+/// - Ikon indikator dengan kontainer berwarna lembut.
+/// - Badge label opsional di pojok kanan atas (misal: "LIVE", "+12%").
+/// - Nilai numerik utama (Value) berukuran tebal.
+/// - Label judul metrik (Title) dengan font monospace bergaya sci-fi futuristik.
+/// - Dukungan feedback haptic (getaran ringan) saat kartu ditekan (`onTap`).
 class StatCard extends StatelessWidget {
+  /// Judul atau deskripsi label metrik (misal: "SUBSCRIBERS", "TOTAL VOTES").
   final String title;
+
+  /// Nilai teks utama yang ditampilkan (misal: "1.2M", "42").
   final String value;
+
+  /// Ikon representatif metrik.
   final IconData icon;
+
+  /// Warna kustom ikon (default menggunakan warna aksen tema).
   final Color? iconColor;
+
+  /// Teks opsional pada badge pojok kanan atas.
   final String? badgeText;
+
+  /// Warna latar dan border badge opsional.
   final Color? badgeColor;
+
+  /// Callback aksi ketika kartu disentuh/ditekan.
   final VoidCallback? onTap;
 
   const StatCard({
@@ -27,9 +48,12 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
-    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
-    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     final resolvedIconColor = iconColor ?? AppColors.primary(isDark);
     final resolvedBadgeColor = badgeColor ?? resolvedIconColor;
@@ -38,6 +62,7 @@ class StatCard extends StatelessWidget {
       color: bgSurface,
       borderRadius: BorderRadius.circular(AppColors.radiusCard),
       child: InkWell(
+        // Respon sentuhan dengan efek haptic
         onTap: onTap != null
             ? () {
                 HapticFeedback.lightImpact();
@@ -58,7 +83,7 @@ class StatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Top Row: Icon Container & Optional Badge
+              // Baris Atas: Kontainer Ikon & Badge Label Opsional
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -72,10 +97,14 @@ class StatCard extends StatelessWidget {
                   ),
                   if (badgeText != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: resolvedBadgeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppColors.radiusBadge),
+                        borderRadius:
+                            BorderRadius.circular(AppColors.radiusBadge),
                         border: Border.all(
                           color: resolvedBadgeColor.withValues(alpha: 0.3),
                           width: 0.8,
@@ -95,7 +124,7 @@ class StatCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Bottom Column: Value & Title
+              // Baris Bawah: Nilai Angka & Judul Metrik
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,

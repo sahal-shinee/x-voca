@@ -1,15 +1,38 @@
 import 'dart:convert';
 
+/// Model data tugas persiapan siaran / to-do list (Todo Model).
+///
+/// Digunakan oleh streamer untuk mencatat daftar pekerjaan, jadwal persiapan aset,
+/// tenggat waktu (deadline), label tag, serta link aset gambar/audio.
 class TodoModel {
+  /// ID unik todo dari database.
   final int id;
+
+  /// ID pemilik tugas.
   final int userId;
+
+  /// Judul tugas.
   final String title;
+
+  /// Deskripsi atau catatan detail tugas.
   final String? description;
-  final String priority; // 'low', 'medium', 'high', 'urgent'
-  final String status;   // 'pending', 'in_progress', 'completed'
+
+  /// Tingkat prioritas tugas: `'low'`, `'medium'`, `'high'`, atau `'urgent'`.
+  final String priority;
+
+  /// Status penyelesaian tugas: `'pending'`, `'in_progress'`, atau `'completed'`.
+  final String status;
+
+  /// Batas waktu / tenggat pengerjaan.
   final DateTime? deadline;
+
+  /// Label atau kategori tag tugas (misal: ['Asset', 'Rig', 'Stream']).
   final List<String> tags;
+
+  /// Informasi atau tautan sumber daya/aset (Drive, Figma, file lokal).
   final String? resourceInfo;
+
+  /// Waktu ketika tugas ini ditandai selesai.
   final DateTime? completedAt;
 
   TodoModel({
@@ -25,9 +48,14 @@ class TodoModel {
     this.completedAt,
   });
 
+  /// Getter kenyamanan: Mengetahui apakah tugas sudah berstatus 'completed'.
   bool get isCompleted => status == 'completed';
+
+  /// Getter kenyamanan: Mengetahui apakah tugas ini berprioritas 'urgent' atau 'high'.
   bool get isUrgent => priority == 'urgent' || priority == 'high';
 
+  /// Factory constructor untuk memetakan data JSON dari backend ke [TodoModel].
+  /// Mendukung format parsing `tags` baik berupa List array maupun string JSON encoded.
   factory TodoModel.fromJson(Map<String, dynamic> json) {
     List<String> parsedTags = [];
     if (json['tags'] != null) {
@@ -59,6 +87,7 @@ class TodoModel {
     );
   }
 
+  /// Membuat salinan objek todo dengan modifikasi nilai tertentu (misal: toggle complete).
   TodoModel copyWith({
     int? id,
     int? userId,
@@ -85,6 +114,7 @@ class TodoModel {
     );
   }
 
+  /// Mengonversi objek [TodoModel] menjadi Map JSON untuk disimpan atau dikirim ke backend.
   Map<String, dynamic> toJson() {
     return {
       'title': title,

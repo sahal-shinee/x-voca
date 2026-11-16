@@ -5,10 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/notification_model.dart';
 
-/// Top-level background message handler required by Firebase Messaging.
+/// Handler tingkat atas (top-level) untuk memproses pesan FCM yang masuk saat
+/// aplikasi berada di background atau terminated state.
+///
+/// Wajib ditandai dengan `@pragma('vm:entry-point')` agar fungsi ini tidak
+/// dihapus (tree-shaken) oleh compiler Dart saat build release.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
+    // Pastikan Firebase terinisialisasi pada isolate background
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
     }
@@ -18,10 +23,20 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[FCM Background] Message ID: ${message.messageId}');
 }
 
+/// Service untuk menangani push notification (Firebase Cloud Messaging)
+/// dan notifikasi lokal (Flutter Local Notifications).
+///
+/// Menggunakan pola Singleton (`NotificationService.instance`) agar
+/// inisialisasi dan stream notifikasi terpusat di seluruh aplikasi.
 class NotificationService {
   NotificationService._internal();
+
+  /// Instance tunggal (Singleton) NotificationService.
   static final NotificationService instance = NotificationService._internal();
 
+  // -------------------------------------------------------------
+  // Konfigurasi Channel Notifikasi Android (High Importance)
+  // -------------------------------------------------------------
   static const String highImportanceChannelId = 'xvoca_high_importance_channel';
   static const String highImportanceChannelName = 'X-VOCA Stream & Collab Alerts';
   static const String highImportanceChannelDesc =
@@ -31,11 +46,13 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  /// Stream broadcast untuk meneruskan notifikasi masuk ke UI / Provider secara reaktif.
   static final StreamController<NotificationModel> notificationStream =
       StreamController<NotificationModel>.broadcast();
 
   bool _initialized = false;
 
+  /// Definisi channel Android dengan prioritas maksimal (heads-up pop-up alert).
   static const AndroidNotificationChannel _androidChannel =
       AndroidNotificationChannel(
     highImportanceChannelId,
@@ -47,12 +64,15 @@ class NotificationService {
     showBadge: true,
   );
 
-  /// Initialize FCM + Local Notifications for heads-up / lockscreen alerts
+  /// Melakukan inisialisasi lengkap layanan notifikasi FCM dan Local Notification.
+  ///
+  /// Meliputi permohonan izin (permission), konfigurasi channel Android,
+  /// penyiapan handler foreground & background.
   Future<void> initialize() async {
     if (_initialized) return;
 
     try {
-      // 1. Request permission via FCM (iOS & Android 13+)
+      // 1. Meminta izin notifikasi pengguna (wajib untuk iOS dan Android 13+)
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
@@ -61,7 +81,7 @@ class NotificationService {
       );
       debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
 
-      // 2. Initialize flutter_local_notifications
+      // 2. Inisialisasi plugin notifikasi lokal perangkat (ikon peluncur)
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const darwinInit = DarwinInitializationSettings();
       const initSettings = InitializationSettings(
@@ -71,7 +91,7 @@ class NotificationService {
 
       await _localNotifications.initialize(initSettings);
 
-      // 3. Create high-importance Android notification channel & request Android 13+ runtime permission
+      // 3. Daftarkan notification channel ke sistem Android & minta runtime permission
       final androidPlugin =
           _localNotifications.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
@@ -80,17 +100,17 @@ class NotificationService {
         await androidPlugin.requestNotificationsPermission();
       }
 
-      // 4. Foreground presentation options
+      // 4. Konfigurasi opsi tampilan notifikasi saat aplikasi berada di latar depan (foreground)
       await _messaging.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      // 5. Register background handler
+      // 5. Daftarkan background message handler
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      // 6. Listen to foreground messages and display heads-up notification
+      // 6. Pasang listener untuk pesan yang diterima saat aplikasi sedang dibuka
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
       _initialized = true;
@@ -100,26 +120,34 @@ class NotificationService {
     }
   }
 
+  /// Memproses pesan FCM yang diterima saat aplikasi sedang aktif di latar depan.
+  ///
+  /// Memetakan jenis pesan ke tab navigasi yang sesuai, mengirimkannya ke
+  /// `notificationStream`, dan menampilkan banner heads-up notification lokal.
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final notification = message.notification;
     final title = notification?.title ?? message.data['title'] ?? 'X-VOCA';
     final body = notification?.body ?? message.data['body'] ?? '';
 
+    // Abaikan jika tidak ada judul maupun pesan konten
     if (title.isEmpty && body.isEmpty) return;
 
     try {
       final type = message.data['type'] ?? 'SYSTEM_UPDATE';
+
+      // Menentukan tab tujuan navigasi berdasarkan tipe notifikasi
       int? targetTab;
       if (type.contains('GAME') || type.contains('VOTE')) {
-        targetTab = 2;
+        targetTab = 2; // Tab Games / Voting
       } else if (type.contains('COLLAB')) {
-        targetTab = 2;
+        targetTab = 2; // Tab Collab / Community
       } else if (type.contains('SCHEDULE') || type.contains('BROADCAST')) {
-        targetTab = 1;
+        targetTab = 1; // Tab Jadwal / Broadcast
       } else if (type.contains('TODO')) {
-        targetTab = 3;
+        targetTab = 3; // Tab Todo / Task List
       }
 
+      // Bungkus data notifikasi ke dalam model aplikasi
       final notifModel = NotificationModel(
         id: message.messageId ?? 'fcm_${DateTime.now().millisecondsSinceEpoch}',
         type: type,
@@ -130,8 +158,11 @@ class NotificationService {
         targetTab: targetTab,
         link: message.data['url'],
       );
+
+      // Emit ke stream agar widget notifikasi memperbarui badge/list secara instan
       notificationStream.add(notifModel);
 
+      // Munculkan floating heads-up banner menggunakan Local Notifications
       await _localNotifications.show(
         message.hashCode,
         title,
@@ -160,7 +191,9 @@ class NotificationService {
     }
   }
 
-  /// Subscribe creator device to both stream_alerts and creator_alerts topics
+  /// Mendaftarkan (subscribe) perangkat ke topik FCM khusus creator/streamer:
+  /// - `stream_alerts`: Notifikasi siaran langsung dan perubahan jadwal stream.
+  /// - `creator_alerts`: Notifikasi aktivitas creator seperti voting dan pengajuan collab baru.
   Future<void> subscribeCreatorTopics() async {
     try {
       await _messaging.subscribeToTopic('stream_alerts');

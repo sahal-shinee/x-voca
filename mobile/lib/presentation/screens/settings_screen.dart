@@ -10,6 +10,15 @@ import '../../data/models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
+/// Halaman Pengaturan (Settings Screen) dan Pusat Kontrol Rig VTuber X-VOCA.
+///
+/// Menyediakan panel konfigurasi:
+/// 1. Profil Kreator & Rig VTuber: nama, email, role, serta dialog edit info rig.
+/// 2. Tampilan & Tema: peralihan dinamis antara Obsidian Dark Mode dan Slate Light Mode.
+/// 3. Status Perangkat Keras / Rig: virtual camera, audio interface, tracking model.
+/// 4. Preferensi Sistem & Notifikasi: push alert toggle dan pengujian getar haptic.
+/// 5. Tautan Eksternal: fansite publik, channel YouTube, portal studio.
+/// 6. Sesi Akun: logout dengan konfirmasi dialog modal.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -20,7 +29,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
 
-  // Floating SnackBar / Toast Helper yang modern, rounded, dan melayang di atas navigasi
+  /// Memunculkan notifikasi toast melayang (*floating toast*) di bagian bawah layar.
   void _showFloatingToast({
     required String message,
     required bool isSuccess,
@@ -91,7 +100,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  // Dialog Edit Profil & Rig Name
+  /// Dialog modal interaktif untuk mengedit nama streamer, nama rig, dan versi rig VTuber.
   void _showEditProfileDialog(BuildContext context, UserModel? user) {
     HapticFeedback.lightImpact();
     final nameCtrl = TextEditingController(text: user?.name ?? 'Xion Regalia');
@@ -980,7 +989,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  // Dialog Konfirmasi Logout Modern & Taktil
+  /// Menampilkan dialog konfirmasi sebelum mengeluarkan sesi akun (logout).
   Future<void> _confirmLogout(BuildContext context, bool isDark) async {
     HapticFeedback.lightImpact();
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;

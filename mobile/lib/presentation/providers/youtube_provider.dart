@@ -3,6 +3,9 @@ import 'package:dio/dio.dart';
 import '../../data/models/youtube_stats_model.dart';
 import 'auth_provider.dart' show dioProvider;
 
+/// State penampung data analitik channel YouTube streamer (YouTube State).
+///
+/// Menyimpan objek statistik [stats], status pemuatan [isLoading], dan pesan [error].
 class YouTubeState {
   final bool isLoading;
   final YouTubeStatsModel? stats;
@@ -14,6 +17,7 @@ class YouTubeState {
     this.error,
   });
 
+  /// Menggandakan state secara immutable.
   YouTubeState copyWith({
     bool? isLoading,
     YouTubeStatsModel? stats,
@@ -27,6 +31,7 @@ class YouTubeState {
   }
 }
 
+/// StateNotifier yang bertugas mengambil dan memperbarui data analitik YouTube.
 class YouTubeNotifier extends StateNotifier<YouTubeState> {
   final Dio _dio;
 
@@ -34,6 +39,7 @@ class YouTubeNotifier extends StateNotifier<YouTubeState> {
     fetchStats();
   }
 
+  /// Mengambil data statistik channel YouTube dari endpoint `GET /youtube/stats`.
   Future<void> fetchStats() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -53,8 +59,9 @@ class YouTubeNotifier extends StateNotifier<YouTubeState> {
   }
 }
 
+/// Provider global statistik channel YouTube yang ditampilkan pada kartu metrik dashboard.
 final youtubeProvider =
     StateNotifierProvider<YouTubeNotifier, YouTubeState>((ref) {
   final dio = ref.watch(dioProvider);
   return YouTubeNotifier(dio);
-}); 
+});

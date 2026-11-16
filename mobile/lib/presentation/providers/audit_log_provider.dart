@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/audit_log_model.dart';
 import 'auth_provider.dart';
 
+/// State untuk menyimpan status riwayat aktivitas (Audit Log) pada aplikasi.
+///
+/// Berisi list log aktivitas [logs], status pemuatan [isLoading], dan pesan [error].
 class AuditLogState {
   final List<AuditLogModel> logs;
   final bool isLoading;
@@ -13,6 +16,7 @@ class AuditLogState {
     this.error,
   });
 
+  /// Menggandakan state dengan nilai baru yang dimodifikasi secara immutable.
   AuditLogState copyWith({
     List<AuditLogModel>? logs,
     bool? isLoading,
@@ -26,6 +30,7 @@ class AuditLogState {
   }
 }
 
+/// StateNotifier yang bertugas mengambil dan mengelola daftar riwayat aktivitas dari backend.
 class AuditLogNotifier extends StateNotifier<AuditLogState> {
   final Ref _ref;
 
@@ -33,6 +38,7 @@ class AuditLogNotifier extends StateNotifier<AuditLogState> {
     fetchLogs();
   }
 
+  /// Mengambil riwayat aktivitas terbaru dari endpoint `GET /audit-logs`.
   Future<void> fetchLogs() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -47,7 +53,10 @@ class AuditLogNotifier extends StateNotifier<AuditLogState> {
         final logs = list.map((item) => AuditLogModel.fromJson(item)).toList();
         state = state.copyWith(logs: logs, isLoading: false, error: null);
       } else {
-        state = state.copyWith(isLoading: false, error: response.data['message']?.toString());
+        state = state.copyWith(
+          isLoading: false,
+          error: response.data['message']?.toString(),
+        );
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -55,6 +64,8 @@ class AuditLogNotifier extends StateNotifier<AuditLogState> {
   }
 }
 
-final auditLogProvider = StateNotifierProvider<AuditLogNotifier, AuditLogState>((ref) {
+/// Provider global untuk memantau data dan aksi [AuditLogNotifier] di UI.
+final auditLogProvider =
+    StateNotifierProvider<AuditLogNotifier, AuditLogState>((ref) {
   return AuditLogNotifier(ref);
 });

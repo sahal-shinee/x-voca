@@ -1,16 +1,29 @@
 import 'package:dio/dio.dart';
 import '../models/todo_model.dart';
 
+/// Service untuk mengelola daftar tugas dan to-do list streaming VTuber.
+///
+/// Bertanggung jawab atas:
+/// - Mengambil daftar to-do berdasarkan filter status dan tingkat prioritas.
+/// - Menghitung metadata statistik (total tugas, selesai hari ini, deadline mendekat).
+/// - Menambahkan tugas baru lengkap dengan deadline, tag, dan referensi aset.
+/// - Memperbarui status penyelesaian atau rincian to-do.
+/// - Menghapus tugas dari sistem.
 class TodoService {
   final Dio _dio;
 
   TodoService(this._dio);
 
-  /// GET /api/todos?status=pending|in_progress|completed&priority=urgent|high|medium|low
+  /// Mengambil daftar tugas dengan filter opsional [status] dan [priority] (`GET /todos`).
+  ///
+  /// Mengembalikan Dart Record berisi:
+  /// - `todos`: Daftar objek [TodoModel].
+  /// - `meta`: Map statistik ringkas (`total`, `completed_today`, `pending_deadlines`).
   Future<({List<TodoModel> todos, Map<String, int> meta})> getTodos({
     String? status,
     String? priority,
   }) async {
+    // Siapkan parameter query jika ada filter aktif
     final queryParams = <String, String>{};
     if (status != null) queryParams['status'] = status;
     if (priority != null) queryParams['priority'] = priority;
@@ -22,6 +35,8 @@ class TodoService {
 
     if (response.data['success'] == true) {
       final data = response.data['data'];
+
+      // Parsing daftar item todo dari payload respons
       final List raw = (data is Map && data['todos'] is List)
           ? data['todos'] as List
           : (data is List ? data : []);
@@ -33,21 +48,31 @@ class TodoService {
         return TodoModel.fromJson(map);
       }).toList();
 
+      // Parsing metadata ringkasan statistik tugas
       final metaMap = (data is Map && data['meta'] is Map)
           ? data['meta'] as Map
           : {};
 
       final meta = {
-        'total': int.tryParse(metaMap['total']?.toString() ?? '') ?? todos.length,
-        'completed_today': int.tryParse(metaMap['completed_today']?.toString() ?? '') ?? 0,
-        'pending_deadlines': int.tryParse(metaMap['pending_deadlines']?.toString() ?? '') ?? 0,
+        'total':
+            int.tryParse(metaMap['total']?.toString() ?? '') ?? todos.length,
+        'completed_today':
+            int.tryParse(metaMap['completed_today']?.toString() ?? '') ?? 0,
+        'pending_deadlines':
+            int.tryParse(metaMap['pending_deadlines']?.toString() ?? '') ?? 0,
       };
+
       return (todos: todos, meta: meta);
     }
-    throw Exception(response.data['message'] ?? 'Gagal mengambil daftar todo');
+    throw Exception(
+      response.data['message'] ?? 'Gagal mengambil daftar todo',
+    );
   }
 
-  /// POST /api/todos — buat todo baru
+  /// Membuat to-do item baru (`POST /todos`).
+  ///
+  /// Mendukung judul, deskripsi, prioritas, tenggat waktu (deadline),
+  /// tag label, serta tautan/informasi resource.
   Future<TodoModel> createTodo({
     required String title,
     String? description,
@@ -56,34 +81,44 @@ class TodoService {
     List<String> tags = const [],
     String? resourceInfo,
   }) async {
-    final response = await _dio.post('/todos', data: {
-      'title': title,
-      'description': description,
-      'priority': priority,
-      'deadline': deadline?.toIso8601String(),
-      'tags': tags,
-      'resource_info': resourceInfo,
-    });
+    final response = await _dio.post(
+      '/todos',
+      data: {
+        'title': title,
+        'description': description,
+        'priority': priority,
+        'deadline': deadline?.toIso8601String(),
+        'tags': tags,
+        'resource_info': resourceInfo,
+      },
+    );
+
     if (response.data['success'] == true) {
       return TodoModel.fromJson(response.data['data']);
     }
     throw Exception(response.data['message'] ?? 'Gagal membuat todo');
   }
 
-  /// PATCH /api/todos/:id — update todo (termasuk toggle complete)
+  /// Memperbarui informasi to-do yang ada (`PATCH /todos/:id`).
+  ///
+  /// Dapat digunakan untuk toggle status checklist maupun mengubah rincian teks.
   Future<TodoModel> updateTodo(int id, Map<String, dynamic> updates) async {
     final response = await _dio.patch('/todos/$id', data: updates);
     if (response.data['success'] == true) {
       return TodoModel.fromJson(response.data['data']);
     }
-    throw Exception(response.data['message'] ?? 'Gagal memperbarui todo');
+    throw Exception(
+      response.data['message'] ?? 'Gagal memperbarui todo',
+    );
   }
 
-  /// DELETE /api/todos/:id — hapus todo
+  /// Menghapus to-do item berdasarkan ID (`DELETE /todos/:id`).
   Future<void> deleteTodo(int id) async {
     final response = await _dio.delete('/todos/$id');
     if (response.data['success'] != true) {
-      throw Exception(response.data['message'] ?? 'Gagal menghapus todo');
+      throw Exception(
+        response.data['message'] ?? 'Gagal menghapus todo',
+      );
     }
   }
 }

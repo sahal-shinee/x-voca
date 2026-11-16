@@ -13,6 +13,15 @@ import '../providers/schedule_provider.dart';
 import '../providers/collab_provider.dart';
 import '../providers/auth_provider.dart' show dioProvider;
 
+/// Halaman Manajemen Jadwal Siaran Streaming (Schedule Screen) X-VOCA.
+///
+/// Fitur utama:
+/// - Filter status jadwal: All, Upcoming, Live, Done.
+/// - Pengambilan otomatis judul dan thumbnail video via YouTube oEmbed API (`_autoFetchTitleFromYouTube`).
+/// - Unggah dan kompresi poster thumbnail lokal menggunakan `image_picker` dan Base64 data URI.
+/// - Integrasi prefill otomatis dari permohonan collab yang diterima (`pendingScheduleCollabProvider`).
+/// - Dialog interaktif penambahan dan pengeditan jadwal (`_showAddScheduleDialog`, `_showEditScheduleDialog`).
+/// - Indikator animasi status siaran langsung dengan dot berdenyut (`_PulsingLiveDot`).
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
 
@@ -2251,7 +2260,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
-  // TAMBAH JADWAL MODAL
+  /// Dialog modal untuk menambahkan jadwal siaran baru (dengan dukungan prefill data bintang tamu collab).
   void _showAddScheduleDialog(
     BuildContext context, {
     String? initialGuest,
@@ -2657,6 +2666,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   // EDIT JADWAL MODAL
+  /// Dialog modal untuk mengedit rincian jadwal siaran yang sudah terdaftar.
   void _showEditScheduleDialog(BuildContext context, ScheduleModel schedule) {
     final titleController = TextEditingController(text: schedule.title);
     final descriptionController = TextEditingController(text: schedule.description ?? '');

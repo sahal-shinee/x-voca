@@ -3,6 +3,9 @@ import '../../data/models/todo_model.dart';
 import '../../data/services/todo_service.dart';
 import 'auth_provider.dart' show dioProvider;
 
+/// State penampung daftar tugas persiapan stream (Todo State).
+///
+/// Menyimpan list tugas [todos], metadata statistik [meta], status loading [isLoading], dan pesan [error].
 class TodoState {
   final bool isLoading;
   final List<TodoModel> todos;
@@ -15,11 +18,12 @@ class TodoState {
     this.meta = const {
       'total': 0,
       'completed_today': 0,
-      'pending_deadlines': 0
+      'pending_deadlines': 0,
     },
     this.error,
   });
 
+  /// Menggandakan state secara immutable.
   TodoState copyWith({
     bool? isLoading,
     List<TodoModel>? todos,
@@ -35,6 +39,14 @@ class TodoState {
   }
 }
 
+/// StateNotifier yang mengatur CRUD dan checklist to-do list tugas stream.
+///
+/// Fitur utama:
+/// - Mengambil daftar to-do dengan filter status & prioritas (`fetchTodos`).
+/// - Penambahan tugas baru dengan kalkulasi statistik instan (`addTodo`).
+/// - Pembaruan rincian tugas (`updateTodo`).
+/// - Toggle status selesai/pending secara instan (`toggleStatus` / `updateStatus`).
+/// - Penghapusan tugas dengan penyesuaian metrik otomatis (`deleteTodo`).
 class TodoNotifier extends StateNotifier<TodoState> {
   final TodoService _todoService;
 
@@ -42,6 +54,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
     fetchTodos();
   }
 
+  /// Mengambil daftar tugas dari endpoint `GET /todos`.
   Future<void> fetchTodos({String? status, String? priority}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -57,6 +70,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
     }
   }
 
+  /// Menambahkan tugas to-do baru dengan Optimistic Update lokal.
   Future<void> addTodo({
     required String title,
     String? description,
@@ -82,6 +96,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
       resourceInfo: resourceInfo,
     );
 
+    // Perbarui metrik statistik lokal
     final newMeta = Map<String, int>.from(state.meta);
     newMeta['total'] = (newMeta['total'] ?? state.todos.length) + 1;
     if (deadline != null && deadline.isAfter(DateTime.now())) {
@@ -112,6 +127,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
     }
   }
 
+  /// Memperbarui rincian tugas yang ada.
   Future<void> updateTodo({
     required int id,
     required String title,
@@ -124,7 +140,10 @@ class TodoNotifier extends StateNotifier<TodoState> {
   }) async {
     final previousTodos = state.todos;
 
-    final current = state.todos.firstWhere((t) => t.id == id, orElse: () => state.todos.first);
+    final current = state.todos.firstWhere(
+      (t) => t.id == id,
+      orElse: () => state.todos.first,
+    );
     final updatedTodo = current.copyWith(
       title: title,
       description: description,
@@ -151,7 +170,9 @@ class TodoNotifier extends StateNotifier<TodoState> {
       };
       final updatedFromServer = await _todoService.updateTodo(id, body);
       state = state.copyWith(
-        todos: state.todos.map((t) => t.id == id ? updatedFromServer : t).toList(),
+        todos: state.todos
+            .map((t) => t.id == id ? updatedFromServer : t)
+            .toList(),
       );
     } catch (e) {
       state = state.copyWith(todos: previousTodos);
@@ -159,6 +180,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
     }
   }
 
+  /// Mengubah status tugas secara langsung (pending, in_progress, completed).
   Future<void> updateStatus(int id, String newStatus) async {
     final previousTodos = state.todos;
     final isNowCompleted = newStatus == 'completed';
@@ -186,11 +208,13 @@ class TodoNotifier extends StateNotifier<TodoState> {
     }
   }
 
+  /// Toggle cepat status checklist antara 'pending' dan 'completed'.
   Future<void> toggleStatus(TodoModel todo) async {
     final nextStatus = todo.status == 'completed' ? 'pending' : 'completed';
     await updateStatus(todo.id, nextStatus);
   }
 
+  /// Menghapus item tugas dan memperbarui statistik ringkasan.
   Future<void> deleteTodo(int id) async {
     final previousTodos = state.todos;
     final previousMeta = state.meta;
@@ -205,11 +229,13 @@ class TodoNotifier extends StateNotifier<TodoState> {
     newMeta['total'] = currentTotal > 0 ? currentTotal - 1 : 0;
     if (target?.isCompleted == true) {
       final currentCompleted = newMeta['completed_today'] ?? 0;
-      newMeta['completed_today'] = currentCompleted > 0 ? currentCompleted - 1 : 0;
+      newMeta['completed_today'] =
+          currentCompleted > 0 ? currentCompleted - 1 : 0;
     }
     if (target != null && target.deadline != null && !target.isCompleted) {
       final currentPending = newMeta['pending_deadlines'] ?? 0;
-      newMeta['pending_deadlines'] = currentPending > 0 ? currentPending - 1 : 0;
+      newMeta['pending_deadlines'] =
+          currentPending > 0 ? currentPending - 1 : 0;
     }
 
     state = state.copyWith(
@@ -226,10 +252,12 @@ class TodoNotifier extends StateNotifier<TodoState> {
   }
 }
 
+/// Provider instance [TodoService].
 final todoServiceProvider = Provider<TodoService>((ref) {
   return TodoService(ref.watch(dioProvider));
 });
 
+/// Provider global daftar tugas to-do persiapan streaming.
 final todoProvider = StateNotifierProvider<TodoNotifier, TodoState>((ref) {
   final todoService = ref.watch(todoServiceProvider);
   return TodoNotifier(todoService);

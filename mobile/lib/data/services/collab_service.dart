@@ -1,12 +1,19 @@
 import 'package:dio/dio.dart';
 import '../models/collab_model.dart';
 
+/// Service untuk mengelola data permohonan kolaborasi (Collab Requests).
+///
+/// Bertanggung jawab atas:
+/// - Mengambil seluruh daftar pengajuan collab dari partner / vtuber lain.
+/// - Menyetujui, menolak, atau meninjau (review) permohonan collab.
+/// - Menyimpan catatan review internal admin.
+/// - Menghapus data permohonan collab.
 class CollabService {
   final Dio _dio;
 
   CollabService(this._dio);
 
-  /// GET /api/collab-requests — Ambil semua pengajuan collab
+  /// Mengambil daftar semua permohonan kolaborasi yang masuk (`GET /collab-requests`).
   Future<List<CollabModel>> getCollabRequests() async {
     final response = await _dio.get('/collab-requests');
     if (response.data['success'] == true) {
@@ -14,12 +21,19 @@ class CollabService {
       return raw.map((json) => CollabModel.fromJson(json)).toList();
     }
     throw Exception(
-        response.data['message'] ?? 'Gagal mengambil data collab request');
+      response.data['message'] ?? 'Gagal mengambil data collab request',
+    );
   }
 
-  /// PATCH /api/collab-requests/:id/review — Ubah status dan simpan catatan admin
+  /// Memperbarui status collab (misal: 'approved', 'rejected', 'pending')
+  /// beserta catatan review admin (`PATCH /collab-requests/:id/review`).
+  ///
+  /// Dilengkapi fallback ke endpoint `/status` jika endpoint `/review` mengembalikan 404.
   Future<CollabModel> updateCollabStatus(
-      int id, String status, {String? notes}) async {
+    int id,
+    String status, {
+    String? notes,
+  }) async {
     Response response;
     final payload = {
       'status': status,
@@ -28,10 +42,15 @@ class CollabService {
     };
 
     try {
+      // Coba endpoint review terlebih dahulu
       response = await _dio.patch('/collab-requests/$id/review', data: payload);
     } on DioException catch (e) {
+      // Fallback ke endpoint status jika rute review tidak ditemukan di backend lama
       if (e.response?.statusCode == 404) {
-        response = await _dio.patch('/collab-requests/$id/status', data: payload);
+        response = await _dio.patch(
+          '/collab-requests/$id/status',
+          data: payload,
+        );
       } else {
         rethrow;
       }
@@ -41,10 +60,11 @@ class CollabService {
       return CollabModel.fromJson(response.data['data']);
     }
     throw Exception(
-        response.data['message'] ?? 'Gagal memperbarui status collab');
+      response.data['message'] ?? 'Gagal memperbarui status collab',
+    );
   }
 
-  /// PATCH /api/collab-requests/:id/review — Simpan/edit catatan admin saja
+  /// Memperbarui hanya catatan review internal admin tanpa mengubah status collab.
   Future<CollabModel> updateReviewNotes(int id, String notes) async {
     Response response;
     final payload = {
@@ -57,7 +77,10 @@ class CollabService {
       response = await _dio.patch('/collab-requests/$id/review', data: payload);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        response = await _dio.patch('/collab-requests/$id/status', data: payload);
+        response = await _dio.patch(
+          '/collab-requests/$id/status',
+          data: payload,
+        );
       } else {
         rethrow;
       }
@@ -67,15 +90,17 @@ class CollabService {
       return CollabModel.fromJson(response.data['data']);
     }
     throw Exception(
-        response.data['message'] ?? 'Gagal menyimpan catatan admin');
+      response.data['message'] ?? 'Gagal menyimpan catatan admin',
+    );
   }
 
-  /// DELETE /api/collab-requests/:id — Hapus data collab request
+  /// Menghapus entri permohonan kolaborasi berdasarkan ID (`DELETE /collab-requests/:id`).
   Future<void> deleteCollabRequest(int id) async {
     final response = await _dio.delete('/collab-requests/$id');
     if (response.data['success'] != true) {
       throw Exception(
-          response.data['message'] ?? 'Gagal menghapus collab request');
+        response.data['message'] ?? 'Gagal menghapus collab request',
+      );
     }
   }
 }

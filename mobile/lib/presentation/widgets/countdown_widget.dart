@@ -7,12 +7,31 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/schedule_model.dart';
 
+/// Widget pengingat hitung mundur (Countdown Timer) sesi streaming berikutnya.
+///
+/// Fitur utama:
+/// - Otomatis mendeteksi jadwal tayang terdekat (`_resolveNextUpcoming`).
+/// - Pembaruan waktu setiap detik secara real-time via `Timer.periodic`.
+/// - Tampilan digit terstruktur (Hari, Jam, Menit, Detik) dengan animasi transisi angka halus.
+/// - Menampilkan tautan cepat untuk membuka live streaming di YouTube jika tersedia.
+/// - Menampilkan mode standby jika belum ada jadwal siaran yang dibuat.
 class CountdownWidget extends StatefulWidget {
+  /// Daftar semua jadwal untuk dianalisis jadwal terdekatnya.
   final List<ScheduleModel>? schedules;
+
+  /// Target waktu countdown spesifik (jika tidak menggunakan list jadwal).
   final DateTime? targetDate;
+
+  /// Judul siaran langsung spesifik.
   final String? streamTitle;
+
+  /// Callback ketika hitungan waktu mundur telah habis (00:00:00).
   final VoidCallback? onComplete;
+
+  /// Callback khusus ketika tombol tonton siaran ditekan.
   final VoidCallback? onWatchLive;
+
+  /// URL video streaming YouTube.
   final String? youtubeUrl;
 
   const CountdownWidget({
@@ -34,6 +53,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
   Duration _duration = Duration.zero;
   bool _completionNotified = false;
 
+  /// Menentukan jadwal siaran mendatang (*upcoming*) yang paling dekat dengan waktu saat ini.
   ScheduleModel? _resolveNextUpcoming() {
     if (widget.schedules == null || widget.schedules!.isEmpty) return null;
 
@@ -56,18 +76,21 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     return upcoming.last;
   }
 
+  /// Waktu target akhir yang aktif digunakan.
   DateTime? get _effectiveTargetDate {
     if (widget.targetDate != null) return widget.targetDate;
     final next = _resolveNextUpcoming();
     return next?.scheduledAt;
   }
 
+  /// Judul siaran yang aktif digunakan.
   String? get _effectiveStreamTitle {
     if (widget.streamTitle != null) return widget.streamTitle;
     final next = _resolveNextUpcoming();
     return next?.title;
   }
 
+  /// Tautan YouTube yang aktif digunakan.
   String? get _effectiveYoutubeUrl {
     if (widget.youtubeUrl != null) return widget.youtubeUrl;
     final next = _resolveNextUpcoming();
@@ -78,9 +101,11 @@ class _CountdownWidgetState extends State<CountdownWidget> {
   void initState() {
     super.initState();
     _updateTime();
+    // Jalankan timer per detik untuk memperbarui sisa waktu
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
   }
 
+  /// Menghitung selisih waktu antara waktu target dengan waktu sekarang.
   void _updateTime() {
     final targetDate = _effectiveTargetDate;
     if (targetDate == null) {
@@ -93,6 +118,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     final now = DateTime.now();
     final difference = targetDate.difference(now);
 
+    // Kondisi ketika countdown telah mencapai 0
     if (difference <= Duration.zero) {
       if (!_completionNotified) {
         _completionNotified = true;
@@ -127,8 +153,10 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     super.dispose();
   }
 
+  /// Format 2 digit angka dengan awalan 0 (misal: 7 -> "07").
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
+  /// Membuka tautan eksternal browser/aplikasi YouTube.
   Future<void> _launchUrl(String urlString) async {
     HapticFeedback.lightImpact();
     final uri = Uri.tryParse(urlString);
@@ -142,18 +170,21 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
-    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
-    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+    final borderSubtle =
+        isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
     final targetDate = _effectiveTargetDate;
     final streamTitle = _effectiveStreamTitle;
     final youtubeUrl = _effectiveYoutubeUrl;
 
-    // ==========================================
-    // STANDBY MODE (Tidak ada jadwal aktif)
-    // ==========================================
+    // =============================================================
+    // TAMPILAN STANDBY (Ketika belum ada jadwal siaran yang aktif)
+    // =============================================================
     if (targetDate == null || streamTitle == null) {
       return Container(
         width: double.infinity,
@@ -203,9 +234,9 @@ class _CountdownWidgetState extends State<CountdownWidget> {
       );
     }
 
-    // ==========================================
-    // COUNTDOWN MODE AKTIF
-    // ==========================================
+    // =============================================================
+    // TAMPILAN COUNTDOWN AKTIF
+    // =============================================================
     final int days = _duration.inDays;
     final int hours = _duration.inHours.remainder(24);
     final int minutes = _duration.inMinutes.remainder(60);
@@ -227,7 +258,8 @@ class _CountdownWidgetState extends State<CountdownWidget> {
         border: Border.all(color: borderSubtle, width: AppColors.borderWidth),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary(isDark).withValues(alpha: isDark ? 0.08 : 0.04),
+            color: AppColors.primary(isDark)
+                .withValues(alpha: isDark ? 0.08 : 0.04),
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
@@ -236,7 +268,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Timer Icon + Title + Badge
+          // Baris Header: Ikon Timer + Label + Badge Status
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -295,7 +327,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
           ),
           const SizedBox(height: 14),
 
-          // Structured Digit Blocks (HARI, JAM, MENIT, DETIK)
+          // Blok Digit Terstruktur (Hari : Jam : Menit : Detik)
           Row(
             children: [
               _buildTimeBox(
@@ -337,7 +369,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
             ],
           ),
 
-          // Tautan Video Live Opsional
+          // Tautan Langsung ke Video YouTube jika tersedia
           if (hasYoutube || widget.onWatchLive != null) ...[
             const SizedBox(height: 12),
             InkWell(
@@ -350,7 +382,8 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
                   color: bgInput.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(8),
@@ -358,7 +391,11 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.video, size: 14, color: AppColors.accentRed),
+                    const Icon(
+                      LucideIcons.video,
+                      size: 14,
+                      color: AppColors.accentRed,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -373,7 +410,11 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(LucideIcons.external_link, size: 12, color: AppColors.secondary(isDark)),
+                    Icon(
+                      LucideIcons.external_link,
+                      size: 12,
+                      color: AppColors.secondary(isDark),
+                    ),
                   ],
                 ),
               ),
@@ -384,6 +425,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     );
   }
 
+  /// Membangun satu kartu blok angka waktu (misal: "02" / "JAM").
   Widget _buildTimeBox(
     String value,
     String label,
@@ -439,6 +481,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     );
   }
 
+  /// Membangun titik dua pemisah antar blok waktu.
   Widget _buildColonSeparator(Color textMuted) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),

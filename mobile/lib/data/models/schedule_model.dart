@@ -1,17 +1,47 @@
+/// Model data jadwal siaran streaming (Stream Schedule).
+///
+/// Menyimpan rincian sesi stream seperti judul acara, kategori game,
+/// tanggal & jam mulai, info bintang tamu kolaborasi, link platform (YouTube, dsb),
+/// banner thumbnail, serta status siaran (`upcoming`, `live`, `done`, `archived`).
 class ScheduleModel {
+  /// ID unik jadwal streaming dari database.
   final int id;
+
+  /// ID pengguna (streamer/admin) pemilik jadwal.
   final int userId;
+
+  /// Judul sesi siaran (misal: "Night Chill & Minecraft Hardcore Ep. 4").
   final String title;
+
+  /// Kategori atau nama game yang akan dimainkan.
   final String? gameCategory;
+
+  /// Waktu dan tanggal tayang siaran.
   final DateTime? scheduledAt;
+
+  /// Deskripsi atau sinopsis konten siaran.
   final String? description;
+
+  /// Nama bintang tamu jika sesi merupakan stream kolaborasi.
   final String? collabGuest;
+
+  /// Tautan profil/sosial media bintang tamu kolaborasi.
   final String? collabSocial;
+
+  /// URL siaran langsung atau video YouTube.
   final String? youtubeUrl;
+
+  /// URL gambar thumbnail poster siaran.
   final String? thumbnailUrl;
+
+  /// Platform tempat siaran berlangsung (default: 'YouTube').
   final String streamPlatform;
+
+  /// Flag penentu apakah widget hitung mundur (countdown timer) diaktifkan pada fansite.
   final bool countdownEnabled;
-  final String status; // 'upcoming', 'live', 'done', 'archived'
+
+  /// Status siklus tayang jadwal: `'upcoming'`, `'live'`, `'done'`, `'archived'`.
+  final String status;
 
   ScheduleModel({
     required this.id,
@@ -29,6 +59,7 @@ class ScheduleModel {
     this.status = 'upcoming',
   });
 
+  /// Factory constructor untuk memetakan payload JSON backend ke [ScheduleModel].
   factory ScheduleModel.fromJson(Map<String, dynamic> json) {
     return ScheduleModel(
       id: json['id'] ?? 0,
@@ -44,11 +75,13 @@ class ScheduleModel {
       youtubeUrl: json['youtube_url'],
       thumbnailUrl: json['thumbnail_url'],
       streamPlatform: json['stream_platform'] ?? 'YouTube',
-      countdownEnabled: json['countdown_enabled'] == 1 || json['countdown_enabled'] == true,
+      countdownEnabled:
+          json['countdown_enabled'] == 1 || json['countdown_enabled'] == true,
       status: json['status'] ?? 'upcoming',
     );
   }
 
+  /// Membuat salinan objek jadwal dengan atribut termodifikasi.
   ScheduleModel copyWith({
     int? id,
     int? userId,
@@ -81,6 +114,7 @@ class ScheduleModel {
     );
   }
 
+  /// Mengonversi objek [ScheduleModel] menjadi Map JSON untuk request POST/PATCH.
   Map<String, dynamic> toJson() {
     return {
       if (userId > 0) 'user_id': userId,
@@ -88,8 +122,10 @@ class ScheduleModel {
       'game_category': gameCategory,
       'scheduled_at': scheduledAt?.toIso8601String(),
       'description': description,
-      if (collabGuest != null && collabGuest!.isNotEmpty) 'collab_guest': collabGuest,
-      if (collabSocial != null && collabSocial!.isNotEmpty) 'collab_social': collabSocial,
+      if (collabGuest != null && collabGuest!.isNotEmpty)
+        'collab_guest': collabGuest,
+      if (collabSocial != null && collabSocial!.isNotEmpty)
+        'collab_social': collabSocial,
       'youtube_url': youtubeUrl,
       'thumbnail_url': thumbnailUrl,
       'stream_platform': streamPlatform,

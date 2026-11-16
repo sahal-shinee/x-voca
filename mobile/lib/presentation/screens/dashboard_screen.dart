@@ -23,6 +23,19 @@ import 'votes_screen.dart';
 import 'todo_screen.dart';
 import 'settings_screen.dart';
 
+/// Halaman Dasbor Utama (Dashboard Screen) aplikasi X-VOCA Mobile.
+///
+/// Berfungsi sebagai pusat komando studio VTuber yang mencakup:
+/// - Bilah Navigasi Bawah (Bottom Navigation Bar) 5 modul:
+///   1. Dashboard (Overview)
+///   2. Schedule (Manajemen Jadwal Stream)
+///   3. Community (Voting Game & Permohonan Collab)
+///   4. Todo (Checklist Tugas Produksi)
+///   5. Settings (Kontrol Rig & Akun)
+/// - Indikator status live penyiaran (*Broadcasting Indicator*) dengan animasi pulsing.
+/// - Panel metrik statistik ringkas (Subscribers YouTube, Total Jadwal, Vote Game, Pending Todo).
+/// - Widget hitung mundur siaran terdekat (*Next Stream Countdown*).
+/// - Akses cepat ke fansite web publik dan panel notifikasi studio.
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
@@ -67,7 +80,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     });
   }
 
-  // SHORTCUT FANSITE PUBLIK
+  /// Membuka portal situs fansite publik di browser eksternal.
   Future<void> _openPublicWebsite(BuildContext context, {String? customUrl}) async {
     HapticFeedback.lightImpact();
     final url = customUrl ?? Env.publicWebUrl;
@@ -86,6 +99,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
   }
 
+  /// Menampilkan bottom sheet pemilihan lingkungan website (Lokal vs Production Vercel).
   void _showWebsitePickerSheet(BuildContext context, bool isDark) {
     HapticFeedback.lightImpact();
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;

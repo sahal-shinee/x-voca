@@ -3,11 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/config/env.dart';
 
+/// Service inti untuk mengelola konfigurasi HTTP client (Dio).
+///
+/// Bertanggung jawab atas:
+/// - Penentuan Base URL dan timeout koneksi.
+/// - Penyisipan Authorization token (JWT) dan header identitas pengguna (`x-user-id`).
+/// - Penanganan error global (logging detail, penghapusan token jika 401 Unauthorized).
+/// - Mekanisme auto-fallback URL jika koneksi ke server utama gagal.
 class ApiService {
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
+  /// Inisialisasi ApiService dengan mengonfigurasi opsi dasar dan interceptor Dio.
   ApiService(this._dio, this._storage) {
+    // -------------------------------------------------------------
+    // Konfigurasi dasar HTTP Client (Base Options)
+    // -------------------------------------------------------------
     _dio.options = BaseOptions(
       baseUrl: Env.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -18,46 +29,64 @@ class ApiService {
       },
     );
 
-    // 1. Interceptor JWT Token, x-user-id Header, Logging Error, & Auto Fallback
+    // -------------------------------------------------------------
+    // Interceptor 1: Penanganan Request, Token JWT, Error & Fallback
+    // -------------------------------------------------------------
     _dio.interceptors.add(
       InterceptorsWrapper(
+        // Dijalankan setiap kali ada request keluar
         onRequest: (options, handler) async {
+          // Ambil token dan user ID dari penyimpanan aman lokal
           final token = await _storage.read(key: 'xvoca_token');
           final userId = await _storage.read(key: 'xvoca_user_id');
 
-          // Lampirkan Bearer Token jika ada
+          // Sisipkan Bearer token ke header Authorization jika tersedia
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          // Lampirkan x-user-id pada setiap request outgoing
+
+          // Sisipkan x-user-id untuk identifikasi pengguna di backend
           if (userId != null && userId.isNotEmpty) {
             options.headers['x-user-id'] = userId;
           } else if (token != null && token.isNotEmpty) {
+            // Nilai default jika token ada namun user_id belum tersimpan
             options.headers['x-user-id'] = '1';
             await _storage.write(key: 'xvoca_user_id', value: '1');
           }
 
           return handler.next(options);
         },
+
+        // Dijalankan setiap kali terjadi kegagalan/error pada request HTTP
         onError: (DioException error, handler) async {
-          // Cetak error mendetail ke console/logcat
+          // Cetak detail error ke logcat/console debug
           _logDetailedDioError(error);
 
+          // Jika status HTTP 401 (Unauthorized / Token Kadaluarsa)
           if (error.response?.statusCode == 401) {
-            // Hapus token jika unauthorized / expired
+            // Bersihkan data otentikasi lokal agar user dapat login ulang
             await _storage.delete(key: 'xvoca_token');
             await _storage.delete(key: 'xvoca_user_id');
             return handler.next(error);
           }
 
-          // Coba fallback URL otomatis jika koneksi gagal atau timeout (misal HP Fisik / Emulator)
-          if ((error.type == DioExceptionType.connectionError ||
-                  error.type == DioExceptionType.connectionTimeout ||
-                  error.type == DioExceptionType.receiveTimeout ||
-                  error.type == DioExceptionType.sendTimeout) &&
-              error.requestOptions.extra['retry_fallback'] != true) {
+          // Mekanisme Auto-Fallback:
+          // Jika koneksi terputus/timeout (misal beralih antara Emulator dan HP Fisik),
+          // coba kirim ulang request ke daftar fallback URL yang tersedia di Env.
+          final isConnectionIssue =
+              error.type == DioExceptionType.connectionError ||
+              error.type == DioExceptionType.connectionTimeout ||
+              error.type == DioExceptionType.receiveTimeout ||
+              error.type == DioExceptionType.sendTimeout;
+
+          final hasNotRetried =
+              error.requestOptions.extra['retry_fallback'] != true;
+
+          if (isConnectionIssue && hasNotRetried) {
             for (final fallbackUrl in Env.fallbackUrls) {
+              // Lewati URL yang sudah dicoba dan gagal
               if (fallbackUrl == _dio.options.baseUrl) continue;
+
               try {
                 debugPrint('[DIO FALLBACK] Mencoba koneksi ke: $fallbackUrl');
                 final newOptions = error.requestOptions;
@@ -65,7 +94,11 @@ class ApiService {
                 newOptions.connectTimeout = const Duration(seconds: 3);
                 newOptions.receiveTimeout = const Duration(seconds: 5);
                 newOptions.extra['retry_fallback'] = true;
+
+                // Eksekusi ulang request dengan baseUrl yang baru
                 final response = await _dio.fetch(newOptions);
+
+                // Perbarui baseUrl aktif pada Dio jika berhasil
                 _dio.options.baseUrl = fallbackUrl;
                 debugPrint('[DIO FALLBACK] Berhasil beralih ke: $fallbackUrl');
                 return handler.resolve(response);
@@ -80,7 +113,9 @@ class ApiService {
       ),
     );
 
-    // 2. LogInterceptor Dio untuk melacak request & response secara langsung
+    // -------------------------------------------------------------
+    // Interceptor 2: Logger HTTP Request & Response untuk proses debug
+    // -------------------------------------------------------------
     _dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -94,9 +129,12 @@ class ApiService {
     );
   }
 
+  /// Menampilkan rincian error HTTP secara terstruktur pada console debug.
   void _logDetailedDioError(DioException error) {
     debugPrint('==================== [DIO ERROR DETAILS] ====================');
-    debugPrint('URL Endpoint    : ${error.requestOptions.baseUrl}${error.requestOptions.path}');
+    debugPrint(
+      'URL Endpoint    : ${error.requestOptions.baseUrl}${error.requestOptions.path}',
+    );
     debugPrint('Method          : ${error.requestOptions.method}');
     debugPrint('Outgoing Headers: ${error.requestOptions.headers}');
     debugPrint('Dio Error Type  : ${error.type}');
@@ -111,10 +149,13 @@ class ApiService {
       debugPrint('Response Headers: ${error.response?.headers}');
       debugPrint('Response Body   : ${error.response?.data}');
     } else {
-      debugPrint('Response Body   : No Response (Connection Refused, SocketException, or Host Unreachable)');
+      debugPrint(
+        'Response Body   : No Response (Connection Refused, SocketException, or Host Unreachable)',
+      );
     }
     debugPrint('============================================================');
   }
 
+  /// Instance Dio yang telah terkonfigurasi untuk digunakan oleh service lain.
   Dio get client => _dio;
 }

@@ -11,6 +11,9 @@ import '../../data/models/notification_model.dart';
 import '../../data/services/notification_service.dart';
 import 'auth_provider.dart' show dioProvider;
 
+/// State penampung daftar notifikasi aplikasi (Notification State).
+///
+/// Menyediakan getter [unreadCount] untuk menghitung total notifikasi yang belum dibaca.
 class NotificationState {
   final bool isLoading;
   final List<NotificationModel> notifications;
@@ -22,8 +25,10 @@ class NotificationState {
     this.error,
   });
 
+  /// Jumlah notifikasi yang belum dibaca (`read == false`).
   int get unreadCount => notifications.where((n) => !n.read).length;
 
+  /// Menggandakan state secara immutable.
   NotificationState copyWith({
     bool? isLoading,
     List<NotificationModel>? notifications,
@@ -37,6 +42,11 @@ class NotificationState {
   }
 }
 
+/// StateNotifier yang menyatukan multiple sumber notifikasi:
+/// 1. Cache lokal (`SharedPreferences`) untuk respons kilat saat aplikasi dibuka.
+/// 2. REST API (`/notifications`) untuk daftar riwayat resmi.
+/// 3. Stream push notification FCM foreground (`NotificationService.notificationStream`).
+/// 4. Firebase Realtime Database listener (`notifications/default`) untuk sinkronisasi realtime.
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final Dio _dio;
   static const String _storageKey = 'xvoca_cached_notifications_v1';
@@ -47,22 +57,25 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _init();
   }
 
+  /// Inisialisasi bertahap: memuat cache -> fetch API -> pasang listeners.
   Future<void> _init() async {
-    // 1. Load from local cache first for instant UI response
+    // 1. Ambil dari penyimpanan lokal terlebih dahulu
     await _loadFromLocal();
 
-    // 2. Fetch fresh list from backend API
+    // 2. Tarik data terbaru dari server backend
     await fetchNotifications();
 
-    // 3. Listen to FCM foreground push messages in real-time
-    _fcmSubscription = NotificationService.notificationStream.stream.listen((notif) {
+    // 3. Pasang pendengar stream FCM yang aktif di latar depan
+    _fcmSubscription =
+        NotificationService.notificationStream.stream.listen((notif) {
       addNotification(notif);
     });
 
-    // 4. Listen to Firebase Realtime Database at /notifications/default
+    // 4. Hubungkan listener Firebase Realtime Database
     _listenToFirebaseRTDB();
   }
 
+  /// Memantau perubahan node `notifications/default` di Firebase Realtime Database.
   void _listenToFirebaseRTDB() {
     try {
       if (Firebase.apps.isNotEmpty) {
@@ -88,6 +101,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
                 }
               });
 
+              // Urutkan notifikasi dari yang paling baru
               list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
               if (list.isNotEmpty) {
                 state = state.copyWith(notifications: list, isLoading: false);
@@ -105,13 +119,17 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
+  /// Membaca cache daftar notifikasi dari SharedPreferences.
   Future<void> _loadFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString(_storageKey);
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List decoded = jsonDecode(jsonStr);
-        final list = decoded.map((e) => NotificationModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        final list = decoded
+            .map((e) =>
+                NotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
         state = state.copyWith(notifications: list, isLoading: false);
       }
     } catch (e) {
@@ -119,22 +137,28 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
+  /// Menyimpan maksimal 50 notifikasi terbaru ke SharedPreferences.
   Future<void> _saveToLocal(List<NotificationModel> list) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(list.take(50).map((n) => n.toJson()).toList());
+      final jsonStr =
+          jsonEncode(list.take(50).map((n) => n.toJson()).toList());
       await prefs.setString(_storageKey, jsonStr);
     } catch (e) {
       debugPrint('[Notif] Local save error: $e');
     }
   }
 
+  /// Mengambil riwayat notifikasi dari REST API endpoint `GET /notifications`.
   Future<void> fetchNotifications() async {
     try {
       final res = await _dio.get('/notifications');
       if (res.data != null && res.data['success'] == true) {
         final List raw = res.data['data'] ?? [];
-        final list = raw.map((e) => NotificationModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        final list = raw
+            .map((e) =>
+                NotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
         state = state.copyWith(notifications: list, isLoading: false);
         await _saveToLocal(list);
       }
@@ -144,6 +168,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
+  /// Helper untuk memanggil API non-blocking di latar belakang.
   void _safeApiCall(Future<dynamic> Function() call) {
     unawaited(() async {
       try {
@@ -152,6 +177,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }());
   }
 
+  /// Menandai satu notifikasi sebagai telah dibaca (`read: true`).
   void markAsRead(String id) {
     final updated = state.notifications.map((n) {
       if (n.id == id) {
@@ -166,14 +192,17 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _safeApiCall(() => _dio.patch('/notifications/$id/read'));
   }
 
+  /// Menandai seluruh notifikasi yang ada sebagai telah dibaca.
   void markAllAsRead() {
-    final updated = state.notifications.map((n) => n.copyWith(read: true)).toList();
+    final updated =
+        state.notifications.map((n) => n.copyWith(read: true)).toList();
     state = state.copyWith(notifications: updated);
     _saveToLocal(updated);
 
     _safeApiCall(() => _dio.patch('/notifications/read-all'));
   }
 
+  /// Menghapus satu notifikasi dari daftar dan penyimpanan lokal.
   void deleteNotification(String id) {
     final updated = state.notifications.where((n) => n.id != id).toList();
     state = state.copyWith(notifications: updated);
@@ -182,6 +211,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _safeApiCall(() => _dio.delete('/notifications/$id'));
   }
 
+  /// Menghapus seluruh riwayat notifikasi.
   void clearAll() {
     state = state.copyWith(notifications: const []);
     _saveToLocal(const []);
@@ -189,8 +219,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _safeApiCall(() => _dio.delete('/notifications'));
   }
 
+  /// Menyisipkan atau memperbarui notifikasi ke urutan teratas list.
   void addNotification(NotificationModel notif) {
-    final existingIndex = state.notifications.indexWhere((n) => n.id == notif.id);
+    final existingIndex =
+        state.notifications.indexWhere((n) => n.id == notif.id);
     List<NotificationModel> updated;
     if (existingIndex >= 0) {
       updated = List.from(state.notifications);
@@ -210,12 +242,14 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 }
 
+/// Provider global StateNotifier notifikasi.
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
   final dio = ref.watch(dioProvider);
   return NotificationNotifier(dio);
 });
 
+/// Provider khusus untuk memantau jumlah notifikasi belum dibaca (Unread Count) pada badge icon.
 final unreadNotificationsCountProvider = Provider<int>((ref) {
   return ref.watch(notificationProvider).unreadCount;
 });

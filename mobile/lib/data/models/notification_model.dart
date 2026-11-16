@@ -1,11 +1,37 @@
+/// Model data yang merepresentasikan item notifikasi (FCM & In-App Alert).
+///
+/// Menyimpan informasi konten pemberitahuan, status telah dibaca (`read`),
+/// waktu masuk, serta target tab navigasi untuk direct routing saat notifikasi ditekan.
 class NotificationModel {
+  /// ID unik notifikasi (misal: message ID dari FCM atau ID lokal unik).
   final String id;
-  final String type; // 'VOTE_SPIKE', 'NEW_GAME_REQUEST', 'collab_requested', 'TODO_DEADLINE', 'SCHEDULE_REMINDER', 'BROADCASTING_START', 'SYSTEM_UPDATE'
+
+  /// Kategori notifikasi:
+  /// `'VOTE_SPIKE'`, `'NEW_GAME_REQUEST'`, `'collab_requested'`,
+  /// `'TODO_DEADLINE'`, `'SCHEDULE_REMINDER'`, `'BROADCASTING_START'`, `'SYSTEM_UPDATE'`.
+  final String type;
+
+  /// Judul singkat notifikasi.
   final String title;
+
+  /// Pesan rincian notifikasi.
   final String message;
+
+  /// Status apakah notifikasi ini sudah dibaca atau belum oleh pengguna.
   final bool read;
+
+  /// Tanggal dan waktu saat notifikasi diterima atau diterbitkan.
   final DateTime createdAt;
-  final int? targetTab; // 0: Dashboard, 1: Schedule, 2: Votes & Collab, 3: Todo, 4: Settings
+
+  /// Indeks tab aplikasi tujuan navigasi saat notifikasi ditekan:
+  /// - `0`: Dashboard
+  /// - `1`: Schedule (Jadwal)
+  /// - `2`: Votes & Collab
+  /// - `3`: Todo
+  /// - `4`: Settings
+  final int? targetTab;
+
+  /// Tautan web eksternal opsional (misal: tautan live stream YouTube).
   final String? link;
 
   NotificationModel({
@@ -19,6 +45,7 @@ class NotificationModel {
     this.link,
   });
 
+  /// Membuat salinan objek dengan modifikasi nilai tertentu (misal: menandai `read = true`).
   NotificationModel copyWith({
     String? id,
     String? type,
@@ -41,6 +68,7 @@ class NotificationModel {
     );
   }
 
+  /// Mengonversi objek [NotificationModel] menjadi Map JSON untuk disimpan di cache lokal.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -54,13 +82,17 @@ class NotificationModel {
     };
   }
 
+  /// Factory constructor untuk memetakan data Map JSON menjadi [NotificationModel].
+  /// Dilengkapi parser tanggal fleksibel (mendukung integer timestamp maupun string ISO).
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     DateTime parseCreatedAt(dynamic val) {
       if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
       if (val is num) return DateTime.fromMillisecondsSinceEpoch(val.toInt());
       if (val is String) {
         final parsedInt = int.tryParse(val);
-        if (parsedInt != null) return DateTime.fromMillisecondsSinceEpoch(parsedInt);
+        if (parsedInt != null) {
+          return DateTime.fromMillisecondsSinceEpoch(parsedInt);
+        }
         final parsedDate = DateTime.tryParse(val);
         if (parsedDate != null) return parsedDate;
       }

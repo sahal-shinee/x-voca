@@ -3,6 +3,9 @@ import '../../data/models/collab_model.dart';
 import '../../data/services/collab_service.dart';
 import 'auth_provider.dart';
 
+/// State penampung data permohonan kolaborasi (Collab State).
+///
+/// Menyimpan list permohonan [requests], status loading [isLoading], dan pesan [error].
 class CollabState {
   final bool isLoading;
   final List<CollabModel> requests;
@@ -14,6 +17,7 @@ class CollabState {
     this.error,
   });
 
+  /// Menggandakan state secara immutable.
   CollabState copyWith({
     bool? isLoading,
     List<CollabModel>? requests,
@@ -27,6 +31,12 @@ class CollabState {
   }
 }
 
+/// StateNotifier yang mengatur logika interaksi data kolaborasi.
+///
+/// Menerapkan pola Optimistic Update untuk memberikan respons UI instan saat:
+/// - Mengubah status permohonan (`updateStatus`).
+/// - Memperbarui catatan review admin (`updateNotes`).
+/// - Menghapus permohonan kolaborasi (`deleteRequest`).
 class CollabNotifier extends StateNotifier<CollabState> {
   final CollabService _collabService;
 
@@ -34,6 +44,7 @@ class CollabNotifier extends StateNotifier<CollabState> {
     fetchCollabRequests();
   }
 
+  /// Mengambil seluruh permohonan kolaborasi aktif dari server.
   Future<void> fetchCollabRequests() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -44,8 +55,10 @@ class CollabNotifier extends StateNotifier<CollabState> {
     }
   }
 
+  /// Memperbarui status peninjauan pengajuan collab secara optimis di UI sebelum konfirmasi backend.
   Future<void> updateStatus(int id, String status, {String? notes}) async {
     final previous = state.requests;
+    // 1. Optimistic update lokal
     state = state.copyWith(
       requests: state.requests.map((r) {
         if (r.id == id) {
@@ -60,16 +73,23 @@ class CollabNotifier extends StateNotifier<CollabState> {
     );
 
     try {
-      final updated = await _collabService.updateCollabStatus(id, status, notes: notes);
+      // 2. Sinkronisasi ke backend
+      final updated = await _collabService.updateCollabStatus(
+        id,
+        status,
+        notes: notes,
+      );
       state = state.copyWith(
         requests: state.requests.map((r) => r.id == id ? updated : r).toList(),
       );
     } catch (e) {
+      // 3. Rollback state jika terjadi kegagalan jaringan
       state = state.copyWith(requests: previous);
       rethrow;
     }
   }
 
+  /// Memperbarui catatan review admin secara optimis di UI.
   Future<void> updateNotes(int id, String notes) async {
     final previous = state.requests;
     state = state.copyWith(
@@ -92,6 +112,7 @@ class CollabNotifier extends StateNotifier<CollabState> {
     }
   }
 
+  /// Menghapus permohonan kolaborasi dengan optimistic UI removal.
   Future<void> deleteRequest(int id) async {
     final previous = state.requests;
     state = state.copyWith(
@@ -107,10 +128,12 @@ class CollabNotifier extends StateNotifier<CollabState> {
   }
 }
 
+/// Provider instance [CollabService].
 final collabServiceProvider = Provider<CollabService>((ref) {
   return CollabService(ref.watch(dioProvider));
 });
 
+/// Provider global data permohonan kolaborasi.
 final collabProvider =
     StateNotifierProvider<CollabNotifier, CollabState>((ref) {
   final service = ref.watch(collabServiceProvider);

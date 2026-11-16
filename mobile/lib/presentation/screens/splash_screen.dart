@@ -6,6 +6,13 @@ import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
+/// Halaman SplashScreen aplikasi X-VOCA Mobile.
+///
+/// Fitur utama:
+/// - Memutar video splash screen animasi logo X-VOCA (`splash.mp4` atau `splashwhite.mp4`).
+/// - Menyesuaikan video dan warna latar secara dinamis berdasarkan preferensi tema pengguna (Dark/Light).
+/// - Menginisialisasi pengecekan sesi autentikasi (`authProvider`) di latar belakang selama video diputar.
+/// - Berpindah secara otomatis ke rute `/auth` (`AuthWrapper`) segera setelah video selesai diputar.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -25,12 +32,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _initVideo();
   }
 
+  /// Menyiapkan pemutar video dengan aset yang sesuai dengan tema tersimpan.
   Future<void> _initVideo() async {
     // Membaca status tema langsung dari SharedPreferences agar akurat saat aplikasi baru dibuka
     final prefs = await SharedPreferences.getInstance();
     final savedTheme = prefs.getString('user_theme_mode');
-    
-    // Jika tersimpan 'light', pakai video & background putih
+
+    // Jika tersimpan 'light', pakai video splash terang & background putih
     _isLightMode = savedTheme == 'light';
 
     final videoAsset = _isLightMode
@@ -49,6 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
+  /// Listener untuk mendeteksi kapan video selesai diputar.
   void _videoListener() {
     if (_controller != null &&
         _controller!.value.isInitialized &&
@@ -59,9 +68,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
+  /// Navigasi ke wrapper otentikasi (/auth).
   void _checkAuthAndNavigate() {
     if (!mounted) return;
-    // Arahkan ke AuthWrapper — Riverpod yang akan memutuskan Login atau Dashboard
     Navigator.of(context).pushReplacementNamed('/auth');
   }
 
@@ -74,15 +83,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Pancing authProvider dari pertama kali splash screen muncul biar langsung jalan di background
+    // Memicu pengecekan sesi autentikasi di background sedini mungkin
     ref.watch(authProvider);
 
-    // Ikuti tema aktif jika ada perubahan state
+    // Pantau tema aktif
     final themeMode = ref.watch(themeProvider);
     final isLight = themeMode == ThemeMode.light || _isLightMode;
 
     return Scaffold(
-      // Pakai hitam/putih murni khusus di SplashScreen agar menyatu dengan video
+      // Latar belakang murni hitam/putih agar seamless dengan video player
       backgroundColor: isLight ? Colors.white : Colors.black,
       body: Center(
         child: (_controller != null && _isInitialized)

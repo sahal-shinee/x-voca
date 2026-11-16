@@ -1,31 +1,47 @@
 import 'package:dio/dio.dart';
 import '../models/game_model.dart';
 
+/// Service untuk mengelola game stream dan sistem voting komunitas.
+///
+/// Bertanggung jawab atas:
+/// - Mengambil daftar game kandidat stream beserta statusnya.
+/// - Mengambil statistik dan akumulasi voting saat ini.
+/// - Menambahkan game baru ke dalam daftar voting (Akses Admin).
+/// - Mengirimkan vote penonton dengan proteksi fingerprint perangkat.
+/// - Mengubah status game (misal: 'active', 'played', 'archived') dan menghapus game.
 class GameService {
   final Dio _dio;
 
   GameService(this._dio);
 
-  /// GET /api/games — ambil semua game (public)
+  /// Mengambil semua daftar game kandidat stream (`GET /games`).
+  ///
+  /// Dapat diakses oleh publik/pengguna umum.
   Future<List<GameModel>> getGames() async {
     final response = await _dio.get('/games');
     if (response.data['success'] == true) {
       final List raw = response.data['data'] ?? [];
       return raw.map((json) => GameModel.fromJson(json)).toList();
     }
-    throw Exception(response.data['message'] ?? 'Gagal mengambil daftar game');
+    throw Exception(
+      response.data['message'] ?? 'Gagal mengambil daftar game',
+    );
   }
 
-  /// GET /api/votes/stats — statistik vote periode ini
+  /// Mengambil ringkasan statistik perolehan suara/vote periode aktif (`GET /votes/stats`).
   Future<VoteStatsModel> getVoteStats() async {
     final response = await _dio.get('/votes/stats');
     if (response.data['success'] == true) {
       return VoteStatsModel.fromJson(response.data['data']);
     }
-    throw Exception(response.data['message'] ?? 'Gagal mengambil statistik vote');
+    throw Exception(
+      response.data['message'] ?? 'Gagal mengambil statistik vote',
+    );
   }
 
-  /// POST /api/games — tambah game kandidat baru (protected/admin)
+  /// Menambahkan kandidat game baru untuk voting (`POST /games`).
+  ///
+  /// Memerlukan hak akses autentikasi admin.
   Future<GameModel> createGame({required String title, String? genre}) async {
     final response = await _dio.post(
       '/games',
@@ -37,11 +53,18 @@ class GameService {
     if (response.data['success'] == true) {
       return GameModel.fromJson(response.data['data']);
     }
-    throw Exception(response.data['message'] ?? 'Gagal menambah game baru');
+    throw Exception(
+      response.data['message'] ?? 'Gagal menambah game baru',
+    );
   }
 
-  /// POST /api/votes/:gameId — submit vote (public, memerlukan fingerprint)
-  Future<Map<String, dynamic>> submitVote(int gameId, String fingerprint) async {
+  /// Mengirimkan vote untuk game pilihan pengguna (`POST /votes/:gameId`).
+  ///
+  /// Memerlukan [fingerprint] perangkat untuk mencegah kecurangan/spam voting ganda.
+  Future<Map<String, dynamic>> submitVote(
+    int gameId,
+    String fingerprint,
+  ) async {
     final response = await _dio.post(
       '/votes/$gameId',
       data: {'fingerprint': fingerprint},
@@ -52,16 +75,21 @@ class GameService {
     throw Exception(response.data['message'] ?? 'Gagal submit vote');
   }
 
-  /// PATCH /api/games/:id/status — ubah status game (protected/admin)
+  /// Mengubah status ketersediaan atau tayang game (`PATCH /games/:id/status`).
   Future<GameModel> updateGameStatus(int id, String status) async {
-    final response = await _dio.patch('/games/$id/status', data: {'status': status});
+    final response = await _dio.patch(
+      '/games/$id/status',
+      data: {'status': status},
+    );
     if (response.data['success'] == true) {
       return GameModel.fromJson(response.data['data']);
     }
-    throw Exception(response.data['message'] ?? 'Gagal memperbarui status game');
+    throw Exception(
+      response.data['message'] ?? 'Gagal memperbarui status game',
+    );
   }
 
-  /// DELETE /api/games/:id — hapus game (protected/admin)
+  /// Menghapus data game dari daftar (`DELETE /games/:id`).
   Future<void> deleteGame(int id) async {
     final response = await _dio.delete('/games/$id');
     if (response.data['success'] != true) {

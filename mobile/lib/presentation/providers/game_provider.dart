@@ -3,9 +3,9 @@ import '../../data/models/game_model.dart';
 import '../../data/services/game_service.dart';
 import 'auth_provider.dart';
 
-// ==========================================
-// 1. CLASS STATE
-// ==========================================
+/// State penampung data game streaming dan ringkasan voting (Game State).
+///
+/// Menyimpan list game [games], data statistik [voteStats], status [isLoading], dan pesan [error].
 class GameState {
   final bool isLoading;
   final List<GameModel> games;
@@ -19,6 +19,7 @@ class GameState {
     this.error,
   });
 
+  /// Menggandakan instance [GameState] dengan nilai baru secara immutable.
   GameState copyWith({
     bool? isLoading,
     List<GameModel>? games,
@@ -34,9 +35,13 @@ class GameState {
   }
 }
 
-// ==========================================
-// 2. NOTIFIER CLASS
-// ==========================================
+/// StateNotifier yang mengatur logika bisnis daftar game dan voting.
+///
+/// Fitur utama:
+/// - Memuat data game dan statistik secara paralel menggunakan `Future.wait`.
+/// - Optimistic Update pada pengiriman vote (`submitVote`) dengan rollback otomatis jika request ditolak.
+/// - Penambahan game kandidat baru (`addGame`).
+/// - Pembaruan status game (`updateGameStatus`) dan penghapusan game (`deleteGame`).
 class GameNotifier extends StateNotifier<GameState> {
   final GameService _gameService;
 
@@ -44,7 +49,7 @@ class GameNotifier extends StateNotifier<GameState> {
     loadAllData();
   }
 
-  // A. Memuat seluruh data (Daftar Game + Statistik Vote)
+  /// Memuat seluruh data (daftar game dan statistik vote) secara bersamaan.
   Future<void> loadAllData() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -66,7 +71,7 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  // B. Ambil daftar game (GET /api/games)
+  /// Mengambil daftar game terbaru dari endpoint `GET /api/games`.
   Future<void> fetchGames() async {
     try {
       final games = await _gameService.getGames();
@@ -76,7 +81,7 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  // C. Ambil statistik vote (GET /api/votes/stats)
+  /// Mengambil metrik statistik voting dari endpoint `GET /api/votes/stats`.
   Future<void> fetchVoteStats() async {
     try {
       final stats = await _gameService.getVoteStats();
@@ -86,30 +91,36 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  // D. Tambah Game Baru (POST /api/games) — Dipanggil saat klik tombol '+' di VotesScreen
+  /// Menambahkan kandidat game baru (akses admin) dan menyisipkannya langsung ke state lokal.
   Future<void> addGame(String title, {String? genre}) async {
     try {
       final newGame = await _gameService.createGame(title: title, genre: genre);
-      
-      // Optimistic Update: langsung masukkan game baru ke state lokal
+
+      // Optimistic update: langsung sisipkan ke list lokal
       state = state.copyWith(
         games: [...state.games, newGame],
       );
-      
-      // Refresh statistik
+
+      // Sinkronisasi ulang data statistik
       fetchVoteStats();
     } catch (e) {
       rethrow;
     }
   }
 
-  // E. Submit Vote dengan Optimistic Update (POST /api/votes/:gameId)
-  Future<Map<String, dynamic>> submitVote(int gameId, String fingerprint) async {
-    // 1. Simpan backup state sebelum diubah (untuk rollback jika error)
+  /// Mengirimkan vote dengan Optimistic Update:
+  /// 1. Menyimpan cadangan state saat ini untuk rollback.
+  /// 2. Menaikkan hitungan vote pada game dan total vote di UI secara instan.
+  /// 3. Mengirimkan request ke server; jika gagal (misal duplikasi fingerprint), state dikembalikan ke awal.
+  Future<Map<String, dynamic>> submitVote(
+    int gameId,
+    String fingerprint,
+  ) async {
+    // 1. Simpan backup state sebelum diubah
     final previousGames = state.games;
     final previousStats = state.voteStats;
 
-    // 2. Optimistic Update: Tambah jumlah vote di UI secara instan!
+    // 2. Optimistic Update pada UI lokal
     final updatedGames = state.games.map((game) {
       if (game.id == gameId) {
         return game.copyWith(voteCount: game.voteCount + 1);
@@ -130,14 +141,14 @@ class GameNotifier extends StateNotifier<GameState> {
     );
 
     try {
-      // 3. Kirim data ke backend
+      // 3. Kirim payload vote ke backend
       final result = await _gameService.submitVote(gameId, fingerprint);
-      
+
       // Refresh data asli dari server
       loadAllData();
       return result;
     } catch (e) {
-      // 4. Jika gagal (misal 401 atau sudah pernah vote), kembalikan ke state awal
+      // 4. Rollback ke kondisi semula jika terjadi error
       state = state.copyWith(
         games: previousGames,
         voteStats: previousStats,
@@ -146,30 +157,30 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  // F. Ubah status game (PATCH /api/games/:id/status)
+  /// Memperbarui status permainan game (requested, accepted, playing, done).
   Future<void> updateGameStatus(int id, String status) async {
     try {
       final updatedGame = await _gameService.updateGameStatus(id, status);
-      
+
       state = state.copyWith(
         games: state.games.map((g) => g.id == id ? updatedGame : g).toList(),
       );
-      
+
       fetchVoteStats();
     } catch (e) {
       rethrow;
     }
   }
 
-  // G. Hapus game dari daftar (DELETE /api/games/:id)
+  /// Menghapus game dari daftar voting.
   Future<void> deleteGame(int id) async {
     try {
       await _gameService.deleteGame(id);
-      
+
       state = state.copyWith(
         games: state.games.where((g) => g.id != id).toList(),
       );
-      
+
       fetchVoteStats();
     } catch (e) {
       rethrow;
@@ -177,16 +188,12 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 }
 
-// ==========================================
-// 3. SERVICE PROVIDER (Injeksi Header x-user-id)
-// ==========================================
+/// Provider instance [GameService].
 final gameServiceProvider = Provider<GameService>((ref) {
   return GameService(ref.watch(dioProvider));
 });
 
-// ==========================================
-// 4. MAIN PROVIDER
-// ==========================================
+/// Provider global data game dan sistem voting komunitas.
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
   final gameService = ref.watch(gameServiceProvider);
   return GameNotifier(gameService);

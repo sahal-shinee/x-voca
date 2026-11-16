@@ -11,6 +11,18 @@ import '../providers/game_provider.dart';
 import '../providers/collab_provider.dart';
 import '../providers/schedule_provider.dart';
 
+/// Halaman Komunitas Studio: Polling Game & Permohonan Kolaborasi (Votes & Collab Screen).
+///
+/// Menyediakan 2 sub-modul utama:
+/// 1. **Game Polling**:
+///    - Menampilkan peringkat perolehan suara game dari penonton fansite.
+///    - Filter kategori status (All, Requested, Accepted, Playing, Done).
+///    - Penambahan game kandidat baru dan pembaruan status permainan.
+///    - Pengujian mekanisme voting langsung dari perangkat.
+/// 2. **Collab Requests**:
+///    - Meninjau pengajuan kolaborasi yang masuk dari streamer/penonton lain.
+///    - Pengubahan status (Terima / Tolak / Pending) disertai catatan review admin.
+///    - Tombol aksi cepat untuk mengonversi permohonan collab langsung menjadi jadwal streaming baru.
 class VotesScreen extends ConsumerStatefulWidget {
   const VotesScreen({super.key});
 
@@ -179,6 +191,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   }
 
   // Modal Tambah Usulan Game Kandidat Baru
+  /// Menampilkan modal dialog untuk mendaftarkan game kandidat voting baru.
   void _showAddGameModal() {
     HapticFeedback.lightImpact();
     final titleController = TextEditingController();
@@ -1976,6 +1989,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
 
   // Dialog Edit Catatan Admin Collab (Responsif terhadap Keyboard)
   // Bottom Sheet Aksi Jadwalkan Kolaborasi Studio
+  /// Menampilkan lembar aksi untuk mengonversi data collab yang disetujui menjadi jadwal siaran langsung.
   void _showScheduleActionSheet(BuildContext context, CollabModel collab, bool isDark) {
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;

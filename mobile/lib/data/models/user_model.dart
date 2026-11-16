@@ -1,11 +1,30 @@
+/// Model data profil akun pengguna / streamer (User Model).
+///
+/// Menyimpan informasi profil kreator VTuber seperti nama, email, role,
+/// spesifikasi rig model 2D/3D, dan status siaran langsung aktif (*broadcasting*).
 class UserModel {
+  /// ID unik pengguna di database.
   final int id;
+
+  /// Nama lengkap atau nama panggung VTuber.
   final String name;
+
+  /// Alamat email akun.
   final String email;
+
+  /// Role hak akses pengguna: `'superadmin'`, `'creator'`, atau `'admin'`.
   final String role;
+
+  /// URL foto profil atau avatar streamer.
   final String? avatarUrl;
+
+  /// Nama model rig VTuber yang digunakan (misal: "Xion Regalia Mk-II").
   final String? rigName;
+
+  /// Versi model rig aktif (misal: "v3.4.1").
   final String? rigVersion;
+
+  /// Status apakah streamer sedang mengudara/siaran langsung saat ini.
   final bool isBroadcasting;
 
   UserModel({
@@ -19,6 +38,7 @@ class UserModel {
     this.isBroadcasting = false,
   });
 
+  /// Factory constructor untuk memetakan payload profil JSON dari backend ke [UserModel].
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? 0,
@@ -32,6 +52,7 @@ class UserModel {
     );
   }
 
+  /// Mengonversi objek [UserModel] menjadi Map JSON.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -45,6 +66,7 @@ class UserModel {
     };
   }
 
+  /// Membuat salinan objek [UserModel] dengan nilai termodifikasi.
   UserModel copyWith({
     int? id,
     String? name,

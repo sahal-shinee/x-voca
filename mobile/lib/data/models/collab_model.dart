@@ -1,14 +1,39 @@
+/// Model data yang merepresentasikan permohonan kolaborasi (Collab Request).
+///
+/// Pengajuan dapat dikirim oleh penonton/kreator lain via portal web,
+/// dan ditinjau (*reviewed*) oleh streamer/admin di aplikasi mobile.
 class CollabModel {
+  /// ID unik data collab request.
   final int id;
+
+  /// Identifier penonton atau IP/fingerprint pengirim permohonan.
   final String? viewerIdentifier;
+
+  /// Nama VTuber / Streamer yang diajak kolaborasi.
   final String requestedStreamerName;
+
+  /// Akun media sosial / link channel dari streamer yang diajak kolaborasi.
   final String? requestedStreamerSocial;
+
+  /// Pesan atau alasan pengajuan kolaborasi.
   final String? message;
-  final String status; // 'pending', 'accepted', 'rejected'
+
+  /// Status peninjauan: `'pending'`, `'accepted'`, atau `'rejected'`.
+  final String status;
+
+  /// ID admin/user yang melakukan review permohonan.
   final int? reviewedBy;
+
+  /// Waktu kapan permohonan ini ditinjau (format ISO string).
   final String? reviewedAt;
+
+  /// Catatan internal admin hasil review.
   final String? reviewNotes;
+
+  /// Kunci periode aktif (misal: '2026-W46').
   final String periodKey;
+
+  /// Tanggal dibuatnya pengajuan.
   final String? createdAt;
 
   CollabModel({
@@ -25,6 +50,7 @@ class CollabModel {
     this.createdAt,
   });
 
+  /// Factory constructor untuk memetakan JSON backend ke [CollabModel].
   factory CollabModel.fromJson(Map<String, dynamic> json) {
     return CollabModel(
       id: json['id'] ?? 0,
@@ -41,6 +67,7 @@ class CollabModel {
     );
   }
 
+  /// Membuat salinan objek dengan field tertentu yang diperbarui (immutability).
   CollabModel copyWith({
     int? id,
     String? viewerIdentifier,
