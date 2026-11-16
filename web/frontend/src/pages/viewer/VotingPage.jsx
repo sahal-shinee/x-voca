@@ -66,6 +66,12 @@ const AmbientBackground = () => (
 const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
   const isPlaying = game.status === 'playing';
   const isDone = game.status === 'done';
+  const [imgError, setImgError] = useState(false);
+  const coverSrc = game?.cover_url || game?.coverUrl || game?.cover_image || game?.thumbnail || game?.cover;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [coverSrc]);
 
   return (
     <div className={`
@@ -78,12 +84,12 @@ const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
       <div className="flex items-center gap-3">
         {/* Cover / Icon Thumbnail */}
         <div className="relative w-12 h-12 rounded-lg bg-[#1f1b3a] border border-white/5 overflow-hidden flex items-center justify-center flex-shrink-0">
-          {game.cover_url ? (
+          {coverSrc && !imgError ? (
             <img 
-              src={game.cover_url} 
+              src={coverSrc} 
               alt={game.title}
               className="w-full h-full object-cover"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              onError={() => setImgError(true)}
             />
           ) : (
             <GamepadIcon className="w-5 h-5 text-[#8E8AAB]" />

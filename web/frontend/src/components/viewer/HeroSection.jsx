@@ -1,18 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, ArrowRight } from 'lucide-react';
 import heroCharacter from '../../assets/hero-character.png';
 import TopNav from './TopNav';
 import { getNextSchedule } from '../../services/scheduleService';
 
 // ========== ICONS ==========
-
-const ArrowRightIcon = () => (
-  <svg width="9.469" height="3.75" viewBox="0 0 9.469 3.75" fill="none" aria-hidden="true">
-    <path d="M9.219 1.875L5.625 0.469M9.219 1.875L7.813 5.219M9.219 1.875L5.625 3.281M0 1.875H9.219" stroke="#18132B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 
 const DocumentIcon = () => (
   <svg width="16" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1030,10 +1024,10 @@ function HeroSection({ onRequestCollab }) {
                     e.preventDefault();
                     document.getElementById('schedule')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 h-[44px] px-6 rounded-xl bg-[#7ee0d2] text-[#0d091a] font-semibold text-sm hover:bg-[#68d5c5] transition-all duration-200 active:scale-[0.98]"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 h-[44px] px-6 rounded-xl bg-[#7ee0d2] text-[#0d091a] font-semibold text-sm hover:bg-[#68d5c5] transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-[0_0_20px_rgba(126,224,210,0.3)]"
                 >
                   <span>Lihat Jadwal Siaran</span>
-                  <ArrowRightIcon />
+                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1 flex-shrink-0" strokeWidth={2.25} />
                 </a>
               </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * GamepadIcon - Clean vector SVG controller icon (no emojis)
@@ -35,6 +35,13 @@ function GameCard({
   voting = false,
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  const coverSrc = game?.cover_url || game?.coverUrl || game?.cover_image || game?.thumbnail || game?.cover;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [coverSrc]);
 
   // Status configuration - Clean, harmonious color scheme
   const statusConfig = {
@@ -136,13 +143,13 @@ function GameCard({
     >
       {/* 16:9 Cover Image / Placeholder */}
       <div className="relative aspect-video overflow-hidden bg-[#100c22]">
-        {game.cover_image ? (
+        {coverSrc && !imgError ? (
           <img
-            src={game.cover_image}
+            src={coverSrc}
             alt={game.title}
             className={`w-full h-full object-cover transition-transform duration-500 ease-out ${isHovered ? 'scale-105' : 'scale-100'}`}
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              setImgError(true);
             }}
           />
         ) : (

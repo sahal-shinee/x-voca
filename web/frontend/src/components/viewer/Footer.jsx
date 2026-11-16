@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   X,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import logoXion from '../../assets/logo_xion.png';
 import logoSaweriaLines from '../../assets/logo_saweria_lines.png';
@@ -354,9 +353,11 @@ const Footer = () => {
 
               {/* Clean Subtle Fansite Release Tag */}
               <div className="pt-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-bg-surface/70 border border-border-subtle text-[11px] text-text-muted font-medium">
-                  <Sparkles className="w-3 h-3 text-accent-cyan" />
-                  <span>v2.4 • X-VOCA Fansite</span>
+                <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-bg-surface/70 border border-border-subtle text-[11px] text-text-muted font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan/80" />
+                  <span className="font-mono text-text-secondary">v2.4</span>
+                  <span className="text-text-muted/40">•</span>
+                  <span>X-VOCA Fansite</span>
                 </span>
               </div>
             </div>

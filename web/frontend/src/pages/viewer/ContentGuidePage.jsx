@@ -63,7 +63,7 @@ const UserIcon = ({ className = 'w-3.5 h-3.5' }) => (
 
 const ArrowRightIcon = ({ className = 'w-3.5 h-3.5' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="m9 18 6-6-6-6" />
+    <path d="M5 12h14M12 5l7 7-7 7" />
   </svg>
 );
 
@@ -75,9 +75,8 @@ const LoadingSpinner = () => (
 
 // Fallback statistics
 const FALLBACK_STATS = [
-  { label: "Total Stream", value: "0", color: "#7ee0d2" },
-  { label: "Jam Konten", value: "0j", color: "#c084fc" },
-  { label: "Total Video", value: "0", color: "#fbbf24" },
+  { label: "Total Video", value: "0", color: "#7ee0d2" },
+  { label: "Kategori Aktif", value: "0", color: "#c084fc" },
   { label: "Konten Baru", value: "0", color: "#f472b6" },
 ];
 
@@ -250,14 +249,21 @@ function ContentGuidePage() {
       // Stats
       if (statsRes.status === 'fulfilled' && statsRes.value?.data?.data) {
         const s = statsRes.value.data.data;
+        const totalVideoCount = s.totalVideos || String(contentsData.length) || "0";
+        const totalCatCount = s.totalCategories || String(categoriesRes.value?.data?.data?.length || 0);
         setStats([
-          { label: "Total Stream", value: s.totalStreams || "0", color: "#7ee0d2" },
-          { label: "Jam Konten", value: s.totalHours || "0j", color: "#c084fc" },
-          { label: "Total Video", value: s.totalVideos || "0", color: "#fbbf24" },
+          { label: "Total Video", value: totalVideoCount, color: "#7ee0d2" },
+          { label: "Kategori Aktif", value: totalCatCount, color: "#c084fc" },
           { label: "Konten Baru", value: s.newContent || "0", color: "#f472b6" },
         ]);
       } else {
-        setStats(FALLBACK_STATS);
+        const fallbackVideoCount = String(contentsData.length || 0);
+        const fallbackCatCount = String(categoriesRes.value?.data?.data?.length || 0);
+        setStats([
+          { label: "Total Video", value: fallbackVideoCount, color: "#7ee0d2" },
+          { label: "Kategori Aktif", value: fallbackCatCount, color: "#c084fc" },
+          { label: "Konten Baru", value: "0", color: "#f472b6" },
+        ]);
       }
 
       // Categories
@@ -454,7 +460,7 @@ function ContentGuidePage() {
       {/* ========== COMPACT STATS STRIP ========== */}
       <section className="px-4 sm:px-6 lg:px-12 py-5 border-b border-white/5 bg-[#110e22]">
         <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             {(stats.length > 0 ? stats : FALLBACK_STATS).map((stat, idx) => (
               <div
                 key={stat.label + idx}

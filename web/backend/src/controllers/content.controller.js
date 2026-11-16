@@ -57,27 +57,34 @@ const getContentStats = async (req, res) => {
   try {
     const contents = await ContentGuide.findAll({
       where: { is_visible: true },
-      attributes: ['created_at', 'video_count', 'total_duration']
+      attributes: ['created_at', 'video_count', 'total_duration', 'game_tag']
     });
 
+    // Real-time count of total video archives
+    const totalVideos = contents.length;
     const totalStreams = contents.length;
 
-    // Calculate total hours from total_duration (format: "Xh Ym")
+    // Count unique categories
+    const categoriesSet = new Set(contents.map(c => c.game_tag).filter(Boolean));
+    const totalCategories = categoriesSet.size;
+
+    // Calculate total hours from total_duration (supports "48.5 Jam", "19 Jam", or "Xh Ym")
     let totalMinutes = 0;
     contents.forEach(c => {
       if (c.total_duration) {
-        const hourMatch = c.total_duration.match(/(\d+)h/);
-        const minMatch = c.total_duration.match(/(\d+)m/);
-        if (hourMatch) totalMinutes += parseInt(hourMatch[1]) * 60;
-        if (minMatch) totalMinutes += parseInt(minMatch[1]);
+        const indonesianMatch = c.total_duration.match(/([\d.]+)\s*jam/i);
+        const hourMatch = c.total_duration.match(/(\d+)h/i);
+        const minMatch = c.total_duration.match(/(\d+)m/i);
+        if (indonesianMatch) {
+          totalMinutes += Math.round(parseFloat(indonesianMatch[1]) * 60);
+        } else {
+          if (hourMatch) totalMinutes += parseInt(hourMatch[1], 10) * 60;
+          if (minMatch) totalMinutes += parseInt(minMatch[1], 10);
+        }
       } else {
-        // Default: estimate based on video_count
-        totalMinutes += (c.video_count || 1) * 60;
+        totalMinutes += 60;
       }
     });
-
-    // Calculate total videos across all content
-    const totalVideos = contents.reduce((sum, c) => sum + (c.video_count || 1), 0);
 
     // Count new content (last 7 days)
     const sevenDaysAgo = new Date();
@@ -93,6 +100,7 @@ const getContentStats = async (req, res) => {
         totalStreams: totalStreams.toString(),
         totalHours: hoursDisplay,
         totalVideos: totalVideos.toString(),
+        totalCategories: totalCategories.toString(),
         newContent: newContent.toString()
       },
       message: 'Stats berhasil diambil.'

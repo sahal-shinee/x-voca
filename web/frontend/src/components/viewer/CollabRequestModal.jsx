@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, CheckCircle, Loader2, Sparkles, User, Link as LinkIcon, MessageSquare } from 'lucide-react';
+import { X, CheckCircle, Loader2, Radio, User, Link as LinkIcon, MessageSquare } from 'lucide-react';
 import { collabRequestService } from '../../services/collabRequestService';
 import { getFingerprint } from '../../utils/fingerprint';
 
@@ -192,7 +192,7 @@ export function CollabRequestModal({ isOpen, onClose, onSuccess }) {
             {/* Header */}
             <div className="mb-6 pr-6">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(192,132,252,0.12)] border border-[rgba(192,132,252,0.25)] text-accent-lilac text-[11px] font-mono uppercase tracking-wider mb-2.5">
-                <Sparkles className="w-3 h-3 text-accent-cyan" />
+                <Radio className="w-3 h-3 text-accent-cyan" />
                 <span>Rekomendasi Siaran</span>
               </div>
               <h2 className="text-2xl font-bold font-display tracking-tight text-white">
