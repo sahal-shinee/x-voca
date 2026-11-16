@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Maximize2, X, ArrowRight } from 'lucide-react';
-import heroCharacter from '../../assets/hero-character.png';
+import heroCharacter from '../../assets/hero-character.webp';
 import TopNav from './TopNav';
 import { getNextSchedule } from '../../services/scheduleService';
 
@@ -607,6 +607,10 @@ function CharacterStage({ moodIndex, onMoodChange }) {
                   src={heroCharacter}
                   alt="XION Regalia - Nocturne Alternate Persona"
                   draggable={false}
+                  width="1200"
+                  height="675"
+                  fetchPriority="high"
+                  decoding="async"
                   className="relative w-full h-auto object-contain select-none"
                   style={{
                     filter: `drop-shadow(0 0 20px rgba(${mood.glow},0.25))`,
@@ -724,6 +728,8 @@ function CharacterStage({ moodIndex, onMoodChange }) {
             <img
               src="/images/xion-fullbody.png"
               alt="Xion Regalia - Full Body"
+              loading="lazy"
+              decoding="async"
               draggable={false}
               className="relative z-10 max-h-[82vh] max-w-[90vw] w-auto h-auto object-contain select-none"
               style={{

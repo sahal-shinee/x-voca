@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -9,20 +10,34 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import AdminLayout from './components/admin/AdminLayout';
 import PrivateRoute from './components/admin/PrivateRoute';
 
-// Viewer Pages
+// Viewer Pages - HomePage is loaded eagerly for instant LCP & initial render
 import HomePage from './pages/viewer/HomePage';
-import VotingPage from './pages/viewer/VotingPage';
-import ContentGuidePage from './pages/viewer/ContentGuidePage';
 
-// Admin Pages
-import LoginPage from './pages/admin/LoginPage';
-import DashboardPage from './pages/admin/DashboardPage';
-import SchedulePage from './pages/admin/SchedulePage';
-import VotingModerationPage from './pages/admin/VotingModerationPage';
-import CollabRequestsPage from './pages/admin/CollabRequestsPage';
-import ContentManagementPage from './pages/admin/ContentManagementPage';
-import TodoPage from './pages/admin/TodoPage';
-import SettingsPage from './pages/admin/SettingsPage';
+// Lazy Loaded Secondary Viewer Pages
+const VotingPage = lazy(() => import('./pages/viewer/VotingPage'));
+const ContentGuidePage = lazy(() => import('./pages/viewer/ContentGuidePage'));
+
+// Admin Pages (Lazy loaded so public visitors never download heavy admin modules)
+const LoginPage = lazy(() => import('./pages/admin/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
+const SchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
+const VotingModerationPage = lazy(() => import('./pages/admin/VotingModerationPage'));
+const CollabRequestsPage = lazy(() => import('./pages/admin/CollabRequestsPage'));
+const ContentManagementPage = lazy(() => import('./pages/admin/ContentManagementPage'));
+const TodoPage = lazy(() => import('./pages/admin/TodoPage'));
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
+
+/**
+ * Cyber Route Loading Fallback
+ */
+const RouteLoader = () => (
+  <div className="min-h-screen bg-[#0D0B14] flex flex-col items-center justify-center gap-3">
+    <div className="w-10 h-10 border-2 border-[#7ee0d2]/20 border-t-[#7ee0d2] rounded-full animate-spin" />
+    <span className="text-[11px] text-[#a89ec0] font-mono tracking-widest uppercase animate-pulse">
+      Memuat Sistem...
+    </span>
+  </div>
+);
 
 /**
  * PublicAdminRoute - Redirects authenticated users away from login page
@@ -32,7 +47,6 @@ function PublicAdminRoute({ children }) {
 
   // If token exists, user is likely logged in - redirect to dashboard
   if (token) {
-    // Don't render children, redirect immediately
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -41,48 +55,48 @@ function PublicAdminRoute({ children }) {
 
 /**
  * AppRouter - Main router component with auth protection
- * This wrapper handles auth navigation protection
  */
 function AppRouter() {
   return (
-    <Routes>
-      {/* ========== PUBLIC VIEWER ROUTES ========== */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/voting" element={<VotingPage />} />
-      <Route path="/content" element={<ContentGuidePage />} />
-      <Route path="/games" element={<VotingPage />} />
+    <Suspense fallback={<RouteLoader />}>
+      <Routes>
+        {/* ========== PUBLIC VIEWER ROUTES ========== */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/voting" element={<VotingPage />} />
+        <Route path="/content" element={<ContentGuidePage />} />
+        <Route path="/games" element={<VotingPage />} />
 
-      {/* ========== PUBLIC ADMIN ROUTES ========== */}
-      <Route
-        path="/admin/login"
-        element={
-          <PublicAdminRoute>
-            <LoginPage />
-          </PublicAdminRoute>
-        }
-      />
+        {/* ========== PUBLIC ADMIN ROUTES ========== */}
+        <Route
+          path="/admin/login"
+          element={
+            <PublicAdminRoute>
+              <LoginPage />
+            </PublicAdminRoute>
+          }
+        />
 
-      {/* ========== PROTECTED ADMIN ROUTES ========== */}
-      {/* All admin routes are wrapped in PrivateRoute for security */}
-      <Route
-        element={
-          <PrivateRoute>
-            <AdminLayout />
-          </PrivateRoute>
-        }
-      >
-        <Route path="/admin/dashboard" element={<DashboardPage />} />
-        <Route path="/admin/schedules" element={<SchedulePage />} />
-        <Route path="/admin/voting" element={<VotingModerationPage />} />
-        <Route path="/admin/collab-requests" element={<CollabRequestsPage />} />
-        <Route path="/admin/content" element={<ContentManagementPage />} />
-        <Route path="/admin/todos" element={<TodoPage />} />
-        <Route path="/admin/settings" element={<SettingsPage />} />
-      </Route>
+        {/* ========== PROTECTED ADMIN ROUTES ========== */}
+        <Route
+          element={
+            <PrivateRoute>
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="/admin/dashboard" element={<DashboardPage />} />
+          <Route path="/admin/schedules" element={<SchedulePage />} />
+          <Route path="/admin/voting" element={<VotingModerationPage />} />
+          <Route path="/admin/collab-requests" element={<CollabRequestsPage />} />
+          <Route path="/admin/content" element={<ContentManagementPage />} />
+          <Route path="/admin/todos" element={<TodoPage />} />
+          <Route path="/admin/settings" element={<SettingsPage />} />
+        </Route>
 
-      {/* ========== CATCH ALL ========== */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* ========== CATCH ALL ========== */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

@@ -11,7 +11,7 @@ import {
   X,
   ShieldCheck,
 } from 'lucide-react';
-import logoXion from '../../assets/logo_xion.png';
+import logoXion from '../../assets/logo_xion.webp';
 import logoSaweriaLines from '../../assets/logo_saweria_lines.png';
 
 // Platform Vector Icons for Official Channels
@@ -303,7 +303,7 @@ const Footer = () => {
             <div className="sm:col-span-2 lg:col-span-5 flex flex-col gap-4 pr-0 lg:pr-8">
               <Link to="/" onClick={handleScrollTop} className="inline-flex items-center gap-3.5 group w-fit">
                 <div className="w-11 h-11 rounded-2xl bg-bg-surface border border-accent-cyan/25 flex items-center justify-center p-1.5 group-hover:scale-105 group-hover:border-accent-cyan transition-all shadow-xs">
-                  <img src={logoXion} alt="Xion Regalia" className="w-full h-full object-contain" />
+                  <img src={logoXion} alt="Xion Regalia" width="44" height="44" decoding="async" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <span className="font-bold text-base sm:text-lg font-display text-text-primary tracking-wide group-hover:text-accent-cyan transition-colors block leading-tight">

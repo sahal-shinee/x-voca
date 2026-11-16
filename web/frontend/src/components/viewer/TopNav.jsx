@@ -15,8 +15,8 @@ import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase'
 import api from '../../services/api';
 import { requestWebPushToken } from '../../utils/firebase';
 import { useToast } from '../common/Toast';
-import logoXion from '../../assets/logo_xion.png';
-import logoSaweria from '../../assets/logo_saweria.jpeg';
+import logoXion from '../../assets/logo_xion.webp';
+import logoSaweria from '../../assets/logo_saweria.webp';
 
 const TopNav = () => {
   const location = useLocation();
@@ -173,6 +173,9 @@ const TopNav = () => {
                   <img
                     src={logoXion}
                     alt="Xion Regalia Logo"
+                    width="42"
+                    height="42"
+                    decoding="async"
                     className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
                   />
                 </div>
@@ -281,6 +284,9 @@ const TopNav = () => {
               <img
                 src={logoSaweria}
                 alt="Saweria Logo"
+                width="20"
+                height="20"
+                decoding="async"
                 className="w-full h-full object-contain"
               />
             </div>

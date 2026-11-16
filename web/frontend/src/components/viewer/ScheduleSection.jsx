@@ -297,7 +297,9 @@ const LiveCountdown = ({ targetDate }) => {
 
   return (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 text-[#7ee0d2] text-[11px] font-mono font-semibold">
-      <Clock className="w-3 h-3 text-[#7ee0d2] animate-pulse" />
+      <span className="inline-flex animate-pulse">
+        <Clock className="w-3 h-3 text-[#7ee0d2]" />
+      </span>
       <span>
         {days > 0 ? `${days}h ` : ''}
         {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
