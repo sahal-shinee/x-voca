@@ -1,4 +1,5 @@
 const { Sequelize } = require('sequelize');
+const mysql2 = require('mysql2');
 
 const isRemoteDb =
   process.env.DB_SSL === 'true' ||
@@ -14,6 +15,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
     port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
     dialect: 'mysql',
+    dialectModule: mysql2,
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     dialectOptions: isRemoteDb
       ? {
