@@ -44,14 +44,21 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> checkAuthStatus() async {
     state = const AsyncValue.loading();
     try {
-      final user = await _authService.getMe();
+      final user = await _authService.getMe().timeout(
+            const Duration(seconds: 4),
+            onTimeout: () {
+              // Jika verifikasi backend melebihi 4 detik, langsung fallback ke null agar masuk login
+              return null;
+            },
+          );
       if (user != null) {
         // Otomatis berlangganan topik notifikasi khusus streamer jika berhasil login
         unawaited(NotificationService.instance.subscribeCreatorTopics());
       }
       state = AsyncValue.data(user);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
+      // Jika terjadi error koneksi / token invalid, arahkan ke LoginScreen
+      state = const AsyncValue.data(null);
     }
   }
 

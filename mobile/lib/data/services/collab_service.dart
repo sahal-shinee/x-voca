@@ -25,6 +25,67 @@ class CollabService {
     );
   }
 
+  /// Menambahkan permohonan / pencatatan kolaborasi baru (`POST /collab-requests`).
+  Future<CollabModel> createCollabRequest({
+    required String streamerName,
+    String? streamerSocial,
+    String? message,
+  }) async {
+    final response = await _dio.post(
+      '/collab-requests',
+      data: {
+        'requested_streamer_name': streamerName,
+        if (streamerSocial != null && streamerSocial.isNotEmpty)
+          'requested_streamer_social': streamerSocial,
+        if (message != null && message.isNotEmpty) 'message': message,
+        'viewer_identifier': 'admin_manual',
+      },
+    );
+
+    if (response.data['success'] == true) {
+      return CollabModel.fromJson(response.data['data']);
+    }
+    throw Exception(
+      response.data['message'] ?? 'Gagal menambahkan collab request',
+    );
+  }
+
+  /// Memperbarui detail informasi usulan kolaborasi (nama streamer, sosmed, pesan/topik).
+  Future<CollabModel> updateCollabDetails({
+    required int id,
+    required String streamerName,
+    String? streamerSocial,
+    String? message,
+  }) async {
+    Response response;
+    final payload = {
+      'action': 'edit',
+      'requested_streamer_name': streamerName,
+      'requested_streamer_social': streamerSocial ?? '',
+      'message': message ?? '',
+    };
+
+    try {
+      response = await _dio.patch('/collab-requests/$id/review', data: payload);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        response = await _dio.patch(
+          '/collab-requests/$id/status',
+          data: payload,
+        );
+      } else {
+        rethrow;
+      }
+    }
+
+    if (response.data['success'] == true) {
+      return CollabModel.fromJson(response.data['data']);
+    }
+    throw Exception(
+      response.data['message'] ?? 'Gagal memperbarui data collab',
+    );
+  }
+
   /// Memperbarui status collab (misal: 'approved', 'rejected', 'pending')
   /// beserta catatan review admin (`PATCH /collab-requests/:id/review`).
   ///

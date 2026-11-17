@@ -186,6 +186,18 @@ class GameNotifier extends StateNotifier<GameState> {
       rethrow;
     }
   }
+
+  /// Mereset periode voting bulanan dan memuat ulang data terbaru.
+  Future<void> resetPeriod() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _gameService.resetVotingPeriod();
+      await loadAllData();
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
+    }
+  }
 }
 
 /// Provider instance [GameService].

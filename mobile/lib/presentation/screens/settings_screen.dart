@@ -29,6 +29,91 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
 
+  /// Dialog modal konfirmasi tindakan penting (Validasi Pop-up)
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String content,
+    required String confirmText,
+    Color confirmColor = AppColors.accentCyan,
+    IconData icon = LucideIcons.triangle_alert,
+  }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+    final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+    final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+    HapticFeedback.lightImpact();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: borderSubtle),
+        ),
+        title: Row(
+          children: [
+            Icon(icon, color: confirmColor, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.spaceGrotesk(
+                  color: textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          content,
+          style: GoogleFonts.spaceGrotesk(
+            color: textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(ctx, false);
+            },
+            child: Text(
+              'Batal',
+              style: GoogleFonts.spaceMono(color: textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(ctx, true);
+            },
+            child: Text(
+              confirmText,
+              style: GoogleFonts.spaceMono(
+                color: confirmColor == AppColors.accentRed ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   /// Memunculkan notifikasi toast melayang (*floating toast*) di bagian bawah layar.
   void _showFloatingToast({
     required String message,
@@ -566,11 +651,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   value: _notificationsEnabled,
                   activeThumbColor: AppColors.primary(isDark),
-                  onChanged: (val) {
+                  onChanged: (val) async {
                     HapticFeedback.selectionClick();
+                    if (!val) {
+                      // Validasi pop-up sebelum menonaktifkan notifikasi
+                      final confirm = await _showConfirmDialog(
+                        title: 'Nonaktifkan Push Notifikasi?',
+                        content:
+                            'Anda tidak akan menerima peringatan langsung untuk jadwal streaming siaran baru, pengajuan collab masuk, dan pembaruan penting saat aplikasi ditutup.',
+                        confirmText: 'Matikan Notifikasi',
+                        confirmColor: AppColors.accentRed,
+                        icon: LucideIcons.bell_off,
+                      );
+                      if (!confirm) return;
+                    }
+
                     setState(() => _notificationsEnabled = val);
                     _showFloatingToast(
-                      message: val ? 'Notifikasi push diaktifkan' : 'Notifikasi push dinonaktifkan',
+                      message: val
+                          ? 'Notifikasi push diaktifkan'
+                          : 'Notifikasi push dinonaktifkan',
                       isSuccess: true,
                       icon: val ? LucideIcons.bell : LucideIcons.bell_off,
                     );
@@ -719,11 +819,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   trailing: Icon(LucideIcons.chevron_right, size: 16, color: textMuted),
-                  onTap: () {
+                  onTap: () async {
                     HapticFeedback.lightImpact();
+                    final confirm = await _showConfirmDialog(
+                      title: 'Bersihkan Cache Memori?',
+                      content:
+                          'Aplikasi akan menghapus data cache gambar dan memori rendering sementara untuk melegakan penyimpanan perangkat.',
+                      confirmText: 'Bersihkan Cache',
+                      confirmColor: AppColors.accentGold,
+                      icon: LucideIcons.trash,
+                    );
+                    if (!confirm) return;
+
                     PaintingBinding.instance.imageCache.clear();
                     PaintingBinding.instance.imageCache.clearLiveImages();
-                    _showFloatingToast(message: 'Cache memori lokal berhasil dibersihkan!', isSuccess: true, icon: LucideIcons.check_check);
+                    _showFloatingToast(
+                      message: 'Cache memori lokal berhasil dibersihkan!',
+                      isSuccess: true,
+                      icon: LucideIcons.check_check,
+                    );
                   },
                 ),
               ],

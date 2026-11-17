@@ -7,7 +7,7 @@ class Env {
   static const bool useProduction = false;
 
   /// IP host lokal komputer/laptop pengembang (sesuaikan dengan IP jaringan lokal aktif).
-  static const String localHostIp = '192.168.43.13';
+  static const String localHostIp = '192.168.1.3';
 
   /// Port layanan backend Express/Node.js.
   static const int backendPort = 3001;
@@ -17,7 +17,9 @@ class Env {
   // -------------------------------------------------------------
 
   /// Alamat endpoint API server lokal.
-  static const String localApiUrl = 'http://$localHostIp:$backendPort/api';
+  /// Default menggunakan loopback via USB ADB reverse (http://localhost:3001/api)
+  /// agar bebas dari hambatan firewall atau isolasi router Wi-Fi.
+  static const String localApiUrl = 'http://localhost:3001/api';
 
   /// Alamat endpoint API server production di Railway.
   static const String railwayProductionUrl =
@@ -30,10 +32,10 @@ class Env {
   /// Daftar URL cadangan otomatis yang akan dicoba berurutan oleh Dio Interceptor
   /// jika koneksi ke [apiBaseUrl] mengalami kegagalan / timeout.
   static List<String> get fallbackUrls => [
+        'http://localhost:3001/api', // USB ADB Reverse (Prioritas Utama)
+        'http://192.168.1.3:3001/api', // IP Wi-Fi Router Rumah / Kantor aktif
         'http://192.168.43.13:3001/api', // IP Tethering Wi-Fi Hotspot HP
-        'http://localhost:3001/api', // USB ADB Reverse (Port forwarding)
         'http://127.0.0.1:3001/api', // Loopback alternate
-        'http://192.168.1.3:3001/api', // IP Wi-Fi Router Rumah / Kantor
         'http://10.0.2.2:3001/api', // Loopback bawaan Android Emulator
       ];
 

@@ -662,28 +662,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             width: 44,
             height: 44,
             child: IconButton(
-              tooltip: 'Segarkan Data',
-              icon: Icon(LucideIcons.refresh_cw, color: textSecondary, size: 18),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                ref.read(todoProvider.notifier).fetchTodos();
-                ref.read(scheduleProvider.notifier).fetchSchedules();
-                ref.read(gameProvider.notifier).loadAllData();
-                ref.read(auditLogProvider.notifier).fetchLogs();
-                ref.read(youtubeProvider.notifier).fetchStats();
-                _showFloatingToast(
-                  context,
-                  message: 'Data dashboard berhasil diperbarui',
-                  isSuccess: true,
-                  icon: LucideIcons.refresh_cw,
-                );
-              },
-            ),
-          ),
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: IconButton(
               tooltip: 'Keluar Akun',
               icon: const Icon(LucideIcons.log_out, color: AppColors.accentRed, size: 18),
               onPressed: () async {

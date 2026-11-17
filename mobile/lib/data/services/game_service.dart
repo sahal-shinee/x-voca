@@ -32,7 +32,8 @@ class GameService {
   Future<VoteStatsModel> getVoteStats() async {
     final response = await _dio.get('/votes/stats');
     if (response.data['success'] == true) {
-      return VoteStatsModel.fromJson(response.data['data']);
+      final periodKey = response.data['meta']?['period_key'] as String?;
+      return VoteStatsModel.fromJson(response.data['data'], periodKey: periodKey);
     }
     throw Exception(
       response.data['message'] ?? 'Gagal mengambil statistik vote',
@@ -73,6 +74,18 @@ class GameService {
       return response.data['data'] as Map<String, dynamic>;
     }
     throw Exception(response.data['message'] ?? 'Gagal submit vote');
+  }
+
+  /// Mereset periode voting bulanan (`POST /votes/reset-period`).
+  ///
+  /// Mengarsipkan voting periode lama dan mengembalikan game yang belum tamat ke 0 suara.
+  Future<void> resetVotingPeriod() async {
+    final response = await _dio.post('/votes/reset-period');
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['message'] ?? 'Gagal mereset periode voting',
+      );
+    }
   }
 
   /// Mengubah status ketersediaan atau tayang game (`PATCH /games/:id/status`).

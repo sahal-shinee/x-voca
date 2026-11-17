@@ -221,27 +221,6 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
             ),
           ],
         ),
-        actions: [
-          // Touch Target 44x44 dp: Refresh Button
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: IconButton(
-              tooltip: 'Segarkan Todo',
-              icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                ref.read(todoProvider.notifier).fetchTodos();
-                _showFloatingToast(
-                  message: 'Daftar todo berhasil diperbarui',
-                  isSuccess: true,
-                  icon: LucideIcons.refresh_cw,
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 6),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary(isDark),

@@ -386,21 +386,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             ),
           ],
         ),
-        actions: [
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: IconButton(
-              tooltip: 'Segarkan Data',
-              icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                ref.read(scheduleProvider.notifier).fetchSchedules();
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary(isDark),
@@ -2468,13 +2453,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  _buildSectionLabel('DESKRIPSI', isDark),
+                  _buildSectionLabel('DESKRIPSI SESI (KHUSUS WEBSITE PORTAL)', isDark),
                   const SizedBox(height: 6),
                   TextField(
                     controller: descriptionController,
                     maxLines: 2,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Deskripsi stream...', isDark),
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                    decoration: _inputDecoration(
+                      'Contoh: Sesi chill mabar malam bangun mega project bareng viewers...',
+                      isDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '*Hanya tampil di kartu jadwal website fansite, bukan deskripsi video YouTube.',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                   const SizedBox(height: 14),
 
@@ -2901,13 +2898,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  _buildSectionLabel('DESKRIPSI', isDark),
+                  _buildSectionLabel('DESKRIPSI SESI (KHUSUS WEBSITE PORTAL)', isDark),
                   const SizedBox(height: 6),
                   TextField(
                     controller: descriptionController,
                     maxLines: 2,
-                    style: GoogleFonts.spaceGrotesk(color: textPrimary),
-                    decoration: _inputDecoration('Deskripsi stream...', isDark),
+                    style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                    decoration: _inputDecoration(
+                      'Contoh: Sesi chill mabar malam bangun mega project bareng viewers...',
+                      isDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '*Hanya tampil di kartu jadwal website fansite, bukan deskripsi video YouTube.',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 10,
+                      color: textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                   const SizedBox(height: 14),
 

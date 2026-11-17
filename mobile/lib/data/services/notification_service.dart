@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/notification_model.dart';
 
@@ -37,8 +37,10 @@ class NotificationService {
   // -------------------------------------------------------------
   // Konfigurasi Channel Notifikasi Android (High Importance)
   // -------------------------------------------------------------
-  static const String highImportanceChannelId = 'xvoca_high_importance_channel';
-  static const String highImportanceChannelName = 'X-VOCA Stream & Collab Alerts';
+  static const String highImportanceChannelId =
+      'xvoca_high_importance_channel_v2';
+  static const String highImportanceChannelName =
+      'X-VOCA Stream & Collab Alerts';
   static const String highImportanceChannelDesc =
       'Notifikasi prioritas tinggi untuk status live, jadwal stream, dan collab request.';
 
@@ -81,8 +83,9 @@ class NotificationService {
       );
       debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
 
-      // 2. Inisialisasi plugin notifikasi lokal perangkat (ikon peluncur)
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      // 2. Inisialisasi plugin notifikasi lokal perangkat (ikon notifikasi transparan)
+      const androidInit =
+          AndroidInitializationSettings('@drawable/ic_notification');
       const darwinInit = DarwinInitializationSettings();
       const initSettings = InitializationSettings(
         android: androidInit,
@@ -173,11 +176,14 @@ class NotificationService {
             _androidChannel.name,
             channelDescription: _androidChannel.description,
             importance: Importance.max,
-            priority: Priority.high,
+            priority: Priority.max,
             visibility: NotificationVisibility.public,
-            icon: '@mipmap/ic_launcher',
+            icon: '@drawable/ic_notification',
+            color: const Color(0xFF863BFF),
             playSound: true,
             enableVibration: true,
+            channelShowBadge: true,
+            ticker: 'X-VOCA Alert',
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,

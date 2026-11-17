@@ -30,9 +30,12 @@ class VotesScreen extends ConsumerStatefulWidget {
   ConsumerState<VotesScreen> createState() => _VotesScreenState();
 }
 
-class _VotesScreenState extends ConsumerState<VotesScreen> {
+class _VotesScreenState extends ConsumerState<VotesScreen>
+    with SingleTickerProviderStateMixin {
   final String _deviceFingerprint =
       'device_${DateTime.now().millisecondsSinceEpoch}';
+
+  late TabController _tabController;
 
   // State untuk Tab 1: Game Voting
   String _selectedFilter = 'all';
@@ -45,7 +48,17 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   String _collabSearchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _collabSearchController.dispose();
     super.dispose();
@@ -188,6 +201,45 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       ),
     );
     return result ?? false;
+  }
+
+  /// Dialog validasi konfirmasi untuk mereset periode voting bulanan.
+  Future<void> _handleResetVotingPeriod() async {
+    HapticFeedback.lightImpact();
+    final confirm = await _showConfirmDialog(
+      context: context,
+      title: 'Reset Periode Voting Bulanan?',
+      content:
+          'Apakah Anda yakin ingin memulai periode voting baru untuk bulan ini?\n\n'
+          '• Perolehan suara saat ini akan diarsipkan secara aman.\n'
+          '• Semua game yang belum selesai (non-done) akan di-reset menjadi 0 suara.\n'
+          '• Periode baru akan dibuka kembali untuk penonton fansite.',
+      confirmText: 'Reset Sekarang',
+      confirmColor: AppColors.accentRed,
+      icon: LucideIcons.rotate_ccw,
+    );
+
+    if (confirm) {
+      try {
+        await ref.read(gameProvider.notifier).resetPeriod();
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Periode voting bulanan berhasil direset!',
+            isSuccess: true,
+            icon: LucideIcons.rotate_ccw,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Gagal mereset periode voting: $e',
+            isSuccess: false,
+          );
+        }
+      }
+    }
   }
 
   // Modal Tambah Usulan Game Kandidat Baru
@@ -416,136 +468,410 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
     );
   }
 
+  // Modal Catat Rencana Kolaborasi Streamer Baru
+  /// Menampilkan modal dialog untuk mencatat rencana usulan kolaborasi streamer secara manual.
+  void _showAddCollabModal() {
+    HapticFeedback.lightImpact();
+    final nameController = TextEditingController();
+    final socialController = TextEditingController();
+    final messageController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+        final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+        final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+        final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+        final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+        final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: bgSurface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border(top: BorderSide(color: borderSubtle, width: 1.2)),
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyan.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(LucideIcons.user_plus,
+                                  color: AppColors.primary(isDark), size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Catat Rencana Kolaborasi',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: IconButton(
+                            icon: Icon(LucideIcons.x, color: textMuted, size: 20),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.pop(modalContext);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Nama / Akun Streamer *',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: nameController,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Kobo Kanaeru / @streamer',
+                        hintStyle: GoogleFonts.spaceGrotesk(
+                            color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Nama streamer wajib diisi';
+                        }
+                        if (val.trim().length < 2) {
+                          return 'Nama streamer minimal 2 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Link Profil / Sosial Media (Opsional)',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: socialController,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: https://youtube.com/@channel',
+                        hintStyle: GoogleFonts.spaceGrotesk(
+                            color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Topik / Catatan Kolaborasi (Opsional)',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: messageController,
+                      maxLines: 2,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Main Phasmophobia / Chilla\'s Art bareng',
+                        hintStyle: GoogleFonts.spaceGrotesk(
+                            color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentCyan,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                HapticFeedback.lightImpact();
+                                setModalState(() => isSubmitting = true);
+
+                                try {
+                                  await ref.read(collabProvider.notifier).addRequest(
+                                        streamerName: nameController.text.trim(),
+                                        streamerSocial: socialController.text.trim().isNotEmpty
+                                            ? socialController.text.trim()
+                                            : null,
+                                        message: messageController.text.trim().isNotEmpty
+                                            ? messageController.text.trim()
+                                            : null,
+                                      );
+
+                                  if (modalContext.mounted) {
+                                    Navigator.pop(modalContext);
+                                  }
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Rencana kolaborasi berhasil disimpan!',
+                                      isSuccess: true,
+                                      icon: LucideIcons.user_plus,
+                                    );
+                                  }
+                                } catch (e) {
+                                  setModalState(() => isSubmitting = false);
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Gagal mencatat collab: $e',
+                                      isSuccess: false,
+                                    );
+                                  }
+                                }
+                              },
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.black),
+                              )
+                            : Text(
+                                'Simpan Kolaborasi',
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: isDark ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
     final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: bgBase,
-        appBar: AppBar(
-          backgroundColor: bgNav,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(49),
-            child: Column(
-              children: [
-                TabBar(
-                  onTap: (_) => HapticFeedback.selectionClick(),
-                  indicatorColor: AppColors.primary(isDark),
-                  indicatorWeight: 2.5,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: AppColors.primary(isDark),
-                  unselectedLabelColor: textMuted,
-                  labelStyle: GoogleFonts.spaceGrotesk(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  unselectedLabelStyle: GoogleFonts.spaceGrotesk(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                  tabs: const [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(LucideIcons.vote, size: 16),
-                          SizedBox(width: 8),
-                          Text('Game Voting'),
-                        ],
-                      ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(LucideIcons.users, size: 16),
-                          SizedBox(width: 8),
-                          Text('Collab Requests'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Container(color: borderSubtle, height: 1),
-              ],
-            ),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: bgBase,
+      appBar: AppBar(
+        backgroundColor: bgNav,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(49),
+          child: Column(
             children: [
-              Text(
-                'MODERASI & VOTING',
-                style: GoogleFonts.spaceMono(
-                  fontSize: 9,
+              TabBar(
+                controller: _tabController,
+                onTap: (_) => HapticFeedback.selectionClick(),
+                indicatorColor: AppColors.primary(isDark),
+                indicatorWeight: 2.5,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: AppColors.primary(isDark),
+                unselectedLabelColor: textMuted,
+                labelStyle: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary(isDark),
-                  letterSpacing: 1.2,
+                  fontSize: 13,
                 ),
-              ),
-              Text(
-                'Community Hub',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimary,
+                unselectedLabelStyle: GoogleFonts.spaceGrotesk(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
                 ),
+                tabs: const [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.vote, size: 16),
+                        SizedBox(width: 8),
+                        Text('Game Voting'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.users, size: 16),
+                        SizedBox(width: 8),
+                        Text('Collab Requests'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              Container(color: borderSubtle, height: 1),
             ],
           ),
-          actions: [
-            // Touch Target 44x44 dp: Refresh Data
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: IconButton(
-                tooltip: 'Segarkan Data',
-                icon: Icon(LucideIcons.refresh_cw, size: 18, color: textSecondary),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  ref.read(gameProvider.notifier).loadAllData();
-                  ref.read(collabProvider.notifier).fetchCollabRequests();
-                  _showFloatingToast(
-                    context,
-                    message: 'Data polling & collab berhasil diperbarui',
-                    isSuccess: true,
-                    icon: LucideIcons.refresh_cw,
-                  );
-                },
-              ),
-            ),
-            // Touch Target 44x44 dp: Tambah Game Usulan
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: IconButton(
-                tooltip: 'Tambah Game Usulan',
-                icon: Icon(
-                  LucideIcons.plus,
-                  color: AppColors.primary(isDark),
-                  size: 20,
-                ),
-                onPressed: _showAddGameModal,
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
         ),
-        body: TabBarView(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildGameVotesTab(isDark),
-            _buildCollabRequestsTab(isDark),
+            Text(
+              'MODERASI & VOTING',
+              style: GoogleFonts.spaceMono(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary(isDark),
+                letterSpacing: 1.2,
+              ),
+            ),
+            Text(
+              'Community Hub',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: textPrimary,
+              ),
+            ),
           ],
         ),
+        actions: [
+          // Touch Target 44x44 dp: Reset Periode Voting Bulanan (Khusus Tab Game Voting)
+          if (_tabController.index == 0)
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButton(
+                tooltip: 'Reset Periode Voting',
+                icon: const Icon(
+                  LucideIcons.rotate_ccw,
+                  color: AppColors.accentGold,
+                  size: 18,
+                ),
+                onPressed: _handleResetVotingPeriod,
+              ),
+            ),
+          // Touch Target 44x44 dp: Tambah Data Kontekstual Sesuai Tab Aktif
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: IconButton(
+              tooltip: _tabController.index == 0
+                  ? 'Tambah Game Usulan'
+                  : 'Catat Collab Baru',
+              icon: Icon(
+                _tabController.index == 0
+                    ? LucideIcons.plus
+                    : LucideIcons.user_plus,
+                color: AppColors.primary(isDark),
+                size: 20,
+              ),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                if (_tabController.index == 0) {
+                  _showAddGameModal();
+                } else {
+                  _showAddCollabModal();
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildGameVotesTab(isDark),
+          _buildCollabRequestsTab(isDark),
+        ],
       ),
     );
   }
@@ -555,6 +881,7 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
   // ==========================================
   Widget _buildGameVotesTab(bool isDark) {
     final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+    final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgNav = isDark ? AppColors.bgNav : AppColors.bgNavLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
@@ -645,6 +972,86 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Banner Periode Voting Aktif & Tombol Reset Cepat
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: bgSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderSubtle),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentPurple.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(LucideIcons.calendar, size: 14, color: AppColors.accentPurple),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PERIODE BULANAN',
+                          style: GoogleFonts.spaceMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: textMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        Text(
+                          voteStats?.periodKey != null
+                              ? 'Periode ${voteStats!.periodKey}'
+                              : 'Periode Berjalan',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: _handleResetVotingPeriod,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGold.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(LucideIcons.rotate_ccw, size: 12, color: AppColors.accentGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reset Periode',
+                          style: GoogleFonts.spaceMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accentGold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Header Mini Summary
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1922,41 +2329,56 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Bottom Action Row (Hapus & Jadwalkan Cepat)
+          // Bottom Action Row (Edit, Hapus & Jadwalkan Cepat)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Touch Target 44x44 dp: Hapus Request
-              SizedBox(
-                width: 44,
-                height: 44,
-                child: IconButton(
-                  tooltip: 'Hapus Request',
-                  icon: Icon(LucideIcons.trash, size: 16, color: textMuted),
-                  onPressed: () async {
-                    HapticFeedback.lightImpact();
-                    final confirm = await _showConfirmDialog(
-                      context: context,
-                      title: 'Hapus Request Collab?',
-                      content:
-                          'Usulan kolaborasi dari "${collab.requestedStreamerName}" akan dihapus permanen dari sistem.',
-                      confirmText: 'Ya, Hapus',
-                      confirmColor: AppColors.accentRed,
-                      icon: LucideIcons.trash,
-                    );
-                    if (confirm) {
-                      await ref.read(collabProvider.notifier).deleteRequest(collab.id);
-                      if (mounted) {
-                        _showFloatingToast(
-                          context,
-                          message: 'Usulan kolaborasi dihapus',
-                          isSuccess: true,
+              Row(
+                children: [
+                  // Touch Target 44x44 dp: Edit Detail Collab
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: IconButton(
+                      tooltip: 'Edit Usulan Collab',
+                      icon: const Icon(LucideIcons.pencil, size: 16, color: AppColors.accentCyan),
+                      onPressed: () => _showEditCollabDialog(collab),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  // Touch Target 44x44 dp: Hapus Request
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: IconButton(
+                      tooltip: 'Hapus Request',
+                      icon: Icon(LucideIcons.trash, size: 16, color: textMuted),
+                      onPressed: () async {
+                        HapticFeedback.lightImpact();
+                        final confirm = await _showConfirmDialog(
+                          context: context,
+                          title: 'Hapus Request Collab?',
+                          content:
+                              'Usulan kolaborasi dari "${collab.requestedStreamerName}" akan dihapus permanen dari sistem.',
+                          confirmText: 'Ya, Hapus',
+                          confirmColor: AppColors.accentRed,
                           icon: LucideIcons.trash,
                         );
-                      }
-                    }
-                  },
-                ),
+                        if (confirm) {
+                          await ref.read(collabProvider.notifier).deleteRequest(collab.id);
+                          if (mounted) {
+                            _showFloatingToast(
+                              context,
+                              message: 'Usulan kolaborasi dihapus',
+                              isSuccess: true,
+                              icon: LucideIcons.trash,
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
 
               if (statusLower != 'scheduled')
@@ -2300,6 +2722,272 @@ class _VotesScreenState extends ConsumerState<VotesScreen> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // Modal Dialog Edit Informasi Usulan Collab Streamer
+  /// Menampilkan bottom sheet dialog untuk memperbarui nama, medsos, dan topik usulan collab.
+  void _showEditCollabDialog(CollabModel collab) {
+    HapticFeedback.lightImpact();
+    final nameController = TextEditingController(text: collab.requestedStreamerName);
+    final socialController = TextEditingController(text: collab.requestedStreamerSocial ?? '');
+    final messageController = TextEditingController(text: collab.message ?? '');
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
+        final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
+        final textPrimary = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+        final textSecondary = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+        final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
+        final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
+
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: bgSurface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border(top: BorderSide(color: borderSubtle, width: 1.2)),
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyan.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(LucideIcons.pencil,
+                                  color: AppColors.primary(isDark), size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Edit Usulan Kolaborasi',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: IconButton(
+                            icon: Icon(LucideIcons.x, color: textMuted, size: 20),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.pop(modalContext);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Nama / Akun Streamer *',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: nameController,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Kobo Kanaeru / @streamer',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Nama streamer wajib diisi';
+                        }
+                        if (val.trim().length < 2) {
+                          return 'Nama streamer minimal 2 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Link Profil / Sosial Media (Opsional)',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: socialController,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: https://youtube.com/@channel',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Topik / Catatan Kolaborasi (Opsional)',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: messageController,
+                      maxLines: 2,
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Main Phasmophobia / Chilla\'s Art bareng',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
+                        filled: true,
+                        fillColor: bgInput,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.accentCyan, width: 1.2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentCyan,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                HapticFeedback.lightImpact();
+                                setModalState(() => isSubmitting = true);
+
+                                try {
+                                  await ref.read(collabProvider.notifier).updateDetails(
+                                        id: collab.id,
+                                        streamerName: nameController.text.trim(),
+                                        streamerSocial: socialController.text.trim().isNotEmpty
+                                            ? socialController.text.trim()
+                                            : null,
+                                        message: messageController.text.trim().isNotEmpty
+                                            ? messageController.text.trim()
+                                            : null,
+                                      );
+
+                                  if (modalContext.mounted) {
+                                    Navigator.pop(modalContext);
+                                  }
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Data usulan kolaborasi berhasil diperbarui!',
+                                      isSuccess: true,
+                                      icon: LucideIcons.pencil,
+                                    );
+                                  }
+                                } catch (e) {
+                                  setModalState(() => isSubmitting = false);
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Gagal memperbarui collab: $e',
+                                      isSuccess: false,
+                                    );
+                                  }
+                                }
+                              },
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                              )
+                            : Text(
+                                'Simpan Perubahan',
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: isDark ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );

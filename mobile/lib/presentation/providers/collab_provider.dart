@@ -55,6 +55,57 @@ class CollabNotifier extends StateNotifier<CollabState> {
     }
   }
 
+  /// Menambahkan permohonan collab baru secara manual.
+  Future<void> addRequest({
+    required String streamerName,
+    String? streamerSocial,
+    String? message,
+  }) async {
+    final newCollab = await _collabService.createCollabRequest(
+      streamerName: streamerName,
+      streamerSocial: streamerSocial,
+      message: message,
+    );
+    state = state.copyWith(requests: [newCollab, ...state.requests]);
+  }
+
+  /// Memperbarui detail usulan collab (nama streamer, medsos, pesan/topik) secara optimis.
+  Future<void> updateDetails({
+    required int id,
+    required String streamerName,
+    String? streamerSocial,
+    String? message,
+  }) async {
+    final previous = state.requests;
+    state = state.copyWith(
+      requests: state.requests.map((r) {
+        if (r.id == id) {
+          return r.copyWith(
+            requestedStreamerName: streamerName,
+            requestedStreamerSocial: streamerSocial,
+            message: message,
+          );
+        }
+        return r;
+      }).toList(),
+    );
+
+    try {
+      final updated = await _collabService.updateCollabDetails(
+        id: id,
+        streamerName: streamerName,
+        streamerSocial: streamerSocial,
+        message: message,
+      );
+      state = state.copyWith(
+        requests: state.requests.map((r) => r.id == id ? updated : r).toList(),
+      );
+    } catch (e) {
+      state = state.copyWith(requests: previous);
+      rethrow;
+    }
+  }
+
   /// Memperbarui status peninjauan pengajuan collab secara optimis di UI sebelum konfirmasi backend.
   Future<void> updateStatus(int id, String status, {String? notes}) async {
     final previous = state.requests;

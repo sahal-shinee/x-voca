@@ -111,6 +111,9 @@ class VoteStatsModel {
   /// Jumlah game yang telah selesai ditamatkan/ditayangkan (`done`).
   final int done;
 
+  /// Kunci identitas periode aktif (misal: '2026-11').
+  final String? periodKey;
+
   VoteStatsModel({
     required this.totalGames,
     required this.totalVotes,
@@ -118,10 +121,11 @@ class VoteStatsModel {
     required this.accepted,
     required this.playing,
     required this.done,
+    this.periodKey,
   });
 
   /// Factory constructor untuk memetakan respon statistik dari JSON backend.
-  factory VoteStatsModel.fromJson(Map<String, dynamic> json) {
+  factory VoteStatsModel.fromJson(Map<String, dynamic> json, {String? periodKey}) {
     return VoteStatsModel(
       totalGames: json['total_games'] ?? 0,
       totalVotes: json['total_votes'] ?? 0,
@@ -129,6 +133,7 @@ class VoteStatsModel {
       accepted: json['accepted'] ?? 0,
       playing: json['playing'] ?? 0,
       done: json['done'] ?? 0,
+      periodKey: periodKey ?? json['period_key'] as String?,
     );
   }
 
@@ -140,6 +145,7 @@ class VoteStatsModel {
     int? accepted,
     int? playing,
     int? done,
+    String? periodKey,
   }) {
     return VoteStatsModel(
       totalGames: totalGames ?? this.totalGames,
@@ -148,6 +154,7 @@ class VoteStatsModel {
       accepted: accepted ?? this.accepted,
       playing: playing ?? this.playing,
       done: done ?? this.done,
+      periodKey: periodKey ?? this.periodKey,
     );
   }
 }

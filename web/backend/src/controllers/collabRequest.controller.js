@@ -273,7 +273,7 @@ const reviewCollabRequest = async (req, res) => {
       newStatus = 'pending';
     } else if (action === 'expire' || status === 'expired') {
       newStatus = 'expired';
-    } else if (action === 'update_note' || action === 'note' || (!action && !status && (notes !== undefined || review_notes !== undefined))) {
+    } else if (action === 'update_note' || action === 'note' || action === 'edit' || action === 'update' || (!action && !status && (notes !== undefined || review_notes !== undefined || req.body.requested_streamer_name !== undefined))) {
       // Keep existing newStatus
     } else {
       return res.status(400).json({
@@ -288,12 +288,23 @@ const reviewCollabRequest = async (req, res) => {
     const resolvedNotes = notes !== undefined ? notes : (review_notes !== undefined ? review_notes : collabRequest.review_notes);
 
     try {
-      await collabRequest.update({
+      const updatePayload = {
         status: newStatus,
         reviewed_by: reviewerId,
         reviewed_at: new Date(),
         review_notes: resolvedNotes
-      });
+      };
+      if (req.body.requested_streamer_name) {
+        updatePayload.requested_streamer_name = req.body.requested_streamer_name.trim();
+      }
+      if (req.body.requested_streamer_social !== undefined) {
+        updatePayload.requested_streamer_social = req.body.requested_streamer_social ? req.body.requested_streamer_social.trim() : null;
+      }
+      if (req.body.message !== undefined) {
+        updatePayload.message = req.body.message ? req.body.message.trim() : null;
+      }
+
+      await collabRequest.update(updatePayload);
     } catch (updateErr) {
       // Fallback in case DB enum does not yet have 'scheduled'
       if (newStatus === 'scheduled') {

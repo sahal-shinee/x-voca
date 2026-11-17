@@ -30,30 +30,46 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     _initVideo();
+    // Safety fallback: jika video gagal diinisialisasi atau listener tidak trigger,
+    // pindah otomatis setelah 3 detik agar aplikasi tidak stuck di loading screen.
+    Future.delayed(const Duration(milliseconds: 3000), () {
+      if (mounted && !_hasNavigated) {
+        _hasNavigated = true;
+        _checkAuthAndNavigate();
+      }
+    });
   }
 
   /// Menyiapkan pemutar video dengan aset yang sesuai dengan tema tersimpan.
   Future<void> _initVideo() async {
-    // Membaca status tema langsung dari SharedPreferences agar akurat saat aplikasi baru dibuka
-    final prefs = await SharedPreferences.getInstance();
-    final savedTheme = prefs.getString('user_theme_mode');
+    try {
+      // Membaca status tema langsung dari SharedPreferences agar akurat saat aplikasi baru dibuka
+      final prefs = await SharedPreferences.getInstance();
+      final savedTheme = prefs.getString('user_theme_mode');
 
-    // Jika tersimpan 'light', pakai video splash terang & background putih
-    _isLightMode = savedTheme == 'light';
+      // Jika tersimpan 'light', pakai video splash terang & background putih
+      _isLightMode = savedTheme == 'light';
 
-    final videoAsset = _isLightMode
-        ? 'assets/videos/splashwhite.mp4'
-        : 'assets/videos/splash.mp4';
+      final videoAsset = _isLightMode
+          ? 'assets/videos/splashwhite.mp4'
+          : 'assets/videos/splash.mp4';
 
-    _controller = VideoPlayerController.asset(videoAsset);
-    await _controller!.initialize();
+      _controller = VideoPlayerController.asset(videoAsset);
+      await _controller!.initialize();
 
-    if (mounted) {
-      setState(() {
-        _isInitialized = true;
-      });
-      _controller!.play();
-      _controller!.addListener(_videoListener);
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+        _controller!.play();
+        _controller!.addListener(_videoListener);
+      }
+    } catch (e) {
+      debugPrint('[SPLASH] Gagal inisialisasi video: $e');
+      if (mounted && !_hasNavigated) {
+        _hasNavigated = true;
+        _checkAuthAndNavigate();
+      }
     }
   }
 
