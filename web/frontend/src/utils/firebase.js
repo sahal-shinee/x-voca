@@ -115,19 +115,17 @@ export async function requestWebPushToken() {
 
   const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
-  // Ensure a Firebase App instance exists for Messaging (using env config or FCM fallback)
+  // Ensure a dedicated Firebase App instance exists for Cloud Messaging (project x-voca)
   let messagingApp = getApps().find((a) => a.name === 'xvoca-fcm') || null;
   if (!messagingApp) {
-    const fcmConfig = firebaseConfig.apiKey && firebaseConfig.projectId
-      ? {
-          apiKey: firebaseConfig.apiKey,
-          authDomain: firebaseConfig.authDomain || FCM_FALLBACK_CONFIG.authDomain,
-          projectId: firebaseConfig.projectId,
-          storageBucket: firebaseConfig.storageBucket || FCM_FALLBACK_CONFIG.storageBucket,
-          messagingSenderId: firebaseConfig.messagingSenderId || FCM_FALLBACK_CONFIG.messagingSenderId,
-          appId: firebaseConfig.appId || FCM_FALLBACK_CONFIG.appId,
-        }
-      : FCM_FALLBACK_CONFIG;
+    const fcmConfig = {
+      apiKey: import.meta.env.VITE_FCM_API_KEY || FCM_FALLBACK_CONFIG.apiKey,
+      authDomain: FCM_FALLBACK_CONFIG.authDomain,
+      projectId: FCM_FALLBACK_CONFIG.projectId,
+      storageBucket: FCM_FALLBACK_CONFIG.storageBucket,
+      messagingSenderId: FCM_FALLBACK_CONFIG.messagingSenderId,
+      appId: FCM_FALLBACK_CONFIG.appId,
+    };
     messagingApp = initializeApp(fcmConfig, 'xvoca-fcm');
   }
 
