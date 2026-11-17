@@ -116,7 +116,16 @@ const TopNav = () => {
       toast.success('Pengingat siaran aktif! Kamu bakal dapet notif saat Xion LIVE atau ada jadwal baru.');
     } catch (err) {
       console.error('Web Push subscribe error:', err);
-      const msg = err?.response?.data?.message || err?.message || 'Gagal mengaktifkan pengingat notifikasi.';
+      let msg = 'Gagal mengaktifkan pengingat notifikasi.';
+      if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err?.message) {
+        if (err.message.includes('API key') || err.message.includes('installations') || err.message.includes('request-failed')) {
+          msg = 'Layanan push notification sedang dioptimalkan. Silakan coba beberapa saat lagi.';
+        } else {
+          msg = err.message;
+        }
+      }
       toast.error(msg);
     } finally {
       setNotifLoading(false);
@@ -124,85 +133,75 @@ const TopNav = () => {
   };
 
   return (
-    <header className="fixed top-3.5 sm:top-4 left-0 right-0 z-50 flex justify-center px-3 sm:px-6 pointer-events-none select-none">
-      {/* ── Floating Dynamic Island Capsule (Dimensi Stabil & Elevated Glass Transition) ── */}
-      <div
-        className={`
-          pointer-events-auto relative w-full transition-all duration-300 ease-out
-          flex items-center justify-between rounded-full
-          max-w-[1160px] h-[60px] sm:h-[64px] px-4.5 sm:px-6
-          ${
-            scrolled
-              ? 'bg-[#0c081e]/96 backdrop-blur-2xl border border-white/[0.14] shadow-[0_20px_45px_rgba(0,0,0,0.85),0_0_24px_rgba(94,234,212,0.15),inset_0_1px_1px_rgba(255,255,255,0.18)]'
-              : 'bg-[#0c081e]/80 backdrop-blur-xl border border-white/[0.10] shadow-[0_8px_24px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.12)]'
-          }
-          hover:border-accent-cyan/35
-        `}
-      >
-        {/* Ambient Top Hairline Highlight */}
+    <>
+      {/* ── Dark Backdrop Overlay when Mobile Drawer is Open ────────────────── */}
+      {isMenuOpen && (
         <div
-          className={`absolute top-0 left-10 right-10 h-[1px] pointer-events-none rounded-full transition-opacity duration-300 ${
-            scrolled ? 'opacity-100' : 'opacity-70'
-          }`}
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(94,234,212,0.5), rgba(167,139,250,0.5), transparent)',
-          }}
+          className="md:hidden fixed inset-0 bg-black/80 z-40 transition-opacity duration-300 pointer-events-auto"
+          onClick={() => setIsMenuOpen(false)}
+          aria-hidden="true"
         />
+      )}
 
-        {/* ── 1. Left: Brand & Chibi Logo (Proporsi Pas & True Circle Ring) ──── */}
-        <div className="flex items-center gap-3 shrink-0 z-20">
-          <Link
-            to="/"
-            className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            {/* Chibi Avatar with True-Circle Holographic Crest */}
-            <div className="relative flex items-center justify-center shrink-0">
-              {/* Ambient Backlight Breathing Glow */}
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-accent-cyan/40 via-accent-purple/30 to-transparent blur-md opacity-60 group-hover:opacity-100 group-hover:scale-115 transition-all duration-300 pointer-events-none" />
-
-              {/* Holographic Circular Glass Crest (Guaranteed Perfect Circle) */}
-              <div
-                className={`
-                  relative w-10 h-10 sm:w-10.5 sm:h-10.5 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/60 via-white/25 to-accent-purple/50
-                  shadow-[0_0_12px_rgba(94,234,212,0.25)] transition-all duration-300
-                  group-hover:shadow-[0_0_20px_rgba(94,234,212,0.45)] group-hover:scale-105 shrink-0 flex items-center justify-center
-                `}
-              >
-                <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center p-0.5">
-                  <img
-                    src={logoXion}
-                    alt="Xion Regalia Logo"
-                    width="42"
-                    height="42"
-                    decoding="async"
-                    className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
-                  />
+      <header className="fixed top-2.5 sm:top-4 left-0 right-0 z-50 flex justify-center px-3 sm:px-6 pointer-events-none select-none">
+        {/* ── Floating Capsule Header (Clean, Snug & Proportionate) ───────────── */}
+        <div
+          className={`
+            pointer-events-auto relative w-full transition-all duration-300 ease-out
+            flex items-center justify-between rounded-full
+            max-w-[1160px] h-[52px] sm:h-[60px] md:h-[64px] px-3.5 sm:px-6
+            ${
+              scrolled
+                ? 'bg-[#131024] border border-white/[0.10] shadow-[0_12px_32px_rgba(0,0,0,0.7)]'
+                : 'bg-[#131024]/95 border border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.5)]'
+            }
+            hover:border-accent-cyan/35
+          `}
+        >
+          {/* ── 1. Left: Brand & Chibi Logo (Fully Proportionate & Visible) ───── */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 z-20">
+            <Link
+              to="/"
+              className="flex items-center gap-2 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {/* Chibi Avatar Container */}
+              <div className="relative flex items-center justify-center shrink-0">
+                <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/50 via-white/20 to-accent-purple/40 shadow-[0_0_10px_rgba(94,234,212,0.2)] flex items-center justify-center">
+                  <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
+                    <img
+                      src={logoXion}
+                      alt="Xion Regalia Logo"
+                      width="40"
+                      height="40"
+                      decoding="async"
+                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <span className="font-bold text-white text-base sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none">
-              X-VOCA
-            </span>
-          </Link>
-
-          {/* Interactive Live Indicator Badge (Pusat Status Siaran - Klik untuk Menonton) */}
-          {isCurrentlyLive && (
-            <button
-              type="button"
-              onClick={handleLiveClick}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_12px_rgba(239,68,68,0.25)] hover:shadow-[0_0_16px_rgba(239,68,68,0.45)] transition-all duration-200 cursor-pointer active:scale-95 group/live"
-              title="Siaran Sedang Berlangsung! Klik untuk langsung menonton"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
+              <span className="font-bold text-white text-[15px] sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none">
+                X-VOCA
               </span>
-              <span>LIVE</span>
-            </button>
-          )}
-        </div>
+            </Link>
+
+            {/* Interactive Live Indicator Badge (Pusat Status Siaran - Klik untuk Menonton) */}
+            {isCurrentlyLive && (
+              <button
+                type="button"
+                onClick={handleLiveClick}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_12px_rgba(239,68,68,0.25)] hover:shadow-[0_0_16px_rgba(239,68,68,0.45)] transition-all duration-200 cursor-pointer active:scale-95 group/live"
+                title="Siaran Sedang Berlangsung! Klik untuk langsung menonton"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
+                </span>
+                <span>LIVE</span>
+              </button>
+            )}
+          </div>
 
         {/* ── 2. Center: Pure Typographic Fluid Sliding Navigation (Geometrically Centered & Spacious) ── */}
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center p-1.5 px-2.5 sm:px-3 gap-2 sm:gap-2.5 rounded-full bg-[#15102a]/85 border border-white/[0.08] shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] z-10">
@@ -314,10 +313,10 @@ const TopNav = () => {
           </button>
         </div>
 
-        {/* ── 4. Mobile Dynamic Island Drawer Dropdown ───────────────────────── */}
+        {/* ── 4. Mobile Solid Opaque Drawer Dropdown (User Friendly & Zero Bleed) ── */}
         <div
-          className={`md:hidden absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0c081e]/96 backdrop-blur-2xl border border-white/[0.12] rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] transition-all duration-300 overflow-hidden ${
-            isMenuOpen ? 'max-h-96 opacity-100 py-3.5 px-3' : 'max-h-0 opacity-0 py-0 px-3 pointer-events-none'
+          className={`md:hidden absolute top-[calc(100%+10px)] left-0 right-0 bg-[#151126] border border-[#2D264A] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] transition-all duration-300 overflow-hidden z-50 ${
+            isMenuOpen ? 'max-h-[480px] opacity-100 py-3.5 px-3 pointer-events-auto' : 'max-h-0 opacity-0 py-0 px-3 pointer-events-none'
           }`}
         >
           <div className="flex flex-col gap-1.5">
@@ -328,11 +327,11 @@ const TopNav = () => {
                   key={tab.path}
                   to={tab.path}
                   className={`
-                    flex items-center justify-between py-2 px-3.5 rounded-2xl text-sm font-semibold transition-all duration-200
+                    flex items-center justify-between py-2.5 px-3.5 rounded-xl text-sm font-medium transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30'
-                        : 'text-[#a89ec0] hover:bg-white/[0.05] hover:text-white'
+                        ? 'bg-[#221B3D] text-[#7ee0d2] border border-[#7ee0d2]/30'
+                        : 'text-[#D0CCE0] hover:bg-white/[0.06] hover:text-white'
                     }
                   `}
                   onClick={() => setIsMenuOpen(false)}
@@ -346,7 +345,7 @@ const TopNav = () => {
             {/* Quick Schedule Jump */}
             <button
               onClick={handleLiveClick}
-              className="flex items-center justify-between py-2 px-3.5 rounded-2xl text-sm font-semibold text-left text-[#a89ec0] hover:bg-white/[0.05] hover:text-accent-cyan transition-all"
+              className="flex items-center justify-between py-2.5 px-3.5 rounded-xl text-sm font-medium text-left text-[#D0CCE0] hover:bg-white/[0.06] hover:text-[#7ee0d2] transition-all"
             >
               <div className="flex items-center gap-3">
                 <Radio className={`w-4 h-4 ${isCurrentlyLive ? 'text-status-live animate-pulse' : 'text-accent-purple'}`} />
@@ -363,10 +362,10 @@ const TopNav = () => {
                 handleSubscribeAlerts();
               }}
               disabled={notifLoading}
-              className={`py-2 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between transition-all border ${
+              className={`py-2.5 px-3.5 rounded-xl text-sm font-medium flex items-center justify-between transition-all border ${
                 isSubscribed
-                  ? 'text-accent-cyan bg-accent-cyan/15 border-accent-cyan/35'
-                  : 'text-white/90 bg-white/[0.04] border-white/10 hover:border-accent-cyan/40 hover:text-accent-cyan'
+                  ? 'text-[#7ee0d2] bg-[#221B3D] border-[#7ee0d2]/30'
+                  : 'text-[#D0CCE0] bg-[#1B162E] border-white/[0.06] hover:border-[#7ee0d2]/30 hover:text-[#7ee0d2]'
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -387,12 +386,12 @@ const TopNav = () => {
               href="https://saweria.co/xionregalia"
               target="_blank"
               rel="noopener noreferrer"
-              className="py-2 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between text-accent-gold bg-accent-gold/10 border border-accent-gold/30 hover:bg-accent-gold/20 transition-all mt-1"
+              className="py-2.5 px-3.5 rounded-xl text-sm font-medium flex items-center justify-between text-amber-300 bg-[#251E33] border border-amber-400/20 hover:bg-[#2C243D] transition-all mt-1"
               onClick={() => setIsMenuOpen(false)}
             >
               <span className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-full overflow-hidden bg-white/95 border border-amber-400/40 p-0.5 shadow-sm shrink-0 flex items-center justify-center">
-                  <img src={logoSaweria} alt="Saweria Logo" className="w-full h-full object-contain" />
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-white/95 border border-amber-400/30 p-0.5 shadow-sm shrink-0 flex items-center justify-center">
+                  <img src={logoSaweria} alt="Saweria Logo" width="20" height="20" className="w-full h-full object-contain" />
                 </div>
                 <span>Dukung di Saweria</span>
               </span>
@@ -402,6 +401,7 @@ const TopNav = () => {
         </div>
       </div>
     </header>
+  </>
   );
 };
 
