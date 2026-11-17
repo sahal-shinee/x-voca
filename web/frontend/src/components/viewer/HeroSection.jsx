@@ -560,7 +560,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
   };
 
   return (
-    <div className="w-full max-w-[320px] sm:max-w-[480px] lg:max-w-[700px]">
+    <div className="w-full max-w-[280px] sm:max-w-[400px] lg:max-w-[600px] mx-auto">
       <div
         ref={stageRef}
         onMouseMove={handleMove}
@@ -637,16 +637,16 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 
         {/* Bubble ucapan */}
         <div
-          className="absolute right-[2%] sm:right-0 top-[24%] w-[170px] sm:w-[210px]"
+          className="absolute right-[0%] sm:right-0 top-[6%] sm:top-[18%] w-[120px] sm:w-[200px] lg:w-[220px]"
           style={depth(28)}
           aria-live="polite"
         >
           <div
             key={`${moodIndex}-${lineIndex}`}
-            className="xv-pop relative px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-[rgba(35,31,66,0.92)] backdrop-blur-sm border"
+            className="xv-pop relative px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl rounded-bl-sm bg-[rgba(35,31,66,0.92)] backdrop-blur-sm border"
             style={{ borderColor: `rgba(${mood.glow},0.45)`, transition: 'border-color 0.6s ease' }}
           >
-            <p className="relative text-[11px] sm:text-xs leading-[1.5] text-[#f1f0f5] font-body">
+            <p className="relative text-[9px] sm:text-xs leading-[1.5] text-[#f1f0f5] font-body">
               <span className="invisible block" aria-hidden="true">{line}</span>
               <span className="absolute inset-0 block" aria-hidden="true">{typed}</span>
             </p>
@@ -1003,7 +1003,7 @@ function HeroSection({ onRequestCollab }) {
 
         {/* Main Container */}
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pb-28 lg:pb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 pt-8 sm:pt-12 lg:pt-0 lg:items-center min-h-[calc(100vh-70px)] lg:min-h-[calc(100vh-70px-112px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-10 pt-6 sm:pt-10 lg:pt-0 lg:items-center min-h-[calc(100vh-70px)] lg:min-h-[calc(100vh-70px-112px)]">
             {/* LEFT SIDE CONTENT */}
             <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-12 lg:pt-8 pb-12 lg:pb-0">
               {/* Heading */}
@@ -1038,9 +1038,9 @@ function HeroSection({ onRequestCollab }) {
               </div>
 
               {/* Countdown Widget */}
-              <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl bg-[#181333]/85 border border-white/[0.08] shadow-lg relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-3.5 sm:p-5 rounded-2xl bg-[#181333]/85 border border-white/[0.08] shadow-lg relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 {/* Header Section */}
-                <div className="border-b border-white/[0.08] pb-3 sm:pb-3.5">
+                <div className="border-b border-white/[0.08] pb-2.5 sm:pb-3.5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <CalendarIcon />
@@ -1051,30 +1051,30 @@ function HeroSection({ onRequestCollab }) {
 
                     {/* Status Badge - Dynamic based on data */}
                     {loading ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse"></div>
                         <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           LOADING...
                         </span>
                       </div>
                     ) : countdown.isEmpty ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]"></div>
                         <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           NO SCHEDULE
                         </span>
                       </div>
                     ) : countdown.isLive ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse"></div>
                         <span className="font-semibold text-[#ef4444] text-[8px] sm:text-[10px] tracking-wider font-mono">
                           LIVE NOW
                         </span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/30">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/30">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse"></div>
-                        <span className="font-semibold text-[#7ee0d2] text-[8px] sm:text-[10px] tracking-wider font-mono">
+                        <span className="font-semibold text-[#7ee0d2] text-[8px] sm:text-[10px] tracking-wider font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[90px] sm:max-w-none">
                           {scheduleDateDisplay || 'SYNCED'}
                         </span>
                       </div>
@@ -1083,10 +1083,10 @@ function HeroSection({ onRequestCollab }) {
                 </div>
 
                 {/* Thumbnail & Countdown Section */}
-                <div className="flex items-start gap-3 py-3 sm:py-4">
+                <div className="flex items-center gap-2 sm:gap-3 py-2.5 sm:py-4">
                   {/* Thumbnail Preview */}
                   {nextSchedule?.thumbnail_url && !loading && !countdown.isEmpty && (
-                    <div className="flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-lg overflow-hidden border border-[rgba(61,53,96,0.5)]">
+                    <div className="flex-shrink-0 w-14 sm:w-20 h-14 sm:h-20 rounded-lg overflow-hidden border border-[rgba(61,53,96,0.5)]">
                       <img
                         src={nextSchedule.thumbnail_url}
                         alt="Stream thumbnail"
@@ -1102,11 +1102,11 @@ function HeroSection({ onRequestCollab }) {
                   )}
 
                   {/* Countdown Display */}
-                  <div className="flex-1 flex items-center justify-center gap-1 sm:gap-2">
+                  <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2">
                     {loading ? (
                       <>
                         {[1, 2, 3].map((i) => (
-                          <div key={i} className="flex flex-col items-center px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] w-[70px] sm:w-[90px] lg:w-[110px]">
+                          <div key={i} className="flex flex-col items-center px-2 py-2 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] flex-1 min-w-0">
                             <div className="w-8 sm:w-10 h-6 sm:h-8 bg-[rgba(61,53,96,0.4)] rounded animate-pulse mb-1"></div>
                             <div className="w-6 sm:w-8 h-2 bg-[rgba(61,53,96,0.3)] rounded animate-pulse"></div>
                           </div>
@@ -1124,11 +1124,11 @@ function HeroSection({ onRequestCollab }) {
                           { value: countdown.minutes, label: 'MIN', pulse: false },
                           { value: countdown.seconds, label: 'DET', pulse: true },
                         ].map((unit) => (
-                          <div key={unit.label} className="flex flex-col items-center px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] w-[70px] sm:w-[90px] lg:w-[110px]">
-                            <span className={`font-bold text-[#7ee0d2] text-2xl sm:text-[28px] lg:text-[32px] tracking-[-0.5px] sm:tracking-[-0.8px] font-display text-center ${unit.pulse ? 'animate-pulse' : ''}`}>
+                          <div key={unit.label} className="flex flex-col items-center px-1.5 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] flex-1 min-w-0 max-w-[90px] lg:max-w-[110px]">
+                            <span className={`font-bold text-[#7ee0d2] text-xl sm:text-[28px] lg:text-[32px] tracking-tight font-display text-center w-full ${unit.pulse ? 'animate-pulse' : ''}`}>
                               {unit.value}
                             </span>
-                            <span className="pt-1 sm:pt-1.5 font-bold text-[#a89ec0] text-[8px] sm:text-[10px] tracking-wider uppercase text-center font-sans">
+                            <span className="pt-1 sm:pt-1.5 font-bold text-[#a89ec0] text-[9px] sm:text-[10px] tracking-widest uppercase text-center font-sans whitespace-nowrap">
                               {unit.label}
                             </span>
                           </div>
@@ -1193,7 +1193,7 @@ function HeroSection({ onRequestCollab }) {
             </div>
 
             {/* RIGHT SIDE HERO AREA */}
-            <div className="lg:col-span-7 flex items-center justify-center relative order-1 lg:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-0">
+            <div className="lg:col-span-7 flex items-center justify-center relative order-1 lg:order-2 min-h-[260px] sm:min-h-[340px] lg:min-h-0 w-full overflow-visible">
               <CharacterStage moodIndex={moodIndex} onMoodChange={setMoodIndex} />
             </div>
           </div>

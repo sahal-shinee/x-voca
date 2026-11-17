@@ -167,7 +167,7 @@ const TopNav = () => {
             >
               {/* Chibi Avatar Container */}
               <div className="relative flex items-center justify-center shrink-0">
-                <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/50 via-white/20 to-accent-purple/40 shadow-[0_0_10px_rgba(94,234,212,0.2)] flex items-center justify-center">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-accent-cyan/50 via-white/20 to-accent-purple/40 shadow-[0_0_10px_rgba(94,234,212,0.2)] flex items-center justify-center">
                   <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
                     <img
                       src={logoXion}
@@ -175,7 +175,7 @@ const TopNav = () => {
                       width="40"
                       height="40"
                       decoding="async"
-                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
+                      className="w-[85%] h-[85%] object-contain transition-all duration-300 group-hover:scale-105"
                     />
                   </div>
                 </div>
@@ -240,9 +240,10 @@ const TopNav = () => {
           })}
         </div>
 
-        {/* ── 3. Right: Sleek Action Controls ───────────────────────────────── */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
-          {/* Web Push Notification Subscribe Button (Glassmorphism Nocturne) */}
+        {/* ── 3. Right: Uniform Circle Icon Set ─────────────────────────────── */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-20">
+
+          {/* Bell / Notification - Circle Icon */}
           <button
             type="button"
             onClick={handleSubscribeAlerts}
@@ -250,61 +251,57 @@ const TopNav = () => {
             title={isSubscribed ? 'Pengingat siaran aktif' : 'Aktifkan notifikasi saat Xion LIVE'}
             aria-label={isSubscribed ? 'Pengingat siaran aktif' : 'Ingatkan Live'}
             className={`
-              h-8.5 sm:h-9 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-full
-              backdrop-blur-md border text-xs sm:text-[13px] font-semibold tracking-wide
-              transition-all duration-200 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer
+              w-9 h-9 rounded-full flex items-center justify-center shrink-0
+              border transition-all duration-200 active:scale-95 disabled:opacity-60 cursor-pointer
               ${isSubscribed
-                ? 'bg-accent-cyan/15 border-accent-cyan/45 text-accent-cyan shadow-[0_0_14px_rgba(94,234,212,0.2)]'
-                : 'bg-white/[0.04] border-white/[0.12] text-white/85 hover:text-accent-cyan hover:bg-accent-cyan/10 hover:border-accent-cyan/45 hover:shadow-[0_0_14px_rgba(94,234,212,0.18)]'
+                ? 'bg-accent-cyan/15 border-accent-cyan/40 text-accent-cyan shadow-[0_0_12px_rgba(94,234,212,0.2)]'
+                : 'bg-white/[0.04] border-white/[0.10] text-white/70 hover:text-accent-cyan hover:bg-accent-cyan/10 hover:border-accent-cyan/40 hover:shadow-[0_0_12px_rgba(94,234,212,0.15)]'
               }
             `}
           >
             {notifLoading ? (
-              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-accent-cyan" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : isSubscribed ? (
-              <BellRing className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-cyan" />
+              <BellRing className="w-4 h-4" />
             ) : (
-              <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Bell className="w-4 h-4" />
             )}
-            <span className="hidden lg:inline font-sans">
-              {isSubscribed ? 'Pengingat Aktif' : 'Ingatkan Live'}
-            </span>
           </button>
 
-          {/* Saweria Creator Appreciation Button (Harmonious Idle Glass & Official Mascot Logo) */}
+          {/* Saweria - Circle Icon (icon only, no text) */}
           <a
             href="https://saweria.co/xionregalia"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8.5 sm:h-9 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-full bg-white/[0.04] border border-amber-400/25 text-amber-200/90 hover:text-amber-300 hover:bg-amber-400/10 hover:border-amber-400/50 hover:shadow-[0_0_14px_rgba(251,191,36,0.22)] text-xs sm:text-[13px] font-semibold tracking-wide transition-all duration-200 active:scale-95 group shrink-0"
             title="Dukung Xion Regalia di Saweria"
+            aria-label="Dukung di Saweria"
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-amber-400/30 text-amber-200/90 hover:bg-amber-400/10 hover:border-amber-400/55 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)] transition-all duration-200 active:scale-95"
           >
-            <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-white/95 border border-amber-400/40 p-0.5 shadow-sm group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shrink-0 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full overflow-hidden bg-white/95 flex items-center justify-center p-[2px] group-hover:scale-110 transition-transform duration-200 shrink-0">
               <img
                 src={logoSaweria}
-                alt="Saweria Logo"
+                alt="Saweria"
                 width="20"
                 height="20"
                 decoding="async"
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="hidden sm:inline font-sans">Saweria</span>
           </a>
 
-          {/* Admin / Staff Portal Key */}
+          {/* Admin / Shield - Circle Icon */}
           <Link
             to="/admin/login"
             aria-label="Portal Staff / Admin"
             title="Masuk ke Portal Admin / Staff"
-            className="h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-accent-cyan hover:border-accent-cyan/50 hover:bg-accent-cyan/10 hover:shadow-[0_0_12px_rgba(94,234,212,0.2)] active:scale-95 transition-all duration-200 shrink-0 group"
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-accent-cyan hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_0_12px_rgba(94,234,212,0.15)] active:scale-95 transition-all duration-200"
           >
-            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110" />
+            <Shield className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
           </Link>
 
-          {/* Mobile Hamburger Toggle Button */}
+          {/* Hamburger - Mobile Only Circle Icon */}
           <button
-            className="md:hidden h-8.5 w-8.5 sm:h-9 sm:w-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-text-muted hover:text-white transition-colors shrink-0"
+            className="md:hidden w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-white hover:border-white/20 active:scale-95 transition-all duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Buka navigasi mobile"
             aria-expanded={isMenuOpen}
