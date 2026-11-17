@@ -29,39 +29,51 @@ let rtdbApp = null;
 let fcmApp = null;
 let initializationAttempted = false;
 
+const parseServiceAccount = (envValue) => {
+  if (!envValue) return null;
+  try {
+    if (typeof envValue === 'object') return envValue;
+    let clean = String(envValue).trim();
+    // Support Base64 encoding (very common in Vercel to avoid newline issues)
+    if (!clean.startsWith('{')) {
+      try {
+        const decoded = Buffer.from(clean, 'base64').toString('utf8');
+        if (decoded.trim().startsWith('{')) {
+          clean = decoded.trim();
+        }
+      } catch (_) {}
+    }
+    if (clean.includes('\\n')) {
+      clean = clean.replace(/\\n/g, '\n');
+    }
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error('❌ Firebase: Gagal parse service account:', err.message);
+    return null;
+  }
+};
+
 const getCredentials = () => {
   let primaryKey = null;
   let rtdbKey = null;
 
-  // 1. Production/Railway: Membaca teks JSON dari environment variable
+  // 1. Production/Railway/Vercel: Membaca teks JSON / Base64 dari environment variable
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    try {
-      const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
-      let cleanValue = envValue;
-      if (typeof envValue === 'string' && envValue.includes('\\n')) {
-        cleanValue = envValue.replace(/\\n/g, '\n');
-      }
-      primaryKey = JSON.parse(cleanValue);
-    } catch (err) {
-      console.error('❌ Firebase: Gagal parse FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
-    }
+    primaryKey = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    primaryKey = primaryKey || parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64);
   }
 
   // Support dedicated RTDB service account (e.g. xvoca-project) if FCM is separate project
   if (process.env.FIREBASE_RTDB_SERVICE_ACCOUNT) {
-    try {
-      const rtdbEnv = process.env.FIREBASE_RTDB_SERVICE_ACCOUNT;
-      let cleanRtdb = rtdbEnv;
-      if (typeof rtdbEnv === 'string' && rtdbEnv.includes('\\n')) {
-        cleanRtdb = rtdbEnv.replace(/\\n/g, '\n');
-      }
-      rtdbKey = JSON.parse(cleanRtdb);
-    } catch (err) {
-      console.error('❌ Firebase: Gagal parse FIREBASE_RTDB_SERVICE_ACCOUNT JSON:', err.message);
-    }
+    rtdbKey = parseServiceAccount(process.env.FIREBASE_RTDB_SERVICE_ACCOUNT);
+  }
+  if (process.env.FIREBASE_RTDB_SERVICE_ACCOUNT_BASE64) {
+    rtdbKey = rtdbKey || parseServiceAccount(process.env.FIREBASE_RTDB_SERVICE_ACCOUNT_BASE64);
   }
 
-  // 2. Baca file lokal
+  // 2. Baca file lokal (Development)
   const serviceAccountKeyPath = path.resolve(__dirname, '../../serviceAccountKey.json');
   const legacyKeyPath = path.resolve(__dirname, '../../firebase-service-account.json');
 
@@ -77,7 +89,7 @@ const getCredentials = () => {
   }
 
   // RTDB key (khusus jika xvoca-project punya database terpisah)
-  if (fs.existsSync(legacyKeyPath)) {
+  if (!rtdbKey && fs.existsSync(legacyKeyPath)) {
     try {
       rtdbKey = require(legacyKeyPath);
     } catch (_) {}
