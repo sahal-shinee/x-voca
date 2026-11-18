@@ -159,10 +159,10 @@ const TopNav = () => {
           `}
         >
           {/* ── 1. Left: Brand & Chibi Logo (Fully Proportionate & Visible) ───── */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 z-20">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 z-20 min-w-0 overflow-hidden">
             <Link
               to="/"
-              className="flex items-center gap-2 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5"
+              className="flex items-center gap-1.5 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan rounded-full py-0.5 shrink-0"
               onClick={() => setIsMenuOpen(false)}
             >
               {/* Chibi Avatar Container */}
@@ -181,7 +181,7 @@ const TopNav = () => {
                 </div>
               </div>
 
-              <span className="font-bold text-white text-[15px] sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none">
+              <span className="font-bold text-white text-[14px] sm:text-lg tracking-wider font-display group-hover:text-accent-cyan transition-colors leading-none whitespace-nowrap">
                 X-VOCA
               </span>
             </Link>
@@ -191,12 +191,12 @@ const TopNav = () => {
               <button
                 type="button"
                 onClick={handleLiveClick}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold tracking-wider uppercase bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_12px_rgba(239,68,68,0.25)] hover:shadow-[0_0_16px_rgba(239,68,68,0.45)] transition-all duration-200 cursor-pointer active:scale-95 group/live"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-mono font-bold tracking-wider uppercase bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/40 hover:border-status-live shadow-[0_0_12px_rgba(239,68,68,0.25)] hover:shadow-[0_0_16px_rgba(239,68,68,0.45)] transition-all duration-200 cursor-pointer active:scale-95 shrink-0"
                 title="Siaran Sedang Berlangsung! Klik untuk langsung menonton"
               >
-                <span className="relative flex h-2 w-2">
+                <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-live opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-status-live" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-status-live" />
                 </span>
                 <span>LIVE</span>
               </button>
@@ -241,7 +241,7 @@ const TopNav = () => {
         </div>
 
         {/* ── 3. Right: Uniform Circle Icon Set ─────────────────────────────── */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-20">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0 z-20">
 
           {/* Bell / Notification - Circle Icon */}
           <button
@@ -251,7 +251,7 @@ const TopNav = () => {
             title={isSubscribed ? 'Pengingat siaran aktif' : 'Aktifkan notifikasi saat Xion LIVE'}
             aria-label={isSubscribed ? 'Pengingat siaran aktif' : 'Ingatkan Live'}
             className={`
-              w-9 h-9 rounded-full flex items-center justify-center shrink-0
+              w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0
               border transition-all duration-200 active:scale-95 disabled:opacity-60 cursor-pointer
               ${isSubscribed
                 ? 'bg-accent-cyan/15 border-accent-cyan/40 text-accent-cyan shadow-[0_0_12px_rgba(94,234,212,0.2)]'
@@ -260,11 +260,11 @@ const TopNav = () => {
             `}
           >
             {notifLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : isSubscribed ? (
-              <BellRing className="w-4 h-4" />
+              <BellRing className="w-3.5 h-3.5" />
             ) : (
-              <Bell className="w-4 h-4" />
+              <Bell className="w-3.5 h-3.5" />
             )}
           </button>
 
@@ -275,9 +275,9 @@ const TopNav = () => {
             rel="noopener noreferrer"
             title="Dukung Xion Regalia di Saweria"
             aria-label="Dukung di Saweria"
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-amber-400/30 text-amber-200/90 hover:bg-amber-400/10 hover:border-amber-400/55 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)] transition-all duration-200 active:scale-95"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-amber-400/30 text-amber-200/90 hover:bg-amber-400/10 hover:border-amber-400/55 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)] transition-all duration-200 active:scale-95"
           >
-            <div className="w-5 h-5 rounded-full overflow-hidden bg-white/95 flex items-center justify-center p-[2px] group-hover:scale-110 transition-transform duration-200 shrink-0">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-white/95 flex items-center justify-center p-[2px] group-hover:scale-110 transition-transform duration-200 shrink-0">
               <img
                 src={logoSaweria}
                 alt="Saweria"
@@ -294,19 +294,19 @@ const TopNav = () => {
             to="/admin/login"
             aria-label="Portal Staff / Admin"
             title="Masuk ke Portal Admin / Staff"
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-accent-cyan hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_0_12px_rgba(94,234,212,0.15)] active:scale-95 transition-all duration-200"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 group bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-accent-cyan hover:border-accent-cyan/40 hover:bg-accent-cyan/10 hover:shadow-[0_0_12px_rgba(94,234,212,0.15)] active:scale-95 transition-all duration-200"
           >
-            <Shield className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110" />
           </Link>
 
           {/* Hamburger - Mobile Only Circle Icon */}
           <button
-            className="md:hidden w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-white hover:border-white/20 active:scale-95 transition-all duration-200"
+            className="md:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.10] text-white/70 hover:text-white hover:border-white/20 active:scale-95 transition-all duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Buka navigasi mobile"
             aria-expanded={isMenuOpen}
           >
-            {isMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {isMenuOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
           </button>
         </div>
 

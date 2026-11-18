@@ -312,7 +312,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
       </div>
 
       {/* ── 3. NAVIGATION MENU ── */}
-      <nav className="flex-1 py-1 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 py-1 overflow-y-auto scrollbar-hide min-h-0">
         {!collapsed && (
           <div className="px-5 pt-1 mb-2">
             <span className="text-[10px] font-mono font-semibold text-text-muted uppercase tracking-widest">
@@ -329,7 +329,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobi
       </nav>
 
       {/* ── 4. SYSTEM & UTILITY SECTION ── */}
-      <div className="mt-auto border-t border-border-subtle/80 bg-bg-surface/15">
+      <div className="border-t border-border-subtle/80 bg-bg-surface/15 flex-shrink-0">
         {!collapsed && (
           <div className="px-5 pt-3 pb-1">
             <span className="text-[10px] font-mono font-semibold text-text-muted uppercase tracking-widest">

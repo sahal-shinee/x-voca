@@ -66,27 +66,26 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       px-4 lg:px-6
     ">
       {/* ── LEFT: Mobile Menu + Breadcrumb ── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 min-w-0">
         <button
           type="button"
           onClick={onToggleMobileMenu}
-          className="lg:hidden p-2 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-xl transition-colors"
+          className="lg:hidden p-2 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-xl transition-colors flex-shrink-0"
           aria-label="Toggle menu navigasi"
         >
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1.5 text-sm min-w-0">
           <Link
             to="/admin/dashboard"
-            className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors"
+            className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
           >
             <Home className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-xs font-mono">ADMIN</span>
           </Link>
-          <span className="text-text-muted/60 text-xs font-mono">/</span>
-          <span className="text-sm font-semibold text-text-primary tracking-tight">
+          <span className="text-text-muted/60 text-xs font-mono flex-shrink-0">/</span>
+          <span className="text-sm font-semibold text-text-primary tracking-tight truncate max-w-[120px] sm:max-w-none">
             {currentPage}
           </span>
         </div>
@@ -125,7 +124,7 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       </button>
 
       {/* ── RIGHT: Broadcasting status + Notification + Avatar Dropdown ── */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {/* Broadcasting Status */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface border border-border-subtle">
           <Radio className={`w-3.5 h-3.5 ${fbIsReady ? 'text-accent-cyan' : 'text-text-muted'}`} />

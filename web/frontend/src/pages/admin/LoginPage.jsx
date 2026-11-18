@@ -202,7 +202,7 @@ function LoginPage() {
       </div>
 
       {/* Login Card (pembungkus luar untuk animasi getar) */}
-      <div className={`relative w-full max-w-[480px] ${shake ? 'lg-shake' : ''}`}>
+      <div className={`relative w-full max-w-[420px] w-full mx-4 ${shake ? 'lg-shake' : ''}`}>
         {/* Siku sudut bergaya HUD, warnanya ikut status gerbang */}
         <div aria-hidden="true" className={`pointer-events-none transition-colors duration-500 ${gate.tone}`}>
           <span className="absolute -top-1.5 -left-1.5 w-4 h-4 border-t-2 border-l-2 border-current rounded-tl-md"></span>
@@ -220,14 +220,14 @@ function LoginPage() {
           />
 
           {/* Header Asli Tanpa Emoji */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-2 mb-8">
+            <div className="flex items-center gap-2">
               <span className="lg-blink text-xl text-accent-cyan">|</span>
-              <h1 className="text-xl font-bold text-text-primary">X-VOCA</h1>
+              <h1 className="text-xl font-bold text-text-primary whitespace-nowrap">X-VOCA</h1>
             </div>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-input text-accent-gold text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-gold"></span>
-              ● RESTRICTED ACCESS
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-input text-accent-gold text-[10px] font-mono whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-gold shrink-0"></span>
+              RESTRICTED ACCESS
             </span>
           </div>
 

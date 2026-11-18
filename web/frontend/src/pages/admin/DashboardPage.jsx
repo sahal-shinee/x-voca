@@ -501,12 +501,12 @@ function DashboardPage() {
               </div>
 
               <div className="min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-sm font-semibold text-text-primary tracking-tight">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-text-primary tracking-tight whitespace-nowrap">
                     Master Broadcast
                   </span>
                   <span className={`
-                    inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border transition-all
+                    inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border transition-all whitespace-nowrap
                     ${isLiveState
                       ? 'bg-status-live/15 text-status-live border-status-live/30 animate-pulse'
                       : 'bg-bg-surface dark:bg-bg-card text-text-secondary border-border-subtle shadow-xs'}
@@ -710,7 +710,7 @@ function DashboardPage() {
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-accent-gold flex-shrink-0" />
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary">
+                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary truncate">
                   Voting Pilihan Komunitas
                 </h3>
               </div>

@@ -937,9 +937,9 @@ function TodoPage() {
           </div>
 
           {/* Search + Sort */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Search */}
-            <div className="relative flex-1 sm:w-60">
+            <div className="relative flex-1 min-w-0 sm:w-60">
               <input
                 type="text"
                 value={searchQuery}
@@ -992,11 +992,11 @@ function TodoPage() {
         </div>
 
         {/* Row 2: Category Pills */}
-        <div className="pt-2 border-t border-border-subtle flex items-center gap-2 overflow-x-auto scrollbar-none">
-          <span className="text-xs text-text-muted font-medium flex-shrink-0 flex items-center gap-1">
-            <Tag className="w-3 h-3" /> Kategori:
+        <div className="pt-2 border-t border-border-subtle flex flex-col gap-1.5">
+          <span className="text-[10px] text-text-muted font-semibold uppercase tracking-widest font-mono flex items-center gap-1 flex-shrink-0">
+            <Tag className="w-3 h-3" /> Kategori
           </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 snap-x">
             {CATEGORIES.map((cat) => {
               const count = cat.id === 'all'
                 ? todos.length
@@ -1009,7 +1009,7 @@ function TodoPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => setCategoryFilter(cat.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                  className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/40 shadow-sm font-semibold'
                       : 'bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-surface/80'

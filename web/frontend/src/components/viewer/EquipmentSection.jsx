@@ -334,14 +334,16 @@ export default function EquipmentSection() {
                     key={category}
                     className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/30 hover:bg-white/[0.04] transition-all duration-200 group/spec hover:-translate-y-0.5"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-2">
-                        <Icon className="w-3.5 h-3.5 text-[#7ee0d2]/80" />
-                        {category}
-                      </span>
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 text-[#7ee0d2] border border-[#7ee0d2]/20">
-                        {benchmark}
-                      </span>
+                    <div className="flex flex-col gap-1 mb-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 min-w-0">
+                          <Icon className="w-3 h-3 text-[#7ee0d2]/80 shrink-0" />
+                          <span className="truncate">{category}</span>
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#7ee0d2]/10 text-[#7ee0d2] border border-[#7ee0d2]/20 whitespace-nowrap shrink-0 max-w-[46%] text-center leading-tight">
+                          {benchmark}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-base font-bold text-white font-display mb-1 group-hover/spec:text-[#7ee0d2] transition-colors">
                       {model}

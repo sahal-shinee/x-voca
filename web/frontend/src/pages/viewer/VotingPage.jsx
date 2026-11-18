@@ -723,7 +723,7 @@ function VotingPage() {
         <div className="max-w-[1280px] mx-auto">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none snap-x">
               {filterTabs.map((tab) => {
                 const isActive = filter === tab.key;
                 return (
@@ -731,7 +731,7 @@ function VotingPage() {
                     key={tab.key}
                     onClick={() => setFilter(tab.key)}
                     className={`
-                      px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 whitespace-nowrap flex items-center gap-1.5
+                      snap-start shrink-0 px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 whitespace-nowrap flex items-center gap-1.5
                       ${isActive
                         ? 'bg-[#7ee0d2]/15 text-[#7ee0d2] border border-[#7ee0d2]/40 font-semibold shadow-xs'
                         : 'bg-white/[0.03] text-[#8e8aab] hover:text-white hover:bg-white/[0.06] border border-white/5'
@@ -949,7 +949,7 @@ function VotingPage() {
             <label className="block text-xs font-semibold text-white mb-1.5">
               Genre <span className="text-[#8E8AAB] font-normal">(opsional)</span>
             </label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none snap-x">
               {['Action', 'Adventure', 'RPG', 'Horror', 'Survival', 'Simulation', 'Indie', 'Lainnya'].map((genre) => (
                 <button
                   key={genre}
