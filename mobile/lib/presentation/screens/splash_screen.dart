@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
@@ -43,9 +44,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   /// Menyiapkan pemutar video dengan aset yang sesuai dengan tema tersimpan.
   Future<void> _initVideo() async {
     try {
-      // Membaca status tema langsung dari SharedPreferences agar akurat saat aplikasi baru dibuka
-      final prefs = await SharedPreferences.getInstance();
-      final savedTheme = prefs.getString('user_theme_mode');
+      // Membaca status tema dari SharedPreferences dengan fallback secure storage
+      String? savedTheme;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        savedTheme = prefs.getString('user_theme_mode');
+      } catch (_) {
+        try {
+          savedTheme = await const FlutterSecureStorage().read(key: 'user_theme_mode');
+        } catch (_) {}
+      }
 
       // Jika tersimpan 'light', pakai video splash terang & background putih
       _isLightMode = savedTheme == 'light';

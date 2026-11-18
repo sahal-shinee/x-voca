@@ -145,34 +145,29 @@ const createGame = async (req, res) => {
       period_key
     });
 
-    // Create audit log
-    await AuditLog.create({
-      action_type: 'game_requested',
-      detail: added_by === 'viewer' ? 'Viewer mengajukan game baru' : 'Game baru ditambahkan',
-      sub_detail: title
-    });
-
-    // Update Firebase
+    // Jalankan audit log, sinkronisasi Firebase, dan notifikasi secara paralel agar respons lebih cepat
     const totalVotes = await Game.sum('vote_count', { where: { period_key: game.period_key } }) || 0;
     const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
-    await updateVoteCount(game.id, game.vote_count, percentage);
 
-    // Push real-time notification to Firebase if submitted by viewer
+    const sideEffects = [
+      AuditLog.create({
+        action_type: 'game_requested',
+        detail: added_by === 'viewer' ? 'Viewer mengajukan game baru' : 'Game baru ditambahkan',
+        sub_detail: title
+      }),
+      updateVoteCount(game.id, game.vote_count, percentage)
+    ];
+
     if (added_by === 'viewer' || status === 'requested') {
-      try {
-        await pushNotification({
+      sideEffects.push(
+        pushNotification({
           userId: 'default',
           type: 'game_requested',
           title: 'Request Game Baru',
           message: `Game "${title}" telah diajukan penonton untuk voting`,
           link: '/admin/voting'
-        });
-      } catch (notifErr) {
-        console.warn('Firebase notification skipped for game request:', notifErr.message);
-      }
-
-      try {
-        await sendTopicNotification('creator_alerts', {
+        }),
+        sendTopicNotification('creator_alerts', {
           title: '🎮 Request Game Baru',
           body: `${title} — diusulkan oleh ${requester_info || 'Viewer'}`,
           data: {
@@ -180,11 +175,11 @@ const createGame = async (req, res) => {
             gameId: String(game.id),
             url: '/admin/voting'
           }
-        });
-      } catch (fcmErr) {
-        console.warn('FCM game request notification skipped:', fcmErr.message);
-      }
+        })
+      );
     }
+
+    await Promise.allSettled(sideEffects);
 
     return res.status(201).json({
       success: true,
@@ -234,17 +229,18 @@ const updateGameStatus = async (req, res) => {
     game.status = status;
     await game.save();
 
-    // Create audit log
-    await AuditLog.create({
-      action_type: 'status_changed',
-      detail: `Status game diubah dari ${oldStatus} menjadi ${status}`,
-      sub_detail: game.title
-    });
-
-    // Update Firebase
+    // Jalankan audit log dan sinkronisasi Firebase secara paralel agar respons lebih cepat
     const totalVotes = await Game.sum('vote_count', { where: { period_key: game.period_key } }) || 0;
     const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
-    await updateVoteCount(game.id, game.vote_count, percentage);
+
+    await Promise.allSettled([
+      AuditLog.create({
+        action_type: 'status_changed',
+        detail: `Status game diubah dari ${oldStatus} menjadi ${status}`,
+        sub_detail: game.title
+      }),
+      updateVoteCount(game.id, game.vote_count, percentage)
+    ]);
 
     return res.status(200).json({
       success: true,

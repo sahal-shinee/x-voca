@@ -62,10 +62,26 @@ const AmbientBackground = () => (
   </div>
 );
 
+// ========== UNIFIED GAME CATEGORIES ==========
+const GAME_CATEGORIES = [
+  'Action RPG',
+  'Survival Horror',
+  'Adventure',
+  'Open World',
+  'Simulation',
+  'Strategy',
+  'Indie',
+  'Multiplayer',
+  'Retro',
+  'Lainnya',
+];
+
 // ========== QUICK VOTE CARD COMPONENT ==========
 const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
+  const isRequested = game.status === 'requested';
   const isPlaying = game.status === 'playing';
   const isDone = game.status === 'done';
+  const isVotable = game.status === 'accepted';
   const [imgError, setImgError] = useState(false);
   const coverSrc = game?.cover_url || game?.coverUrl || game?.cover_image || game?.thumbnail || game?.cover;
 
@@ -119,12 +135,14 @@ const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
           </div>
           <button
             type="button"
-            onClick={() => !hasVoted && !voting && !isPlaying && !isDone && onVote(game)}
-            disabled={hasVoted || voting || isPlaying || isDone}
+            onClick={() => isVotable && !hasVoted && !voting && onVote(game)}
+            disabled={!isVotable || hasVoted || voting}
             className={`
               px-3 py-1 rounded-lg text-xs font-medium transition-all duration-150
               ${hasVoted 
                 ? 'bg-white/10 text-[#7ee0d2] border border-[#7ee0d2]/30 cursor-default'
+                : isRequested
+                ? 'bg-white/5 text-[#8E8AAB] border border-white/10 cursor-not-allowed text-[10px]'
                 : isPlaying
                 ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-default text-[10px]'
                 : isDone
@@ -133,7 +151,7 @@ const QuickVoteCard = ({ game, rank, onVote, hasVoted, voting }) => {
               }
             `}
           >
-            {voting ? '...' : hasVoted ? 'Sudah Vote' : isPlaying ? 'Playing' : isDone ? 'Selesai' : 'Vote'}
+            {voting ? '...' : hasVoted ? 'Sudah Vote' : isRequested ? 'Review' : isPlaying ? 'Playing' : isDone ? 'Selesai' : 'Vote'}
           </button>
         </div>
       </div>
@@ -274,7 +292,7 @@ function VotingPage() {
   const [votingGameId, setVotingGameId] = useState(null);
 
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestForm, setRequestForm] = useState({ title: '', genre: '' });
+  const [requestForm, setRequestForm] = useState({ title: '', genre: '', customGenre: '' });
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [showRequestSuccessModal, setShowRequestSuccessModal] = useState(false);
 
@@ -361,10 +379,10 @@ function VotingPage() {
     });
   }, [games, firebaseVotes, firebaseTotal, totalVotesGlobal]);
 
-  // Top 3 games for quick voting (only active non-done games)
+  // Top 3 games for quick voting (only approved/accepted games open for voting)
   const topGames = useMemo(() => {
     return [...gamesWithVotes]
-      .filter((g) => g.status !== 'done')
+      .filter((g) => g.status === 'accepted')
       .sort((a, b) => (b.votes || 0) - (a.votes || 0))
       .slice(0, 3);
   }, [gamesWithVotes]);
@@ -433,6 +451,10 @@ function VotingPage() {
 
   // Handle vote
   const handleVote = useCallback((game) => {
+    if (game.status !== 'accepted') {
+      toast.error('Game ini belum dibuka untuk sesi voting.');
+      return;
+    }
     if (hasVoted(game.id, periodKey)) {
       toast.error('Kamu sudah vote game ini');
       return;
@@ -486,16 +508,20 @@ function VotingPage() {
     try {
       setSubmittingRequest(true);
       const fingerprint = await getFingerprint();
+      const resolvedGenre =
+        requestForm.genre === 'Lainnya'
+          ? (requestForm.customGenre.trim() || 'Lainnya')
+          : requestForm.genre;
       const resp = await requestGame({
         title: requestForm.title.trim(),
-        genre: requestForm.genre,
+        genre: resolvedGenre,
         fingerprint,
       });
 
       if (resp.success) {
         setShowRequestModal(false);
         setShowRequestSuccessModal(true);
-        setRequestForm({ title: '', genre: '' });
+        setRequestForm({ title: '', genre: '', customGenre: '' });
         fetchGames();
       } else {
         toast.error(resp.message || 'Gagal mengirim request');
@@ -944,29 +970,39 @@ function VotingPage() {
             />
           </div>
 
-          {/* Genre Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-white mb-1.5">
-              Genre <span className="text-[#8E8AAB] font-normal">(opsional)</span>
+          {/* Genre Selection (Dropdown + Lainnya) */}
+          <div className="space-y-2.5">
+            <label className="block text-xs font-semibold text-white">
+              Kategori / Genre <span className="text-[#8E8AAB] font-normal">(opsional)</span>
             </label>
-            <div className="flex flex-wrap gap-1.5">
-              {['Action', 'Adventure', 'RPG', 'Horror', 'Survival', 'Simulation', 'Indie', 'Lainnya'].map((genre) => (
-                <button
-                  key={genre}
-                  type="button"
-                  onClick={() => setRequestForm((p) => ({ ...p, genre: p.genre === genre ? '' : genre }))}
-                  className={`
-                    px-3 py-1 rounded-lg text-xs transition-all duration-150
-                    ${requestForm.genre === genre
-                      ? 'bg-[#7ee0d2] text-[#0a0718] font-semibold shadow-xs'
-                      : 'bg-white/5 text-[#8E8AAB] hover:text-white border border-white/5'
-                    }
-                  `}
-                >
+            <select
+              value={requestForm.genre}
+              onChange={(e) => {
+                const val = e.target.value;
+                setRequestForm((p) => ({
+                  ...p,
+                  genre: val,
+                  customGenre: val === 'Lainnya' ? p.customGenre : '',
+                }));
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors cursor-pointer"
+            >
+              <option value="">Pilih kategori game...</option>
+              {GAME_CATEGORIES.map((genre) => (
+                <option key={genre} value={genre}>
                   {genre}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
+            {requestForm.genre === 'Lainnya' && (
+              <input
+                type="text"
+                value={requestForm.customGenre}
+                onChange={(e) => setRequestForm((p) => ({ ...p, customGenre: e.target.value }))}
+                placeholder="Tulis kategori/genre lainnya..."
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-[#8E8AAB]/50 bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors"
+              />
+            )}
           </div>
         </form>
       </Modal>

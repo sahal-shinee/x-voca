@@ -45,6 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
     final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
+    FocusManager.instance.primaryFocus?.unfocus();
     HapticFeedback.lightImpact();
     final result = await showDialog<bool>(
       context: context,
@@ -112,6 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+    FocusManager.instance.primaryFocus?.unfocus();
     return result ?? false;
   }
 
@@ -186,12 +188,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  /// Dialog modal interaktif untuk mengedit nama streamer, nama rig, dan versi rig VTuber.
+  /// Dialog modal interaktif untuk mengedit nama kreator, nama rig, dan versi rig VTuber.
   void _showEditProfileDialog(BuildContext context, UserModel? user) {
+    FocusManager.instance.primaryFocus?.unfocus();
     HapticFeedback.lightImpact();
-    final nameCtrl = TextEditingController(text: user?.name ?? 'Xion Regalia');
-    final rigCtrl = TextEditingController(text: user?.rigName ?? 'Obsidian Rig #03');
-    final versionCtrl = TextEditingController(text: user?.rigVersion ?? 'v3.4');
+    final nameCtrl = TextEditingController(
+      text: user?.name.trim().isNotEmpty == true ? user!.name : 'Xion Regalia',
+    );
+    final rigCtrl = TextEditingController(
+      text: user?.rigName?.trim().isNotEmpty == true ? user!.rigName! : 'Obsidian Rig #03',
+    );
+    final versionCtrl = TextEditingController(
+      text: user?.rigVersion?.trim().isNotEmpty == true ? user!.rigVersion! : 'v3.4',
+    );
+    bool isSaving = false;
 
     showDialog(
       context: context,
@@ -204,148 +214,196 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         final textMuted = isDark ? AppColors.textMuted : AppColors.textMutedLight;
         final borderSubtle = isDark ? AppColors.borderSubtle : AppColors.borderSubtleLight;
 
-        return AlertDialog(
-          backgroundColor: bgSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: borderSubtle),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: (AppColors.primary(isDark)).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  LucideIcons.pencil,
-                  color: AppColors.primary(isDark),
-                  size: 18,
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: bgSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: borderSubtle),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: (AppColors.primary(isDark)).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      LucideIcons.pencil,
+                      color: AppColors.primary(isDark),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Edit Profil & Rig',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NAMA KREATOR *',
+                      style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Xion Regalia',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                        filled: true,
+                        fillColor: bgInput,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'NAMA MODEL RIG *',
+                      style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: rigCtrl,
+                      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Obsidian Rig #03',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                        filled: true,
+                        fillColor: bgInput,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'VERSI RIG',
+                      style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: versionCtrl,
+                      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                      style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: v3.4',
+                        hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 12),
+                        filled: true,
+                        fillColor: bgInput,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                'Edit Profil & Rig',
-                style: GoogleFonts.spaceGrotesk(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: textPrimary,
+              actions: [
+                TextButton(
+                  onPressed: isSaving
+                      ? null
+                      : () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          HapticFeedback.selectionClick();
+                          Navigator.pop(dialogCtx);
+                        },
+                  child: Text('Batal', style: GoogleFonts.spaceMono(color: textMuted)),
                 ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'NAMA CREATOR *',
-                  style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: nameCtrl,
-                  style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: bgInput,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary(isDark),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'RIG MODEL NAME *',
-                  style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: rigCtrl,
-                  style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: bgInput,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'RIG VERSION',
-                  style: GoogleFonts.spaceMono(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: versionCtrl,
-                  style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: bgInput,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderSubtle)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.primary(isDark), width: 1.2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final newName = nameCtrl.text.trim();
+                          final newRig = rigCtrl.text.trim();
+                          final newVer = versionCtrl.text.trim();
+
+                          if (newName.isEmpty || newRig.isEmpty) {
+                            _showFloatingToast(
+                              message: 'Nama kreator dan nama model rig wajib diisi.',
+                              isSuccess: false,
+                            );
+                            return;
+                          }
+
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          HapticFeedback.selectionClick();
+                          setDialogState(() => isSaving = true);
+
+                          try {
+                            await ref.read(authProvider.notifier).updateProfile(
+                                  name: newName,
+                                  rigName: newRig,
+                                  rigVersion: newVer.isNotEmpty ? newVer : null,
+                                );
+                            if (dialogCtx.mounted) {
+                              Navigator.pop(dialogCtx);
+                            }
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            _showFloatingToast(
+                              message: 'Profil dan informasi rig berhasil diperbarui.',
+                              isSuccess: true,
+                            );
+                          } catch (e) {
+                            setDialogState(() => isSaving = false);
+                            _showFloatingToast(
+                              message: e.toString().replaceAll('Exception: ', ''),
+                              isSuccess: false,
+                            );
+                          }
+                        },
+                  child: isSaving
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: isDark ? Colors.black : Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Simpan',
+                          style: GoogleFonts.spaceMono(
+                            color: isDark ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.pop(ctx);
-              },
-              child: Text('Batal', style: GoogleFonts.spaceMono(color: textMuted)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary(isDark),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              onPressed: () async {
-                final newName = nameCtrl.text.trim();
-                final newRig = rigCtrl.text.trim();
-                final newVer = versionCtrl.text.trim();
-
-                if (newName.isNotEmpty && newRig.isNotEmpty) {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(ctx);
-                  await ref.read(authProvider.notifier).updateProfile(
-                    name: newName,
-                    rigName: newRig,
-                    rigVersion: newVer,
-                  );
-                  _showFloatingToast(message: 'Profil & Rig berhasil diperbarui!', isSuccess: true);
-                } else {
-                  _showFloatingToast(message: 'Nama dan model rig wajib diisi!', isSuccess: false);
-                }
-              },
-              child: Text(
-                'Simpan',
-                style: GoogleFonts.spaceMono(
-                  color: isDark ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -355,8 +413,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.value;
+    final themeMode = ref.watch(themeProvider);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = themeMode == ThemeMode.dark;
     final bgBase = isDark ? AppColors.bgBase : AppColors.bgBaseLight;
     final bgSurface = isDark ? AppColors.bgSurface : AppColors.bgSurfaceLight;
     final bgInput = isDark ? AppColors.bgInput : AppColors.bgInputLight;
@@ -387,7 +446,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'OBSIDIAN RIG CONTROL',
+              'KONTROL STUDIO & RIG',
               style: GoogleFonts.spaceMono(
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
@@ -396,7 +455,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             Text(
-              'Settings',
+              'Pengaturan',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -498,22 +557,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 3),
 
-                      // Email (Tap to Copy)
+                      // Email (Ketuk untuk salin)
                       InkWell(
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Clipboard.setData(ClipboardData(text: userEmail));
-                          _showFloatingToast(message: 'Email disalin ke clipboard!', isSuccess: true, icon: LucideIcons.copy);
+                          _showFloatingToast(message: 'Alamat email berhasil disalin.', isSuccess: true, icon: LucideIcons.copy);
                         },
                         borderRadius: BorderRadius.circular(4),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              userEmail,
-                              style: GoogleFonts.spaceMono(
-                                fontSize: 11,
-                                color: textMuted,
+                            Flexible(
+                              child: Text(
+                                userEmail,
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 11,
+                                  color: textMuted,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -523,13 +586,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 5),
 
-                      // Rig ID & Versi (Tap to Copy)
+                      // Rig ID & Versi (Ketuk untuk Edit Profil & Rig)
                       InkWell(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Clipboard.setData(ClipboardData(text: rigFullInfo));
-                          _showFloatingToast(message: 'Rig ID disalin ke clipboard!', isSuccess: true, icon: LucideIcons.copy);
-                        },
+                        onTap: () => _showEditProfileDialog(context, user),
                         borderRadius: BorderRadius.circular(4),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -543,16 +602,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              rigFullInfo,
-                              style: GoogleFonts.spaceMono(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: textSecondary,
+                            Flexible(
+                              child: Text(
+                                rigFullInfo,
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(LucideIcons.copy, size: 10, color: textSecondary),
+                            Icon(LucideIcons.pencil, size: 10, color: AppColors.primary(isDark)),
                           ],
                         ),
                       ),
@@ -560,7 +623,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
 
-                // Touch Target 44x44 dp: Tombol Edit Profil
+                // Touch Target 44x44 dp: Tombol Edit Profil & Rig
                 SizedBox(
                   width: 44,
                   height: 44,
@@ -612,7 +675,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    isDark ? 'Tema gelap neon khas kreator aktif' : 'Tema terang berlatar bersih aktif',
+                    isDark ? 'Tampilan tema gelap sedang aktif' : 'Tampilan tema terang sedang aktif',
                     style: GoogleFonts.spaceMono(
                       fontSize: 10,
                       color: textSecondary,
@@ -620,9 +683,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   value: isDark,
                   activeThumbColor: AppColors.primary(isDark),
-                  onChanged: (_) {
+                  onChanged: (val) {
                     HapticFeedback.selectionClick();
-                    ref.read(themeProvider.notifier).toggleTheme();
+                    ref
+                        .read(themeProvider.notifier)
+                        .setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
                   },
                 ),
                 Divider(color: borderSubtle, height: 1),
@@ -636,7 +701,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: const Icon(LucideIcons.bell, color: AppColors.accentPurple, size: 18),
                   ),
                   title: Text(
-                    'Push Notifications',
+                    'Notifikasi Push',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -644,7 +709,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    'Peringatan jadwal siaran, live stream, dan to-do',
+                    'Peringatan jadwal siaran langsung dan daftar tugas',
                     style: GoogleFonts.spaceMono(
                       fontSize: 10,
                       color: textSecondary,
@@ -794,7 +859,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onPressed: () {
                         HapticFeedback.lightImpact();
                         Clipboard.setData(ClipboardData(text: Env.apiBaseUrl));
-                        _showFloatingToast(message: 'Base URL disalin ke clipboard!', isSuccess: true, icon: LucideIcons.copy);
+                        _showFloatingToast(message: 'Base URL berhasil disalin.', isSuccess: true, icon: LucideIcons.copy);
                       },
                     ),
                   ),
@@ -842,7 +907,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     PaintingBinding.instance.imageCache.clear();
                     PaintingBinding.instance.imageCache.clearLiveImages();
                     _showFloatingToast(
-                      message: 'Cache memori lokal berhasil dibersihkan!',
+                      message: 'Cache memori lokal berhasil dibersihkan.',
                       isSuccess: true,
                       icon: LucideIcons.check_check,
                     );
@@ -1096,7 +1161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Crafted with Passion for Obsidian Streamers',
+                  'Panel Manajemen Kreator X-VOCA',
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 10,
                     color: textMuted.withValues(alpha: 0.8),

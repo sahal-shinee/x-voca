@@ -59,7 +59,7 @@ function GameCard({
     },
     requested: {
       badge: { text: 'REQUESTED', bg: 'bg-cyan-500/15', textColor: 'text-cyan-300' },
-      button: { text: 'Vote', bg: 'bg-accent-cyan hover:bg-accent-cyan/90 text-[#0c081e]', textColor: 'text-[#0c081e]', borderColor: 'border-accent-cyan' },
+      button: { text: 'Menunggu Persetujuan', bg: 'bg-white/5', textColor: 'text-[#a89ec0]', borderColor: 'border-white/10' },
       progressGradient: 'from-[#7ee0d2] to-cyan-400',
       labelColor: 'text-cyan-300',
     },
@@ -76,6 +76,17 @@ function GameCard({
 
   // Determine button state
   const getButtonContent = () => {
+    if (status === 'requested') {
+      return (
+        <span className="flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" strokeWidth={2} />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
+          </svg>
+          <span>Menunggu Persetujuan</span>
+        </span>
+      );
+    }
     if (status === 'playing') {
       return (
         <span className="flex items-center justify-center gap-2">
@@ -125,7 +136,7 @@ function GameCard({
     );
   };
 
-  const isButtonDisabled = status === 'playing' || status === 'done' || hasVoted || voting;
+  const isButtonDisabled = status !== 'accepted' || hasVoted || voting;
   const isTopCandidate = status === 'accepted' && percentage > 30;
 
   return (

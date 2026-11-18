@@ -21,8 +21,8 @@ class ApiService {
     // -------------------------------------------------------------
     _dio.options = BaseOptions(
       baseUrl: Env.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 4),
-      receiveTimeout: const Duration(seconds: 8),
+      connectTimeout: const Duration(seconds: 8),
+      receiveTimeout: const Duration(seconds: 12),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -70,9 +70,9 @@ class ApiService {
             return handler.next(error);
           }
 
-          // Mekanisme Auto-Fallback:
-          // Jika koneksi terputus/timeout (misal beralih antara Emulator dan HP Fisik),
-          // coba kirim ulang request ke daftar fallback URL yang tersedia di Env.
+          // Mekanisme Auto-Fallback khusus mode pengembangan lokal (!Env.useProduction).
+          // Pada mode produksi (Vercel Cloud), hindari mencoba 5 alamat IP lokal agar
+          // notifikasi error tidak tertunda hingga 15+ detik.
           final isConnectionIssue =
               error.type == DioExceptionType.connectionError ||
               error.type == DioExceptionType.connectionTimeout ||
@@ -82,7 +82,7 @@ class ApiService {
           final hasNotRetried =
               error.requestOptions.extra['retry_fallback'] != true;
 
-          if (isConnectionIssue && hasNotRetried) {
+          if (!Env.useProduction && isConnectionIssue && hasNotRetried) {
             for (final fallbackUrl in Env.fallbackUrls) {
               // Lewati URL yang sudah dicoba dan gagal
               if (fallbackUrl == _dio.options.baseUrl) continue;

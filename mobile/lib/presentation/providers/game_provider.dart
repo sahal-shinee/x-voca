@@ -157,8 +157,16 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  /// Memperbarui status permainan game (requested, accepted, playing, done).
+  /// Memperbarui status permainan game (requested, accepted, playing, done) secara optimis.
   Future<void> updateGameStatus(int id, String status) async {
+    final previousGames = state.games;
+    // Optimistic update agar perubahan status langsung terasa di UI
+    state = state.copyWith(
+      games: state.games
+          .map((g) => g.id == id ? g.copyWith(status: status) : g)
+          .toList(),
+    );
+
     try {
       final updatedGame = await _gameService.updateGameStatus(id, status);
 
@@ -168,21 +176,23 @@ class GameNotifier extends StateNotifier<GameState> {
 
       fetchVoteStats();
     } catch (e) {
+      state = state.copyWith(games: previousGames);
       rethrow;
     }
   }
 
-  /// Menghapus game dari daftar voting.
+  /// Menghapus game dari daftar voting secara optimis.
   Future<void> deleteGame(int id) async {
+    final previousGames = state.games;
+    state = state.copyWith(
+      games: state.games.where((g) => g.id != id).toList(),
+    );
+
     try {
       await _gameService.deleteGame(id);
-
-      state = state.copyWith(
-        games: state.games.where((g) => g.id != id).toList(),
-      );
-
       fetchVoteStats();
     } catch (e) {
+      state = state.copyWith(games: previousGames);
       rethrow;
     }
   }

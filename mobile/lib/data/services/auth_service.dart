@@ -99,8 +99,6 @@ class AuthService {
   }
 
   /// Memperbarui informasi profil pengguna seperti nama dan informasi rig VTuber.
-  ///
-  /// Menyediakan fallback data default jika endpoint backend belum tersedia.
   Future<UserModel> updateProfile({
     required String name,
     required String rigName,
@@ -112,27 +110,28 @@ class AuthService {
         data: {
           'name': name,
           'rig_name': rigName,
-          if (rigVersion != null) 'rig_version': rigVersion,
+          if (rigVersion != null && rigVersion.isNotEmpty) 'rig_version': rigVersion,
         },
       );
 
-      if (response.data['success'] == true) {
+      if (response.data['success'] == true && response.data['data'] != null) {
         return UserModel.fromJson(response.data['data']);
       }
       throw Exception(
-        response.data['message'] ?? 'Gagal memperbarui profil',
+        response.data['message'] ?? 'Gagal memperbarui profil.',
       );
-    } catch (_) {
-      // Fallback lokal jika backend offline atau endpoint dalam tahap pengembangan
-      return UserModel(
-        id: 1,
-        name: name,
-        email: 'xionregalia@gmail.com',
-        role: 'superadmin',
-        rigName: rigName,
-        rigVersion: rigVersion ?? 'v3.4',
-        isBroadcasting: false,
-      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.response == null) {
+        throw Exception(
+          'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+        );
+      }
+      final msg =
+          e.response?.data?['message'] ?? 'Gagal memperbarui profil ke server.';
+      throw Exception(msg);
     }
   }
 }

@@ -268,7 +268,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           Row(
                             children: [
                               Text(
-                                'Web Dev Laptop (Wi-Fi Lokal)',
+                                'Server Pengembangan Lokal (Wi-Fi)',
                                 style: GoogleFonts.spaceGrotesk(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -526,72 +526,93 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           preferredSize: const Size.fromHeight(1),
           child: Container(color: borderSubtle, height: 1),
         ),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [AppColors.accentPurple, AppColors.accentCyan],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accentPurple.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+        title: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            HapticFeedback.selectionClick();
+            ref.read(dashboardTabProvider.notifier).state = 4;
+            setState(() {
+              _currentIndex = 4;
+              _visitedTabs.add(4);
+            });
+          },
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.accentPurple, AppColors.accentCyan],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                creatorName.isNotEmpty ? creatorName[0].toUpperCase() : 'X',
-                style: GoogleFonts.spaceGrotesk(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  creatorName,
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: textPrimary,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.accentEmerald,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      rigName,
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 10,
-                        color: textSecondary,
-                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accentPurple.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ],
+                alignment: Alignment.center,
+                child: Text(
+                  creatorName.isNotEmpty ? creatorName[0].toUpperCase() : 'X',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      creatorName,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.accentEmerald,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            rigName,
+                            style: GoogleFonts.spaceMono(
+                              fontSize: 10,
+                              color: textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           // Shortcut Buka Fansite Web Publik
@@ -753,6 +774,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
+            FocusManager.instance.primaryFocus?.unfocus();
             HapticFeedback.selectionClick();
             ref.read(dashboardTabProvider.notifier).state = index;
             setState(() {
@@ -836,7 +858,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         if (mounted) {
           _showFloatingToast(
             context,
-            message: 'Dashboard disinkronkan',
+            message: 'Data dashboard berhasil disinkronkan.',
             isSuccess: true,
             icon: LucideIcons.check_check,
           );
@@ -1027,7 +1049,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Semua Task Selesai!',
+                                  'Seluruh Tugas Selesai',
                                   style: GoogleFonts.spaceGrotesk(
                                     color: textPrimary,
                                     fontSize: 13,
@@ -1035,7 +1057,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                   ),
                                 ),
                                 Text(
-                                  'Rig creator siap untuk persiapan siaran berikutnya.',
+                                  'Seluruh persiapan untuk sesi siaran berikutnya telah siap.',
                                   style: GoogleFonts.spaceGrotesk(
                                     color: textMuted,
                                     fontSize: 11,
@@ -1182,8 +1204,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       const SizedBox(height: 2),
                       Text(
                         _isBroadcasting
-                            ? 'Siaran langsung aktif ke komunitas'
-                            : 'Mode siaga / belum ada live aktif',
+                            ? 'Siaran langsung sedang aktif untuk audiens'
+                            : 'Mode siaga — belum ada siaran aktif',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
                           color: textMuted,

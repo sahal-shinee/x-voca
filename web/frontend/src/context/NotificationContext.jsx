@@ -104,6 +104,13 @@ export const NOTIFICATION_TYPES = {
   },
 };
 
+// Filter out viewer-only LIVE alerts so the host/admin bell does not show self-live notifications
+const isViewerLiveAlert = (notif) => {
+  const typeUpper = String(notif?.type || '').toUpperCase();
+  const titleLower = String(notif?.title || '').toLowerCase();
+  return typeUpper === 'BROADCASTING_START' || titleLower.includes('sedang live');
+};
+
 export function NotificationProvider({ children, userId = 'default' }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +122,8 @@ export function NotificationProvider({ children, userId = 'default' }) {
     import('../services/api').then(({ default: api }) => {
       api.get(`/api/notifications?userId=${userId}`).then((res) => {
         if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
-          setNotifications((prev) => (prev.length === 0 ? res.data.data : prev));
+          const filtered = res.data.data.filter((n) => !isViewerLiveAlert(n));
+          setNotifications((prev) => (prev.length === 0 ? filtered : prev));
         }
       }).catch((e) => console.warn('API notification fallback skipped:', e.message));
     });
@@ -139,12 +147,17 @@ export function NotificationProvider({ children, userId = 'default' }) {
         (snapshot) => {
           const data = snapshot.val();
           if (data) {
-            const notificationList = Object.entries(data).map(([id, notification]) => ({
-              id,
-              ...notification,
-              createdAt: notification.createdAt || Date.now(),
-            })).sort((a, b) => b.createdAt - a.createdAt);
+            const notificationList = Object.entries(data)
+              .map(([id, notification]) => ({
+                id,
+                ...notification,
+                createdAt: notification.createdAt || Date.now(),
+              }))
+              .filter((n) => !isViewerLiveAlert(n))
+              .sort((a, b) => b.createdAt - a.createdAt);
             setNotifications(notificationList);
+          } else {
+            setNotifications([]);
           }
           setLoading(false);
         },
@@ -168,6 +181,7 @@ export function NotificationProvider({ children, userId = 'default' }) {
           read: false,
           createdAt: Date.now()
         };
+        if (isViewerLiveAlert(newNotif)) return;
         setNotifications((prev) => [newNotif, ...prev]);
       });
 
@@ -274,6 +288,7 @@ export function NotificationProvider({ children, userId = 'default' }) {
 
   // Add a new notification (for internal use)
   const addNotification = useCallback((notification) => {
+    if (isViewerLiveAlert(notification)) return;
     const newNotification = {
       id: `notif_${Date.now()}`,
       ...notification,

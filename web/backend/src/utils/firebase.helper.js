@@ -515,17 +515,24 @@ const sendTopicNotification = async (topic, { title, body, data = {} }) => {
     const messageId = await messaging.send(message);
     console.log(`✅ FCM: Sent notification to topic "${topic}" (ID: ${messageId})`);
 
-    // Synchronously write to Realtime Database so Web & Mobile in-app bells receive it in real time
-    try {
-      await pushNotification({
-        userId: 'default',
-        type: stringData.type || (topic === 'stream_alerts' ? 'BROADCASTING_START' : 'SYSTEM_UPDATE'),
-        title,
-        message: body,
-        link: stringData.url || null
-      });
-    } catch (pushErr) {
-      console.warn('Realtime database pushNotification warning:', pushErr.message);
+    // Synchronously write to Realtime Database ONLY for creator/host alerts
+    // (Exclude viewer-only topics like 'stream_alerts' / 'BROADCASTING_START' so the host doesn't receive their own LIVE alerts in the studio bell)
+    const isViewerOnlyAlert =
+      topic === 'stream_alerts' ||
+      String(stringData.type || '').toUpperCase() === 'BROADCASTING_START';
+
+    if (!isViewerOnlyAlert) {
+      try {
+        await pushNotification({
+          userId: 'default',
+          type: stringData.type || 'SYSTEM_UPDATE',
+          title,
+          message: body,
+          link: stringData.url || null
+        });
+      } catch (pushErr) {
+        console.warn('Realtime database pushNotification warning:', pushErr.message);
+      }
     }
 
     return true;

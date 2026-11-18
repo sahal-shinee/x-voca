@@ -19,6 +19,15 @@ router.get('/', async (req, res) => {
     const userId = req.query.userId || 'default';
     let list = await getNotificationsFromDb(userId);
 
+    // Exclude viewer-only LIVE broadcast alerts from the creator/host notification bell
+    if (Array.isArray(list)) {
+      list = list.filter((n) => {
+        const typeUpper = String(n?.type || '').toUpperCase();
+        const titleLower = String(n?.title || '').toLowerCase();
+        return typeUpper !== 'BROADCASTING_START' && !titleLower.includes('sedang live');
+      });
+    }
+
     // Fallback: If RTDB is empty, populate from recent AuditLogs
     if (!list || list.length === 0) {
       const recentLogs = await AuditLog.findAll({

@@ -75,6 +75,15 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _listenToFirebaseRTDB();
   }
 
+  /// Memeriksa apakah notifikasi merupakan siaran live khusus penonton ("Sedang LIVE!")
+  /// yang tidak perlu ditampilkan pada lonceng notifikasi studio milik host.
+  bool _isViewerLiveNotification(NotificationModel notif) {
+    final typeUpper = notif.type.toUpperCase();
+    final titleLower = notif.title.toLowerCase();
+    return typeUpper == 'BROADCASTING_START' ||
+        titleLower.contains('sedang live');
+  }
+
   /// Memantau perubahan node `notifications/default` di Firebase Realtime Database.
   void _listenToFirebaseRTDB() {
     try {
@@ -94,7 +103,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
                   final map = Map<String, dynamic>.from(v);
                   map['id'] = k.toString();
                   try {
-                    list.add(NotificationModel.fromJson(map));
+                    final parsed = NotificationModel.fromJson(map);
+                    if (!_isViewerLiveNotification(parsed)) {
+                      list.add(parsed);
+                    }
                   } catch (e) {
                     debugPrint('[RTDB] Parse error: $e');
                   }
@@ -103,10 +115,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
               // Urutkan notifikasi dari yang paling baru
               list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-              if (list.isNotEmpty) {
-                state = state.copyWith(notifications: list, isLoading: false);
-                _saveToLocal(list);
-              }
+              state = state.copyWith(notifications: list, isLoading: false);
+              _saveToLocal(list);
             }
           },
           onError: (err) {
@@ -129,6 +139,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         final list = decoded
             .map((e) =>
                 NotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .where((n) => !_isViewerLiveNotification(n))
             .toList();
         state = state.copyWith(notifications: list, isLoading: false);
       }
@@ -158,6 +169,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         final list = raw
             .map((e) =>
                 NotificationModel.fromJson(Map<String, dynamic>.from(e)))
+            .where((n) => !_isViewerLiveNotification(n))
             .toList();
         state = state.copyWith(notifications: list, isLoading: false);
         await _saveToLocal(list);
@@ -221,6 +233,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   /// Menyisipkan atau memperbarui notifikasi ke urutan teratas list.
   void addNotification(NotificationModel notif) {
+    if (_isViewerLiveNotification(notif)) return;
     final existingIndex =
         state.notifications.indexWhere((n) => n.id == notif.id);
     List<NotificationModel> updated;

@@ -36,6 +36,17 @@ const submitVote = async (req, res) => {
       });
     }
 
+    // Hanya game dengan status 'accepted' yang dapat menerima vote
+    if (game.status !== 'accepted') {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: game.status === 'requested'
+          ? 'Game ini belum disetujui oleh kreator untuk sesi voting.'
+          : 'Sesi voting untuk game ini sudah ditutup.'
+      });
+    }
+
     // Validate fingerprint / device identifier
     if (!fingerprint) {
       return res.status(400).json({
@@ -79,17 +90,18 @@ const submitVote = async (req, res) => {
     game.vote_count += 1;
     await game.save();
 
-    // Create audit log
-    await AuditLog.create({
-      action_type: 'vote_in',
-      detail: 'Vote baru ditambahkan',
-      sub_detail: game.title
-    });
-
-    // Update Firebase with new percentage
+    // Calculate new percentage and sync audit log + Firebase in parallel for faster response
     const totalVotes = await Game.sum('vote_count', { where: { period_key } }) || 0;
     const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
-    await updateVoteCount(game.id, game.vote_count, percentage, totalVotes);
+
+    await Promise.allSettled([
+      AuditLog.create({
+        action_type: 'vote_in',
+        detail: 'Vote baru ditambahkan',
+        sub_detail: game.title
+      }),
+      updateVoteCount(game.id, game.vote_count, percentage, totalVotes)
+    ]);
 
     return res.status(200).json({
       success: true,

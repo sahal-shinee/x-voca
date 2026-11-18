@@ -212,7 +212,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
               ),
             ),
             Text(
-              'Todo List',
+              'Daftar Tugas',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -227,14 +227,17 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
         elevation: 4,
         icon: Icon(LucideIcons.plus, color: isDark ? Colors.black : Colors.white, size: 18),
         label: Text(
-          'Tambah Todo',
+          'Tambah Tugas',
           style: GoogleFonts.spaceGrotesk(
             color: isDark ? Colors.black : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
         ),
-        onPressed: () => _showTodoFormModal(context),
+        onPressed: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          _showTodoFormModal(context);
+        },
       ),
       body: Column(
         children: [
@@ -335,6 +338,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                     style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Cari tugas, deskripsi, referensi...',
@@ -494,7 +498,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                               const Icon(LucideIcons.circle_alert, color: AppColors.accentRed, size: 40),
                               const SizedBox(height: 12),
                               Text(
-                                'Gagal mengambil data task',
+                                'Gagal memuat daftar tugas',
                                 style: GoogleFonts.spaceGrotesk(
                                   color: textPrimary,
                                   fontWeight: FontWeight.bold,
@@ -515,7 +519,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                                 },
                                 label: Text('Coba Lagi',
                                     style: GoogleFonts.spaceGrotesk(
-                                      color: Colors.black,
+                                      color: isDark ? Colors.black : Colors.white,
                                       fontWeight: FontWeight.bold,
                                     )),
                               ),
@@ -533,7 +537,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                                   Icon(LucideIcons.check_check, color: textMuted, size: 48),
                                   const SizedBox(height: 14),
                                   Text(
-                                    'Semua task sudah terselesaikan!',
+                                    'Seluruh tugas telah diselesaikan',
                                     style: GoogleFonts.spaceGrotesk(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
@@ -542,7 +546,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Tidak ada task pada filter atau kategori aktif saat ini.',
+                                    'Tidak terdapat tugas pada filter atau kategori yang dipilih.',
                                     style: GoogleFonts.spaceGrotesk(
                                       fontSize: 12,
                                       color: textMuted,
@@ -559,7 +563,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                               await ref.read(todoProvider.notifier).fetchTodos();
                               if (mounted) {
                                 _showFloatingToast(
-                                  message: 'Daftar todo disinkronkan',
+                                  message: 'Daftar tugas berhasil disinkronkan.',
                                   isSuccess: true,
                                   icon: LucideIcons.check_check,
                                 );
@@ -667,13 +671,14 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
                   HapticFeedback.lightImpact();
                   await ref.read(todoProvider.notifier).toggleStatus(task);
                   if (mounted) {
                     _showFloatingToast(
                       message: task.isCompleted
-                          ? 'Task "${task.title}" dibuka kembali'
-                          : 'Task "${task.title}" diselesaikan!',
+                          ? 'Tugas "${task.title}" dibuka kembali.'
+                          : 'Tugas "${task.title}" telah diselesaikan.',
                       isSuccess: true,
                       icon: task.isCompleted ? LucideIcons.circle_alert : LucideIcons.circle_check,
                     );
@@ -742,9 +747,10 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                     width: 44,
                     height: 44,
                     child: IconButton(
-                      tooltip: 'Edit Todo',
+                      tooltip: 'Edit Tugas',
                       icon: const Icon(LucideIcons.pencil, size: 15, color: AppColors.accentCyan),
                       onPressed: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         HapticFeedback.lightImpact();
                         _showTodoFormModal(context, todoToEdit: task);
                       },
@@ -754,9 +760,10 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                     width: 44,
                     height: 44,
                     child: IconButton(
-                      tooltip: 'Hapus Todo',
+                      tooltip: 'Hapus Tugas',
                       icon: Icon(LucideIcons.trash, size: 15, color: textMuted),
                       onPressed: () async {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         HapticFeedback.lightImpact();
                         final bool? confirm = await showDialog<bool>(
                           context: context,
@@ -771,7 +778,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                                 const Icon(LucideIcons.triangle_alert, color: AppColors.accentRed, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Hapus Task',
+                                  'Hapus Tugas',
                                   style: GoogleFonts.spaceGrotesk(
                                     color: textPrimary,
                                     fontWeight: FontWeight.bold,
@@ -781,7 +788,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                               ],
                             ),
                             content: Text(
-                              'Apakah Anda yakin ingin menghapus task ini?\n\n"${task.title}"',
+                              'Apakah Anda yakin ingin menghapus tugas ini?\n\n"${task.title}"',
                               style: GoogleFonts.spaceGrotesk(
                                 color: textSecondary,
                                 fontSize: 13,
@@ -813,12 +820,13 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                             ],
                           ),
                         );
+                        FocusManager.instance.primaryFocus?.unfocus();
 
                         if (confirm == true && mounted) {
                           await ref.read(todoProvider.notifier).deleteTodo(task.id);
                           if (mounted) {
                             _showFloatingToast(
-                              message: 'Task "${task.title}" dihapus',
+                              message: 'Tugas "${task.title}" berhasil dihapus.',
                               isSuccess: true,
                               icon: LucideIcons.trash,
                             );
@@ -874,12 +882,15 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
               // Quick Status Dropdown (Touch Area Min 44x44 dp)
               PopupMenuButton<String>(
                 tooltip: 'Ubah Status',
+                onOpened: () => FocusManager.instance.primaryFocus?.unfocus(),
+                onCanceled: () => FocusManager.instance.primaryFocus?.unfocus(),
                 onSelected: (newStatus) async {
+                  FocusManager.instance.primaryFocus?.unfocus();
                   HapticFeedback.selectionClick();
                   await ref.read(todoProvider.notifier).updateStatus(task.id, newStatus);
                   if (mounted) {
                     _showFloatingToast(
-                      message: 'Status "${task.title}" diubah!',
+                      message: 'Status "${task.title}" berhasil diperbarui.',
                       isSuccess: true,
                     );
                   }
@@ -1034,7 +1045,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                               )),
                           const SizedBox(height: 2),
                           Text(
-                            isEdit ? 'Edit Task' : 'Tambah Todo Baru',
+                            isEdit ? 'Edit Tugas' : 'Tambah Tugas Baru',
                             style: GoogleFonts.spaceGrotesk(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1049,6 +1060,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                         child: IconButton(
                           icon: Icon(LucideIcons.x, color: textMuted),
                           onPressed: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
                             HapticFeedback.selectionClick();
                             Navigator.pop(modalContext);
                           },
@@ -1058,15 +1070,16 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  Text('JUDUL TASK *',
+                  Text('JUDUL TUGAS *',
                       style: GoogleFonts.spaceMono(
                           fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: titleController,
+                    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                     style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Misal: Render Blender Sahall',
+                      hintText: 'Contoh: Persiapan aset grafis siaran',
                       hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
                       filled: true,
                       fillColor: bgInput,
@@ -1308,10 +1321,11 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: descriptionController,
+                    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                     maxLines: 2,
                     style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Misal: Kamis Beres render aset',
+                      hintText: 'Contoh: Pastikan seluruh aset selesai sebelum jadwal siaran',
                       hintStyle: GoogleFonts.spaceGrotesk(color: textMuted, fontSize: 13),
                       filled: true,
                       fillColor: bgInput,
@@ -1340,12 +1354,14 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                         final title = titleController.text.trim();
                         if (title.isEmpty) {
                           _showFloatingToast(
-                            message: 'Judul todo wajib diisi!',
+                            message: 'Judul tugas wajib diisi.',
                             isSuccess: false,
                           );
                           return;
                         }
 
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        SystemChannels.textInput.invokeMethod('TextInput.hide');
                         HapticFeedback.lightImpact();
                         final deadline = DateTime(
                           selectedDeadline.year,
@@ -1358,6 +1374,7 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                         if (modalContext.mounted) {
                           Navigator.pop(modalContext);
                         }
+                        FocusManager.instance.primaryFocus?.unfocus();
 
                         try {
                           if (isEdit) {
@@ -1382,21 +1399,21 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
                           }
                           if (mounted) {
                             _showFloatingToast(
-                              message: isEdit ? 'Todo berhasil diperbarui!' : 'Todo baru berhasil disimpan!',
+                              message: isEdit ? 'Tugas berhasil diperbarui.' : 'Tugas baru berhasil disimpan.',
                               isSuccess: true,
                             );
                           }
                         } catch (e) {
                           if (mounted) {
                             _showFloatingToast(
-                              message: 'Gagal menyimpan todo: $e',
+                              message: 'Gagal menyimpan tugas: $e',
                               isSuccess: false,
                             );
                           }
                         }
                       },
                       child: Text(
-                        isEdit ? '✓ Simpan Perubahan' : '✓ Simpan Todo',
+                        isEdit ? 'Simpan Perubahan' : 'Simpan Tugas',
                         style: GoogleFonts.spaceGrotesk(
                           color: isDark ? Colors.black : Colors.white,
                           fontWeight: FontWeight.bold,

@@ -33,14 +33,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int _selectedFilterIndex = 0;
 
   final List<String> _categories = [
-    'Survival Horror',
     'Action RPG',
+    'Survival Horror',
     'Adventure',
+    'Open World',
     'Simulation',
     'Strategy',
     'Indie',
-    'Retro',
     'Multiplayer',
+    'Retro',
     'Lainnya',
   ];
 
@@ -289,7 +290,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         if (context.mounted && ((fetchedTitle != null && fetchedTitle.isNotEmpty) || (fetchedThumb != null && fetchedThumb.isNotEmpty))) {
           _showFloatingBanner(
             context: context,
-            message: 'Data stream otomatis terisi dari YouTube!',
+            message: 'Informasi siaran berhasil diambil dari YouTube.',
             isSuccess: true,
           );
         }
@@ -699,10 +700,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       emptySub = 'Sedang tidak ada stream yang aktif saat ini.';
     } else if (_selectedFilterIndex == 2) {
       emptyTitle = 'Tidak Ada Sesi Mendatang';
-      emptySub = 'Semua agenda siaran telah rampung atau belum dijadwalkan.';
+      emptySub = 'Seluruh agenda siaran telah selesai atau belum dijadwalkan.';
     } else if (_selectedFilterIndex == 3) {
       emptyTitle = 'Belum Ada Arsip Selesai';
-      emptySub = 'Daftar riwayat siaran yang sudah usai akan tampil di sini.';
+      emptySub = 'Daftar riwayat siaran yang telah selesai akan ditampilkan di sini.';
     }
 
     return Center(
@@ -1325,7 +1326,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         if (modalContext.mounted) {
                           _showFloatingBanner(
                             context: modalContext,
-                            message: 'Clipboard kosong! Salin link YouTube terlebih dahulu.',
+                            message: 'Papan klip kosong. Silakan salin tautan YouTube terlebih dahulu.',
                             isError: true,
                           );
                         }
@@ -1578,7 +1579,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     Text(
                       uploadedFileName != null && uploadedFileName.isNotEmpty
                           ? 'Ganti: $uploadedFileName'
-                          : 'Pilih Gambar dari Galeri HP',
+                          : 'Pilih Gambar dari Galeri Perangkat',
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -2457,10 +2458,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: descriptionController,
+                    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                     maxLines: 2,
                     style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                     decoration: _inputDecoration(
-                      'Contoh: Sesi chill mabar malam bangun mega project bareng viewers...',
+                      'Contoh: Sesi bermain bersama audiens dan diskusi santai...',
                       isDark,
                     ),
                   ),
@@ -2588,6 +2590,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         );
 
                         if (confirmSave != true) return;
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        SystemChannels.textInput.invokeMethod('TextInput.hide');
 
                         final fullScheduledAt = DateTime(
                           selectedDate.year,
@@ -2622,6 +2626,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         if (modalContext.mounted) {
                           Navigator.pop(modalContext);
                         }
+                        FocusManager.instance.primaryFocus?.unfocus();
 
                         try {
                           await ref.read(scheduleProvider.notifier).addSchedule(newSchedule);
@@ -2629,7 +2634,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           if (context.mounted) {
                             _showFloatingBanner(
                               context: context,
-                              message: 'Jadwal berhasil disimpan & disinkronkan!',
+                              message: 'Jadwal berhasil disimpan dan disinkronkan.',
                               isSuccess: true,
                             );
                           }
@@ -2644,7 +2649,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         }
                       },
                       child: Text(
-                        '✓ Simpan Jadwal',
+                        'Simpan Jadwal',
                         style: GoogleFonts.spaceGrotesk(
                           color: isDark ? Colors.black : Colors.white,
                           fontWeight: FontWeight.bold,
@@ -2902,10 +2907,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: descriptionController,
+                    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                     maxLines: 2,
                     style: GoogleFonts.spaceGrotesk(color: textPrimary, fontSize: 13),
                     decoration: _inputDecoration(
-                      'Contoh: Sesi chill mabar malam bangun mega project bareng viewers...',
+                      'Contoh: Sesi bermain bersama audiens dan diskusi santai...',
                       isDark,
                     ),
                   ),
@@ -3033,6 +3039,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         );
 
                         if (confirmSave != true) return;
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        SystemChannels.textInput.invokeMethod('TextInput.hide');
 
                         final fullScheduledAt = DateTime(
                           selectedDate.year,
@@ -3064,13 +3072,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         if (modalContext.mounted) {
                           Navigator.pop(modalContext);
                         }
+                        FocusManager.instance.primaryFocus?.unfocus();
 
                         try {
                           await ref.read(scheduleProvider.notifier).updateSchedule(schedule.id, updates);
                           if (context.mounted) {
                             _showFloatingBanner(
                               context: context,
-                              message: 'Jadwal berhasil diperbarui!',
+                              message: 'Jadwal berhasil diperbarui.',
                               isSuccess: true,
                             );
                           }
@@ -3085,7 +3094,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         }
                       },
                       child: Text(
-                        '✓ Simpan Perubahan',
+                        'Simpan Perubahan',
                         style: GoogleFonts.spaceGrotesk(
                           color: isDark ? Colors.black : Colors.white,
                           fontWeight: FontWeight.bold,

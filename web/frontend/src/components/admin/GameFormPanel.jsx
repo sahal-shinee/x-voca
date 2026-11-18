@@ -14,16 +14,18 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// Suggested genres for quick selection
-const GENRE_SUGGESTIONS = [
+// Unified game categories (consistent across Web Admin, Web Viewer, and Android Mobile)
+const GAME_CATEGORIES = [
   'Action RPG',
   'Survival Horror',
-  'Open World',
   'Adventure',
-  'Gacha / Turn-based',
+  'Open World',
   'Simulation',
   'Strategy',
-  'Roguelike',
+  'Indie',
+  'Multiplayer',
+  'Retro',
+  'Lainnya',
 ];
 
 // Helper to compress/resize uploaded device image to lightweight high-res JPEG data URL
@@ -86,6 +88,8 @@ function GameFormPanel({
     publisher: '',
     cover_url: '',
   });
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [customGenre, setCustomGenre] = useState('');
 
   // Cover image mode: 'upload' (device) or 'url' (web link)
   const [imageMode, setImageMode] = useState('upload');
@@ -99,12 +103,24 @@ function GameFormPanel({
   useEffect(() => {
     if (game) {
       const existingCover = game.cover_url || game.coverUrl || '';
+      const existingGenre = (game.genre || game.category || '').trim();
       setFormData({
         title: game.title || '',
-        genre: game.genre || game.category || '',
+        genre: existingGenre,
         publisher: game.publisher || '',
         cover_url: existingCover,
       });
+
+      if (!existingGenre) {
+        setSelectedCategory('');
+        setCustomGenre('');
+      } else if (GAME_CATEGORIES.includes(existingGenre) && existingGenre !== 'Lainnya') {
+        setSelectedCategory(existingGenre);
+        setCustomGenre('');
+      } else {
+        setSelectedCategory('Lainnya');
+        setCustomGenre(existingGenre === 'Lainnya' ? '' : existingGenre);
+      }
 
       if (existingCover) {
         if (existingCover.startsWith('data:image')) {
@@ -128,6 +144,8 @@ function GameFormPanel({
         publisher: '',
         cover_url: '',
       });
+      setSelectedCategory('');
+      setCustomGenre('');
       setImageMode('upload');
       setUrlInput('');
       setFileName('');
@@ -145,12 +163,26 @@ function GameFormPanel({
     }
   };
 
-  // Select genre pill
-  const handleSelectGenre = (genre) => {
-    setFormData((prev) => ({ ...prev, genre }));
+  // Handle category dropdown change
+  const handleCategoryChange = (e) => {
+    const val = e.target.value;
+    setSelectedCategory(val);
+    if (val === 'Lainnya') {
+      setFormData((prev) => ({ ...prev, genre: customGenre.trim() || 'Lainnya' }));
+    } else {
+      setCustomGenre('');
+      setFormData((prev) => ({ ...prev, genre: val }));
+    }
     if (errors.genre) {
       setErrors((prev) => ({ ...prev, genre: '' }));
     }
+  };
+
+  // Handle custom genre input when 'Lainnya' is selected
+  const handleCustomGenreChange = (e) => {
+    const val = e.target.value;
+    setCustomGenre(val);
+    setFormData((prev) => ({ ...prev, genre: val.trim() || 'Lainnya' }));
   };
 
   // Handle file upload from device
@@ -351,36 +383,31 @@ function GameFormPanel({
           </div>
 
           {/* Kategori / Genre */}
-          <div>
-            <label className="text-xs font-semibold text-text-secondary block mb-2">
+          <div className="space-y-2.5">
+            <label className="text-xs font-semibold text-text-secondary block">
               Kategori / Genre
             </label>
-            <input
-              type="text"
-              name="genre"
-              value={formData.genre}
-              onChange={handleChange}
-              placeholder="Contoh: Action RPG, Souls-like"
-              className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors"
-            />
-            {/* Quick Suggestions */}
-            <div className="flex flex-wrap items-center gap-2 pt-2.5">
-              <span className="text-xs text-text-muted mr-1">Rekomendasi:</span>
-              {GENRE_SUGGESTIONS.map((sug) => (
-                <button
-                  key={sug}
-                  type="button"
-                  onClick={() => handleSelectGenre(sug)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                    formData.genre === sug
-                      ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/40 font-semibold shadow-xs'
-                      : 'bg-bg-surface text-text-muted border-border-subtle hover:text-text-secondary hover:border-border-active'
-                  }`}
-                >
-                  {sug}
-                </button>
+            <select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors cursor-pointer"
+            >
+              <option value="">Pilih kategori game (opsional)...</option>
+              {GAME_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
-            </div>
+            </select>
+            {selectedCategory === 'Lainnya' && (
+              <input
+                type="text"
+                value={customGenre}
+                onChange={handleCustomGenreChange}
+                placeholder="Tulis kategori/genre lainnya..."
+                className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors"
+              />
+            )}
           </div>
 
           {/* Publisher */}

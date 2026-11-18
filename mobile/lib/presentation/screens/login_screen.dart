@@ -22,9 +22,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  // Nilai default untuk mempermudah proses testing & demonstrasi pengembang
-  final _emailController = TextEditingController(text: 'xion@xvoca.id');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _keepSession = true;
@@ -40,6 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Menjalankan validasi form dan memicu proses autentikasi via [authProvider].
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() => _isLoading = true);
 
@@ -52,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Login berhasil! Selamat datang, Creator.'),
+            content: Text('Berhasil masuk. Selamat datang kembali.'),
             backgroundColor: AppColors.accentCyan,
           ),
         );
@@ -149,7 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         // Input Field: Email
                         Text(
-                          'EMAIL ADDRESS',
+                          'ALAMAT EMAIL',
                           style: GoogleFonts.spaceMono(
                             fontSize: 11,
                             color: textSecondary,
@@ -158,9 +158,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
+                          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                           style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
-                            hintText: 'creator@xvoca.id',
+                            hintText: 'nama@email.com',
                             hintStyle:
                                 GoogleFonts.spaceGrotesk(color: textMuted),
                             prefixIcon: Icon(
@@ -180,14 +181,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           validator: (val) => val == null || val.isEmpty
-                              ? 'Email wajib diisi'
+                              ? 'Alamat email wajib diisi'
                               : null,
                         ),
                         const SizedBox(height: 18),
 
                         // Input Field: Password
                         Text(
-                          'SECURITY PASSWORD',
+                          'KATA SANDI',
                           style: GoogleFonts.spaceMono(
                             fontSize: 11,
                             color: textSecondary,
@@ -197,6 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
                           style: GoogleFonts.spaceGrotesk(color: textPrimary),
                           decoration: InputDecoration(
                             hintText: '••••••••',
@@ -231,7 +233,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           validator: (val) => val == null || val.isEmpty
-                              ? 'Password wajib diisi'
+                              ? 'Kata sandi wajib diisi'
                               : null,
                         ),
                         const SizedBox(height: 14),
@@ -252,7 +254,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Keep session active',
+                              'Pertahankan sesi masuk',
                               style: GoogleFonts.spaceGrotesk(
                                 color: textSecondary,
                                 fontSize: 13,
@@ -268,7 +270,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Biometric auth siap digunakan saat rilis.',
+                                      'Autentikasi biometrik belum tersedia pada versi ini.',
                                     ),
                                   ),
                                 );
@@ -307,7 +309,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   )
                                 : Text(
-                                    'Sign In to Dashboard →',
+                                    'Masuk ke Dashboard →',
                                     style: GoogleFonts.spaceGrotesk(
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold,
