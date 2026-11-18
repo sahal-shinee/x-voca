@@ -598,23 +598,9 @@ function CollabRequestsPage() {
           </div>
 
           {/* Period Select & Search Bar */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            {/* Period Dropdown */}
-            <div className="w-36">
-              <CustomSelect
-                value={selectedPeriod}
-                onChange={(e) => {
-                  setSelectedPeriod(e.target.value);
-                  setCurrentPage(1);
-                }}
-                options={periodOptions}
-                size="sm"
-                aria-label="Filter berdasarkan Periode"
-              />
-            </div>
-
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0 sm:w-64">
               <input
                 type="text"
                 value={searchInput}
@@ -637,6 +623,20 @@ function CollabRequestsPage() {
                 </button>
               )}
             </form>
+
+            {/* Period Dropdown */}
+            <div className="w-full sm:w-40 min-w-0">
+              <CustomSelect
+                value={selectedPeriod}
+                onChange={(e) => {
+                  setSelectedPeriod(e.target.value);
+                  setCurrentPage(1);
+                }}
+                options={periodOptions}
+                size="sm"
+                aria-label="Filter berdasarkan Periode"
+              />
+            </div>
 
             {/* Reset Filter Button */}
             {(activeStatus !== 'all' || selectedPeriod !== 'all' || activeSearch !== '') && (

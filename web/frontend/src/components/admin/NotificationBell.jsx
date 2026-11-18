@@ -126,8 +126,8 @@ export function NotificationBell() {
       {/* Dropdown Panel */}
       {isOpen && (
         <div className="
-          absolute right-0 top-full mt-2
-          w-80 sm:w-96
+          fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-[68px] sm:top-full sm:mt-2
+          w-auto sm:w-96
           bg-bg-card border border-border-subtle
           rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]
           overflow-hidden animate-scale-in z-50

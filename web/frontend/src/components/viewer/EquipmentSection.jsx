@@ -290,7 +290,7 @@ export default function EquipmentSection() {
           <div
             ref={leftCardRef}
             onMouseMove={(e) => handleCardMouseMove(e, leftCardRef)}
-            className="lg:col-span-7 relative flex flex-col justify-between rounded-3xl bg-[#140f26]/85 backdrop-blur-xl border border-white/[0.08] p-6 sm:p-8 hover:border-[#7ee0d2]/30 transition-all duration-300 shadow-[0_12px_40px_rgba(0,0,0,0.45)] group overflow-hidden"
+            className="lg:col-span-7 relative flex flex-col justify-between rounded-3xl bg-[#140f26]/85 backdrop-blur-xl border border-white/[0.08] p-4 sm:p-7 lg:p-8 hover:border-[#7ee0d2]/30 transition-all duration-300 shadow-[0_12px_40px_rgba(0,0,0,0.45)] group overflow-hidden"
             style={{ '--mouse-x': '50%', '--mouse-y': '50%' }}
           >
             {/* Interactive Spotlight Glow */}
@@ -307,45 +307,43 @@ export default function EquipmentSection() {
 
             <div className="relative z-10">
               {/* Card Header */}
-              <div className="flex items-center justify-between pb-5 border-b border-white/[0.08] mb-6">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 flex items-center justify-center text-[#7ee0d2] shadow-[0_0_15px_rgba(126,224,210,0.15)] group-hover:scale-105 transition-transform duration-300">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-white/[0.08] mb-5 sm:mb-6">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 flex items-center justify-center text-[#7ee0d2] shadow-[0_0_15px_rgba(126,224,210,0.15)] group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <CpuIcon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-white font-display">Workstation Pemrosesan</h3>
-                    <p className="text-xs text-[#94a3b8] font-mono">Arsitektur Komputasi & Grafis Siaran</p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-base sm:text-lg text-white font-display leading-tight">Workstation Pemrosesan</h3>
+                    <p className="text-[11px] sm:text-xs text-[#94a3b8] font-mono truncate">Arsitektur Komputasi & Grafis Siaran</p>
                   </div>
                 </div>
 
                 {/* Status indicator */}
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] signal-indicator" />
-                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold tracking-wider">
+                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold tracking-wider whitespace-nowrap">
                     OPERASIONAL
                   </span>
                 </div>
               </div>
 
               {/* Hardware Spec Grid: 4 items */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 mb-5 sm:mb-6">
                 {PC_SPECS.map(({ category, model, detail, benchmark, Icon }) => (
                   <div
                     key={category}
-                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/30 hover:bg-white/[0.04] transition-all duration-200 group/spec hover:-translate-y-0.5"
+                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/30 hover:bg-white/[0.04] transition-all duration-200 group/spec hover:-translate-y-0.5 overflow-hidden"
                   >
-                    <div className="flex flex-col gap-1 mb-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 min-w-0">
-                          <Icon className="w-3 h-3 text-[#7ee0d2]/80 shrink-0" />
-                          <span className="truncate">{category}</span>
-                        </span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#7ee0d2]/10 text-[#7ee0d2] border border-[#7ee0d2]/20 whitespace-nowrap shrink-0 max-w-[46%] text-center leading-tight">
-                          {benchmark}
-                        </span>
-                      </div>
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-2.5">
+                      <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider inline-flex items-center gap-1.5 min-w-0">
+                        <Icon className="w-3.5 h-3.5 text-[#7ee0d2]/80 shrink-0" />
+                        <span className="leading-tight">{category}</span>
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 text-[#7ee0d2] border border-[#7ee0d2]/20 whitespace-nowrap max-w-full truncate leading-tight">
+                        {benchmark}
+                      </span>
                     </div>
-                    <p className="text-base font-bold text-white font-display mb-1 group-hover/spec:text-[#7ee0d2] transition-colors">
+                    <p className="text-[15px] sm:text-base font-bold text-white font-display mb-1 group-hover/spec:text-[#7ee0d2] transition-colors">
                       {model}
                     </p>
                     <p className="text-xs text-[#94a3b8] leading-relaxed font-body">
@@ -357,28 +355,28 @@ export default function EquipmentSection() {
             </div>
 
             {/* Bottom Stream Performance Telemetry */}
-            <div className="relative z-10 pt-4 border-t border-white/[0.08] grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/10 transition-colors">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8] block mb-1">
+            <div className="relative z-10 pt-4 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+              <div className="px-3.5 py-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/10 transition-colors flex sm:flex-col items-center justify-between sm:justify-center sm:text-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8]">
                   Encoding Engine
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-white font-mono">
+                <span className="text-xs sm:text-sm font-bold text-white font-mono whitespace-nowrap">
                   NVENC AV1 / H.264
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-[#7ee0d2]/30 transition-colors">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8] block mb-1">
+              <div className="px-3.5 py-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-[#7ee0d2]/30 transition-colors flex sm:flex-col items-center justify-between sm:justify-center sm:text-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8]">
                   Resolusi Output
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-[#7ee0d2] font-mono">
+                <span className="text-xs sm:text-sm font-bold text-[#7ee0d2] font-mono whitespace-nowrap">
                   1080p · 60 FPS Native
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/10 transition-colors">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8] block mb-1">
+              <div className="px-3.5 py-2.5 sm:p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/10 transition-colors flex sm:flex-col items-center justify-between sm:justify-center sm:text-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#94a3b8]">
                   Multitask Overhead
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-white font-mono">
+                <span className="text-xs sm:text-sm font-bold text-white font-mono whitespace-nowrap">
                   64GB Dual Ch.
                 </span>
               </div>
@@ -389,7 +387,7 @@ export default function EquipmentSection() {
           <div
             ref={rightCardRef}
             onMouseMove={(e) => handleCardMouseMove(e, rightCardRef)}
-            className="lg:col-span-5 relative flex flex-col justify-between rounded-3xl bg-[#140f26]/85 backdrop-blur-xl border border-white/[0.08] p-6 sm:p-8 hover:border-[#7ee0d2]/30 transition-all duration-300 shadow-[0_12px_40px_rgba(0,0,0,0.45)] group overflow-hidden"
+            className="lg:col-span-5 relative flex flex-col justify-between rounded-3xl bg-[#140f26]/85 backdrop-blur-xl border border-white/[0.08] p-4 sm:p-7 lg:p-8 hover:border-[#7ee0d2]/30 transition-all duration-300 shadow-[0_12px_40px_rgba(0,0,0,0.45)] group overflow-hidden"
             style={{ '--mouse-x': '50%', '--mouse-y': '50%' }}
           >
             {/* Interactive Spotlight Glow */}
@@ -406,35 +404,35 @@ export default function EquipmentSection() {
 
             <div className="relative z-10">
               {/* Card Header */}
-              <div className="flex items-center justify-between pb-5 border-b border-white/[0.08] mb-6">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 flex items-center justify-center text-[#7ee0d2] shadow-[0_0_15px_rgba(126,224,210,0.15)] group-hover:scale-105 transition-transform duration-300">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-white/[0.08] mb-5 sm:mb-6">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#7ee0d2]/10 border border-[#7ee0d2]/25 flex items-center justify-center text-[#7ee0d2] shadow-[0_0_15px_rgba(126,224,210,0.15)] group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <MicIcon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-white font-display">Audio & Akustik</h3>
-                    <p className="text-xs text-[#94a3b8] font-mono">Shure MV7+ Podcast Rig</p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-base sm:text-lg text-white font-display leading-tight">Audio & Akustik</h3>
+                    <p className="text-[11px] sm:text-xs text-[#94a3b8] font-mono truncate">Shure MV7+ Podcast Rig</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] shrink-0">
                   <RadioIcon className="w-3.5 h-3.5 text-[#7ee0d2]" />
-                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold tracking-wider">
+                  <span className="text-[10px] font-mono uppercase text-[#7ee0d2] font-semibold tracking-wider whitespace-nowrap">
                     CARDIOID
                   </span>
                 </div>
               </div>
 
               {/* Audio Specifications List */}
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3 mb-5 sm:mb-6">
                 {AUDIO_SPECS.map(({ title, value, desc }) => (
                   <div
                     key={title}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/20 hover:bg-white/[0.03] transition-all duration-200"
+                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#7ee0d2]/20 hover:bg-white/[0.03] transition-all duration-200 overflow-hidden"
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mb-1.5">
                       <span className="text-xs font-bold text-white font-body">{title}</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-[#7ee0d2]">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/20 text-[#7ee0d2] whitespace-nowrap max-w-full truncate">
                         {value}
                       </span>
                     </div>
@@ -447,9 +445,9 @@ export default function EquipmentSection() {
 
               {/* Interactive Audio DSP Simulator with Animated Frequency Bars */}
               <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse shrink-0" />
                     <span className="text-[11px] font-mono uppercase tracking-wider text-white/90 font-medium">
                       Simulasi DSP Profil Vokal
                     </span>

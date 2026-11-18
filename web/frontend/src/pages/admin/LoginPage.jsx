@@ -115,7 +115,7 @@ function LoginPage() {
     <div
       ref={rootRef}
       onMouseMove={handleMouseMove}
-      className="min-h-screen bg-bg-base relative overflow-hidden flex items-center justify-center px-4 py-24"
+      className="min-h-screen bg-bg-base relative overflow-hidden flex flex-col items-center justify-center px-4 py-10 sm:py-16"
       style={{ '--mx': '50%', '--my': '40%' }}
     >
       <style>{`
@@ -202,7 +202,7 @@ function LoginPage() {
       </div>
 
       {/* Login Card (pembungkus luar untuk animasi getar) */}
-      <div className={`relative w-full max-w-[420px] w-full mx-4 ${shake ? 'lg-shake' : ''}`}>
+      <div className={`relative z-10 w-full max-w-[420px] ${shake ? 'lg-shake' : ''}`}>
         {/* Siku sudut bergaya HUD, warnanya ikut status gerbang */}
         <div aria-hidden="true" className={`pointer-events-none transition-colors duration-500 ${gate.tone}`}>
           <span className="absolute -top-1.5 -left-1.5 w-4 h-4 border-t-2 border-l-2 border-current rounded-tl-md"></span>
@@ -211,7 +211,7 @@ function LoginPage() {
           <span className="absolute -bottom-1.5 -right-1.5 w-4 h-4 border-b-2 border-r-2 border-current rounded-br-md"></span>
         </div>
 
-        <div className="lg-rise relative w-full bg-bg-card border border-border-subtle rounded-2xl p-8 lg:p-10 shadow-[0_28px_90px_-28px_rgba(0,0,0,0.8)]">
+        <div className="lg-rise relative w-full bg-bg-card border border-border-subtle rounded-2xl p-6 sm:p-8 lg:p-10 shadow-[0_28px_90px_-28px_rgba(0,0,0,0.8)]">
           {/* Garis cahaya tipis di tepi atas card */}
           <div
             aria-hidden="true"
@@ -397,17 +397,17 @@ function LoginPage() {
       </div>
 
       {/* Back to viewer link */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+      <div className="relative z-10 mt-8 sm:mt-10 flex justify-center">
         <Link 
           to="/" 
-          className="group relative flex items-center gap-2 px-6 py-2.5 rounded-full backdrop-blur-md bg-bg-card/50 border border-border-subtle/60 hover:bg-bg-card/90 hover:border-accent-cyan/50 hover:shadow-[0_0_20px_rgba(126,224,210,0.2)] transition-all duration-300 text-sm font-medium text-text-secondary hover:text-white overflow-hidden"
+          className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md bg-bg-card/60 border border-border-subtle/70 hover:bg-bg-card/90 hover:border-accent-cyan/50 hover:shadow-[0_0_18px_rgba(126,224,210,0.18)] transition-all duration-300 text-xs font-medium text-text-secondary hover:text-white whitespace-nowrap overflow-hidden"
         >
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,224,210,0.08), transparent)' }}></div>
           
-          <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1 group-hover:text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg className="w-3.5 h-3.5 shrink-0 transition-transform duration-300 group-hover:-translate-x-0.5 group-hover:text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Kembali ke Portal Viewer
+          <span>Kembali ke Portal Viewer</span>
         </Link>
       </div>
     </div>

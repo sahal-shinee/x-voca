@@ -583,9 +583,9 @@ function ContentManagementPage() {
           </div>
 
           {/* Search & Sort Dropdowns */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {/* Search Input */}
-            <div className="relative flex-1 sm:w-60">
+            <div className="relative flex-1 min-w-0 sm:w-60">
               <input
                 type="text"
                 value={searchQuery}
@@ -605,30 +605,32 @@ function ContentManagementPage() {
               )}
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="w-44">
-              <CustomSelect
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                options={SORT_OPTIONS}
-                size="sm"
-                aria-label="Urutkan Konten"
-              />
-            </div>
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="flex-1 sm:flex-none sm:w-44 min-w-0">
+                <CustomSelect
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  options={SORT_OPTIONS}
+                  size="sm"
+                  aria-label="Urutkan Konten"
+                />
+              </div>
 
-            {/* Reset Filter Button */}
-            {(statusFilter !== 'all' || searchQuery !== '') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setSearchQuery('');
-                }}
-                className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors"
-              >
-                Reset Filter
-              </button>
-            )}
+              {/* Reset Filter Button */}
+              {(statusFilter !== 'all' || searchQuery !== '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

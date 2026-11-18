@@ -113,31 +113,46 @@ const getCountdownText = (targetDateString) => {
   return `${Math.max(1, diffMins)} menit lagi`;
 };
 
-/** Map action code to timeline badge */
+/** Map action code to timeline badge & centered rail dot color */
 const getActionMeta = (action) => {
   const actionType = action?.action_type || action || '';
 
   const map = {
-    VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
-    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
-    JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
-    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
-    schedule_created: { label: 'Jadwal Dibuat', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
-    REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
-    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
-    CONTENT_ARCHIVE: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
-    asset_archived: { label: 'Aset Diarsip', bg: 'bg-bg-surface', text: 'text-text-secondary' },
-    content_added: { label: 'Konten Baru', bg: 'bg-accent-cyan/15', text: 'text-accent-cyan' },
-    content_updated: { label: 'Konten Diupdate', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
-    BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/15', text: 'text-status-live' },
-    COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
-    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/15', text: 'text-accent-purple' },
-    todo_created: { label: 'Todo Baru', bg: 'bg-accent-gold/15', text: 'text-accent-gold' },
-    todo_completed: { label: 'Todo Selesai', bg: 'bg-emerald-500/15', text: 'text-emerald-500' },
+    VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15 border-accent-cyan/30', text: 'text-accent-cyan', dot: 'bg-accent-cyan' },
+    vote_in: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15 border-accent-cyan/30', text: 'text-accent-cyan', dot: 'bg-accent-cyan' },
+    JADWAL_UPDATE: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15 border-accent-purple/30', text: 'text-accent-purple', dot: 'bg-accent-purple' },
+    schedule_updated: { label: 'Jadwal Diupdate', bg: 'bg-accent-purple/15 border-accent-purple/30', text: 'text-accent-purple', dot: 'bg-accent-purple' },
+    schedule_created: { label: 'Jadwal Dibuat', bg: 'bg-accent-cyan/15 border-accent-cyan/30', text: 'text-accent-cyan', dot: 'bg-accent-cyan' },
+    REQUEST_GAME: { label: 'Request Game', bg: 'bg-accent-gold/15 border-accent-gold/30', text: 'text-accent-gold', dot: 'bg-accent-gold' },
+    game_requested: { label: 'Request Game', bg: 'bg-accent-gold/15 border-accent-gold/30', text: 'text-accent-gold', dot: 'bg-accent-gold' },
+    CONTENT_ARCHIVE: { label: 'Aset Diarsip', bg: 'bg-bg-card border-border-subtle', text: 'text-text-secondary', dot: 'bg-text-muted/70' },
+    asset_archived: { label: 'Aset Diarsip', bg: 'bg-bg-card border-border-subtle', text: 'text-text-secondary', dot: 'bg-text-muted/70' },
+    content_added: { label: 'Konten Baru', bg: 'bg-accent-cyan/15 border-accent-cyan/30', text: 'text-accent-cyan', dot: 'bg-accent-cyan' },
+    content_updated: { label: 'Konten Diupdate', bg: 'bg-accent-purple/15 border-accent-purple/30', text: 'text-accent-purple', dot: 'bg-accent-purple' },
+    BROADCASTING_TOGGLE: { label: 'Broadcasting', bg: 'bg-status-live/15 border-status-live/30', text: 'text-status-live', dot: 'bg-status-live' },
+    COLLAB_REQUEST: { label: 'Collab Request', bg: 'bg-accent-purple/15 border-accent-purple/30', text: 'text-accent-purple', dot: 'bg-accent-purple' },
+    collab_request: { label: 'Collab Request', bg: 'bg-accent-purple/15 border-accent-purple/30', text: 'text-accent-purple', dot: 'bg-accent-purple' },
+    STATUS_CHANGED: { label: 'Status Diubah', bg: 'bg-accent-purple/10 border-accent-purple/25', text: 'text-accent-purple', dot: 'bg-accent-purple/80' },
+    status_changed: { label: 'Status Diubah', bg: 'bg-accent-purple/10 border-accent-purple/25', text: 'text-accent-purple', dot: 'bg-accent-purple/80' },
+    todo_created: { label: 'Todo Baru', bg: 'bg-accent-gold/15 border-accent-gold/30', text: 'text-accent-gold', dot: 'bg-accent-gold' },
+    todo_completed: { label: 'Todo Selesai', bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-500', dot: 'bg-emerald-500' },
   };
 
   const found = map[actionType] || map[actionType.toUpperCase()] || map[actionType.toLowerCase()];
-  return found || { label: actionType || 'Aktivitas', bg: 'bg-bg-surface', text: 'text-text-secondary' };
+  if (found) return found;
+
+  const formattedLabel = actionType
+    ? actionType
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b\w/g, (ch) => ch.toUpperCase())
+    : 'Aktivitas';
+
+  return {
+    label: formattedLabel,
+    bg: 'bg-bg-card border-border-subtle',
+    text: 'text-text-secondary',
+    dot: 'bg-text-muted/60',
+  };
 };
 
 /** Filter options for audit log */
@@ -475,9 +490,11 @@ function DashboardPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Halo, <span className="text-accent-cyan">{userName}</span>
               </h1>
-              <p className="text-xs text-text-secondary flex items-center gap-2 mt-1">
-                <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-                <span>{formattedDate}</span>
+              <p className="text-xs text-text-secondary flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                  <span>{formattedDate}</span>
+                </span>
                 <span className="font-mono text-text-primary font-medium">{formattedTime} WIB</span>
               </p>
             </div>
@@ -485,7 +502,7 @@ function DashboardPage() {
 
           {/* Right: Master On-Air Broadcast Console (Proporsi Seimbang & Clean) */}
           <div className={`
-            flex items-center justify-between gap-4 sm:gap-6 px-5 py-4 rounded-2xl border transition-all duration-200 self-stretch lg:self-auto shadow-xs
+            flex items-center justify-between gap-3 sm:gap-6 px-4 py-3.5 sm:px-5 sm:py-4 rounded-2xl border transition-all duration-200 self-stretch lg:self-auto shadow-xs
             ${isLiveState
               ? 'bg-status-live/[0.08] dark:bg-status-live/[0.12] border-status-live/30 ring-1 ring-status-live/20'
               : 'bg-bg-base/70 dark:bg-bg-surface/80 border-border-subtle hover:border-border-active'}
@@ -554,16 +571,16 @@ function DashboardPage() {
       </div>
 
       {/* ── 2. Full-Width Quick-Action Grid (Proporsi Rapi & Bebas Icon AI Slop) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 w-full">
         {/* Action 1: Jadwal Baru */}
         <button
           type="button"
           onClick={() => navigate('/admin/schedules?action=create')}
-          className="flex items-center justify-between p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-purple/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99]"
+          className="flex items-center justify-between gap-2 px-3 py-3 sm:p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-purple/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99] min-w-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <CalendarPlus className="w-4 h-4 text-text-muted group-hover:text-accent-purple transition-colors flex-shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-text-primary truncate">
               Jadwal Baru
             </span>
           </div>
@@ -574,16 +591,16 @@ function DashboardPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/voting')}
-          className="flex items-center justify-between p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-cyan/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99]"
+          className="flex items-center justify-between gap-2 px-3 py-3 sm:p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-cyan/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99] min-w-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <Gamepad2 className="w-4 h-4 text-text-muted group-hover:text-accent-cyan transition-colors flex-shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-text-primary truncate">
               Moderasi Suara
             </span>
           </div>
           {stats.pendingGames > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 flex-shrink-0">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 flex-shrink-0">
               {stats.pendingGames}
             </span>
           ) : (
@@ -595,16 +612,16 @@ function DashboardPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/collab-requests')}
-          className="flex items-center justify-between p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-purple/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99]"
+          className="flex items-center justify-between gap-2 px-3 py-3 sm:p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-purple/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99] min-w-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <Users className="w-4 h-4 text-text-muted group-hover:text-accent-purple transition-colors flex-shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-text-primary truncate">
               Collab Request
             </span>
           </div>
           {stats.pendingCollabs > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent-purple/15 text-accent-purple border border-accent-purple/30 flex-shrink-0">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-purple/15 text-accent-purple border border-accent-purple/30 flex-shrink-0">
               {stats.pendingCollabs}
             </span>
           ) : (
@@ -616,11 +633,11 @@ function DashboardPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/content?action=create')}
-          className="flex items-center justify-between p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-gold/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99]"
+          className="flex items-center justify-between gap-2 px-3 py-3 sm:p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-gold/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left active:scale-[0.99] min-w-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <BookOpen className="w-4 h-4 text-text-muted group-hover:text-accent-gold transition-colors flex-shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-text-primary truncate">
               Tambah Konten
             </span>
           </div>
@@ -631,16 +648,16 @@ function DashboardPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/todos')}
-          className="flex items-center justify-between p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-emerald-500/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left col-span-2 sm:col-span-1 active:scale-[0.99]"
+          className="flex items-center justify-between gap-2 px-3 py-3 sm:p-3.5 rounded-xl bg-bg-card border border-border-subtle hover:border-emerald-500/50 hover:bg-bg-card-hover transition-all duration-150 shadow-sm group text-left col-span-2 sm:col-span-1 active:scale-[0.99] min-w-0"
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <CheckSquare className="w-4 h-4 text-text-muted group-hover:text-emerald-500 transition-colors flex-shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-text-primary truncate">
               Daftar Tugas
             </span>
           </div>
           {stats.urgentTodos > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30 flex-shrink-0">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30 flex-shrink-0 whitespace-nowrap">
               {stats.urgentTodos} Urgent
             </span>
           ) : (
@@ -704,30 +721,26 @@ function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
         {/* ── 3.1 Card 1 (Span 2 Kolom): Live Voting Race & Community Pulse ─── */}
-        <div className="lg:col-span-2 relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-accent-cyan/40 transition-all group">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/admin/voting')}
+          onKeyDown={(e) => { if (e.key === 'Enter') navigate('/admin/voting'); }}
+          className="lg:col-span-2 relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-accent-cyan/40 cursor-pointer transition-all hover:-translate-y-0.5 group overflow-hidden"
+        >
           {/* Top row */}
           <div>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2.5 mb-4">
+              <div className="flex items-center gap-2 min-w-0">
                 <Trophy className="w-4 h-4 text-accent-gold flex-shrink-0" />
                 <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary truncate">
                   Voting Pilihan Komunitas
                 </h3>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-bg-surface text-text-secondary border border-border-subtle">
-                  {stats.totalVotes === 0 ? 'Periode Baru' : `${stats.totalVotes.toLocaleString('id-ID')} Suara`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/voting')}
-                  className="p-1 rounded-lg text-text-muted hover:text-accent-cyan transition-colors"
-                  title="Buka Halaman Voting"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-bg-surface text-text-secondary border border-border-subtle whitespace-nowrap shrink-0">
+                {stats.totalVotes === 0 ? 'Periode Baru' : `${stats.totalVotes.toLocaleString('id-ID')} Suara`}
+              </span>
             </div>
 
             {/* Voting Race Details */}
@@ -739,11 +752,11 @@ function DashboardPage() {
             ) : stats.topVotedGame ? (
               <div className="space-y-3 mt-2">
                 <div>
-                  <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                    <span className="text-base sm:text-lg font-bold text-text-primary truncate">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1.5">
+                    <span className="text-base sm:text-lg font-bold text-text-primary truncate min-w-0">
                       {stats.topVotedGame.title}
                     </span>
-                    <span className="text-xs font-mono font-bold text-accent-gold whitespace-nowrap">
+                    <span className="text-xs font-mono font-bold text-accent-gold whitespace-nowrap shrink-0">
                       #1 Teratas • {stats.topVotedGame.vote_count} suara ({stats.topVotedGame.percentage}%)
                     </span>
                   </div>
@@ -759,40 +772,48 @@ function DashboardPage() {
 
                 {/* Second runner up if exists */}
                 {topGamesList.length > 1 && topGamesList[1].id !== stats.topVotedGame.id && (
-                  <div className="flex items-center justify-between text-xs text-text-muted pt-2 border-t border-border-subtle">
-                    <span className="truncate max-w-[200px] flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono text-text-muted">#2</span>
+                  <div className="flex items-center justify-between gap-2 text-xs text-text-muted pt-2 border-t border-border-subtle">
+                    <span className="truncate min-w-0 flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono text-text-muted shrink-0">#2</span>
                       <span className="truncate font-medium text-text-secondary">{topGamesList[1].title}</span>
                     </span>
-                    <span className="font-mono text-text-secondary whitespace-nowrap">
+                    <span className="font-mono text-text-secondary whitespace-nowrap shrink-0">
                       {topGamesList[1].vote_count || 0} suara
                     </span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="py-3 text-xs text-text-muted">
+              <div className="py-3 text-xs text-text-muted leading-relaxed">
                 Belum ada suara masuk untuk periode ini. Sesi voting siap menerima pilihan penonton.
               </div>
             )}
           </div>
 
-          {/* Bottom Action */}
-          <div className="pt-4 mt-3 border-t border-border-subtle flex items-center justify-between">
+          {/* Bottom Action (Seragam dengan Kartu Jadwal & Persiapan) */}
+          <div className="pt-3.5 mt-3 border-t border-border-subtle flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-text-muted">
               {stats.pendingGames > 0 ? `${stats.pendingGames} request game menunggu review` : (stats.activePeriod ? `Periode: ${stats.activePeriod}` : 'Voting aktif')}
             </span>
-            {stats.topVotedGame && (
-              <button
-                type="button"
-                onClick={() => navigate(`/admin/schedules?action=create&game=${encodeURIComponent(stats.topVotedGame.title)}`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent-gold/15 hover:bg-accent-gold/25 border border-accent-gold/30 text-accent-gold transition-all active:scale-95 shadow-sm"
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Jadwalkan Game Ini</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            )}
+            <div className="flex items-center gap-2 ml-auto">
+              {stats.topVotedGame && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/admin/schedules?action=create&game=${encodeURIComponent(stats.topVotedGame.title)}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent-gold/15 hover:bg-accent-gold/25 border border-accent-gold/30 text-accent-gold transition-all active:scale-95 shadow-sm whitespace-nowrap"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Jadwalkan</span>
+                </button>
+              )}
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-cyan group-hover:text-accent-cyan-hover transition-colors whitespace-nowrap">
+                <span>Kelola Voting</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
           </div>
         </div>
 
@@ -802,17 +823,17 @@ function DashboardPage() {
           tabIndex={0}
           onClick={() => navigate('/admin/schedules')}
           onKeyDown={(e) => { if (e.key === 'Enter') navigate('/admin/schedules'); }}
-          className="relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-accent-purple/40 cursor-pointer transition-all hover:-translate-y-0.5 group"
+          className="relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-accent-purple/40 cursor-pointer transition-all hover:-translate-y-0.5 group overflow-hidden"
         >
           <div>
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2.5 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <Calendar className="w-4 h-4 text-accent-purple flex-shrink-0" />
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary">
+                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary truncate">
                   Jadwal Siaran
                 </h3>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-bg-surface text-text-secondary border border-border-subtle">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-bg-surface text-text-secondary border border-border-subtle whitespace-nowrap shrink-0">
                 {stats.upcomingSchedules} Sesi
               </span>
             </div>
@@ -855,17 +876,17 @@ function DashboardPage() {
           tabIndex={0}
           onClick={() => navigate('/admin/todos')}
           onKeyDown={(e) => { if (e.key === 'Enter') navigate('/admin/todos'); }}
-          className="relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 cursor-pointer transition-all hover:-translate-y-0.5 group"
+          className="relative rounded-2xl border border-border-subtle bg-bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 cursor-pointer transition-all hover:-translate-y-0.5 group overflow-hidden"
         >
           <div>
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2.5 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <CheckSquare className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary">
+                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-text-secondary truncate">
                   Persiapan Siaran
                 </h3>
               </div>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium border ${
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border whitespace-nowrap shrink-0 ${
                 stats.urgentTodos > 0
                   ? 'bg-rose-500/10 text-rose-500 border-rose-500/25 font-bold'
                   : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
@@ -1056,7 +1077,7 @@ function DashboardPage() {
           </div>
 
           {/* Timeline Feed (Bukan Tabel SQL) */}
-          <div className="p-5 flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-5 flex-1 overflow-y-auto">
             {auditLogsLoading ? (
               <div className="space-y-3">
                 <div className="h-14 bg-bg-surface rounded-xl animate-pulse" />
@@ -1070,7 +1091,7 @@ function DashboardPage() {
                 <p className="text-xs text-text-muted">Aktivitas sistem dan penonton akan dicatat otomatis di sini.</p>
               </div>
             ) : (
-              <div className="relative pl-6 space-y-3.5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-border-subtle">
+              <div className="flex flex-col">
                 {displayedLogs.map((log, idx) => {
                   const normalizedLog = {
                     id: log.id || idx,
@@ -1080,29 +1101,52 @@ function DashboardPage() {
                     time: log.time_ago || (log.created_at ? formatTimeAgo(log.created_at) : '-'),
                   };
                   const meta = getActionMeta(normalizedLog.action);
+                  const isFirst = idx === 0;
+                  const isLast = idx === displayedLogs.length - 1;
 
                   return (
-                    <div key={normalizedLog.id} className="relative group">
-                      {/* Timeline Node */}
-                      <div className="absolute -left-6 top-3 w-2.5 h-2.5 rounded-full bg-border-subtle group-hover:bg-accent-cyan border border-bg-card transition-all" />
+                    <div key={normalizedLog.id} className="relative flex items-stretch gap-3 group">
+                      {/* Geometrically Centered Timeline Rail */}
+                      <div className="relative w-5 shrink-0 flex items-center justify-center">
+                        {/* Upper connector segment (hidden for first entry) */}
+                        {!isFirst && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-0 bottom-1/2 left-1/2 -translate-x-1/2 w-[1.5px] bg-border-subtle"
+                          />
+                        )}
+                        {/* Lower connector segment (hidden for last entry) */}
+                        {!isLast && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-1/2 bottom-0 left-1/2 -translate-x-1/2 w-[1.5px] bg-border-subtle"
+                          />
+                        )}
+                        {/* Dot: centered both horizontally on rail & vertically with card */}
+                        <span
+                          className={`relative z-10 w-2.5 h-2.5 rounded-full ring-4 ring-bg-card transition-all duration-200 ${meta.dot} group-hover:scale-125 group-hover:bg-accent-cyan`}
+                        />
+                      </div>
 
-                      {/* Content Card */}
-                      <div className="p-3 rounded-xl bg-bg-surface hover:bg-bg-card-hover border border-border-subtle transition-all">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold font-mono rounded-full border ${meta.bg} ${meta.text}`}>
-                            {meta.label}
-                          </span>
-                          <span className="text-[11px] text-text-muted font-mono flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {normalizedLog.time}
-                          </span>
+                      {/* Content Card (symmetric vertical padding keeps dot centered with card) */}
+                      <div className="flex-1 min-w-0 py-1.5">
+                        <div className="p-3 sm:p-3.5 rounded-xl bg-bg-surface hover:bg-bg-card-hover border border-border-subtle transition-all">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 text-[10px] font-semibold font-mono rounded-full border whitespace-nowrap ${meta.bg} ${meta.text}`}>
+                              {meta.label}
+                            </span>
+                            <span className="text-[11px] text-text-muted font-mono inline-flex items-center gap-1 whitespace-nowrap">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              {normalizedLog.time}
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-text-primary leading-relaxed font-medium break-words">
+                            {normalizedLog.detail}
+                            {normalizedLog.sub_detail && (
+                              <span className="text-text-muted font-normal"> — {normalizedLog.sub_detail}</span>
+                            )}
+                          </p>
                         </div>
-                        <p className="text-xs sm:text-sm text-text-primary leading-relaxed font-medium">
-                          {normalizedLog.detail}
-                          {normalizedLog.sub_detail && (
-                            <span className="text-text-muted font-normal"> — {normalizedLog.sub_detail}</span>
-                          )}
-                        </p>
                       </div>
                     </div>
                   );
@@ -1112,7 +1156,7 @@ function DashboardPage() {
           </div>
 
           {/* Timeline Pagination */}
-          <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between bg-bg-surface">
+          <div className="px-4 sm:px-5 py-3 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-bg-surface">
             <span className="text-xs text-text-muted">
               Menampilkan {displayedLogs.length} dari {auditLogsTotal} log aktivitas
             </span>
@@ -1121,7 +1165,7 @@ function DashboardPage() {
                 type="button"
                 onClick={() => { const p = Math.max(1, auditLogsPage - 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
                 disabled={auditLogsPage <= 1 || auditLogsLoading}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -1133,7 +1177,7 @@ function DashboardPage() {
                 type="button"
                 onClick={() => { const p = Math.min(totalPages, auditLogsPage + 1); setAuditLogsPage(p); fetchAuditLogs(p); }}
                 disabled={auditLogsPage >= totalPages || auditLogsLoading}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-text-secondary border border-border-subtle rounded-lg hover:bg-bg-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />

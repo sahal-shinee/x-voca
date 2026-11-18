@@ -62,11 +62,11 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       sticky top-0 z-30 h-16
       bg-bg-nav/95 backdrop-blur-md
       border-b border-border-subtle
-      flex items-center justify-between
-      px-4 lg:px-6
+      flex items-center justify-between gap-2
+      px-3 sm:px-4 lg:px-6
     ">
       {/* ── LEFT: Mobile Menu + Breadcrumb ── */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 sm:flex-initial">
         <button
           type="button"
           onClick={onToggleMobileMenu}
@@ -80,12 +80,13 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
         <div className="flex items-center gap-1.5 text-sm min-w-0">
           <Link
             to="/admin/dashboard"
-            className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+            className="hidden sm:flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+            aria-label="Dashboard"
           >
             <Home className="w-3.5 h-3.5" />
           </Link>
-          <span className="text-text-muted/60 text-xs font-mono flex-shrink-0">/</span>
-          <span className="text-sm font-semibold text-text-primary tracking-tight truncate max-w-[120px] sm:max-w-none">
+          <span className="hidden sm:inline text-text-muted/60 text-xs font-mono flex-shrink-0">/</span>
+          <span className="text-sm font-semibold text-text-primary tracking-tight truncate">
             {currentPage}
           </span>
         </div>
@@ -124,7 +125,7 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       </button>
 
       {/* ── RIGHT: Broadcasting status + Notification + Avatar Dropdown ── */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Broadcasting Status */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface border border-border-subtle">
           <Radio className={`w-3.5 h-3.5 ${fbIsReady ? 'text-accent-cyan' : 'text-text-muted'}`} />

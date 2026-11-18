@@ -661,13 +661,13 @@ function TodoPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {/* Dual View Mode Switcher */}
-          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
+          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9 sm:h-10">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 sm:h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'list'
                   ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -681,7 +681,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 sm:h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'kanban'
                   ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -699,7 +699,7 @@ function TodoPage() {
             type="button"
             onClick={() => fetchTodos()}
             disabled={loading}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
+            className="h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang daftar todo"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -711,7 +711,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setShowClearModal(true)}
-              className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors shrink-0"
+              className="h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors shrink-0"
               title="Bersihkan semua tugas yang sudah selesai"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -723,7 +723,7 @@ function TodoPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
+            className="h-9 sm:h-10 inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Todo</span>
@@ -828,12 +828,14 @@ function TodoPage() {
         </div>
 
         {/* Integrated Progress Strip */}
-        <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs">
-            <BarChart3 className="w-3.5 h-3.5 text-accent-cyan" />
-            <span className="text-text-muted">Progres Penyelesaian:</span>
-            <strong className="text-text-primary font-mono">
-              {stats.completed} dari {stats.total} tugas ({stats.percent}%)
+        <div className="pt-3 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center justify-between sm:justify-start gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-text-muted">
+              <BarChart3 className="w-3.5 h-3.5 text-accent-cyan shrink-0" />
+              <span className="whitespace-nowrap">Progres Penyelesaian</span>
+            </span>
+            <strong className="text-text-primary font-mono whitespace-nowrap">
+              {stats.completed}/{stats.total} tugas ({stats.percent}%)
             </strong>
           </div>
           <div className="w-full sm:max-w-sm h-2 bg-bg-surface rounded-full overflow-hidden border border-border-subtle">
@@ -848,21 +850,21 @@ function TodoPage() {
       {/* ── 3. Quick-Add Inline Bar ──────────────────────────────────────────── */}
       <form
         onSubmit={handleQuickAdd}
-        className="bg-bg-card border border-border-subtle rounded-2xl p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+        className="bg-bg-card border border-border-subtle rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-2.5"
       >
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <input
             type="text"
             value={quickTitle}
             onChange={(e) => setQuickTitle(e.target.value)}
             placeholder="Tambah tugas cepat (ketik lalu tekan Enter)..."
-            className="w-full pl-3.5 pr-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none"
+            className="w-full pl-3.5 pr-3 py-2.5 md:py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
           {/* Category Select */}
-          <div className="w-36">
+          <div className="w-full sm:w-40 min-w-0">
             <CustomSelect
               value={quickCategory}
               onChange={(e) => setQuickCategory(e.target.value)}
@@ -876,7 +878,7 @@ function TodoPage() {
           </div>
 
           {/* Priority Select */}
-          <div className="w-28">
+          <div className="w-full sm:w-28 min-w-0">
             <CustomSelect
               value={quickPriority}
               onChange={(e) => setQuickPriority(e.target.value)}
@@ -893,19 +895,26 @@ function TodoPage() {
           <button
             type="submit"
             disabled={!quickTitle.trim() || isQuickAdding}
-            className="h-8 px-4 text-xs font-semibold bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta rounded-xl transition-all disabled:opacity-40 flex-shrink-0 shadow-xs active:scale-95"
+            className="col-span-2 sm:col-span-1 w-full sm:w-auto h-9 px-4 text-xs font-semibold bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta rounded-xl transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 flex-shrink-0 shadow-xs active:scale-95 whitespace-nowrap"
           >
-            {isQuickAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '+ Tambah'}
+            {isQuickAdding ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Tambah</span>
+              </>
+            )}
           </button>
         </div>
       </form>
 
       {/* ── 4. Controller: Search, Filter Tabs, Categories & Sort ────────────── */}
-      <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+      <div className="bg-bg-card border border-border-subtle rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-sm">
         {/* Row 1: Search, Status Tabs, Sort */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-0.5 px-0.5">
             {[
               { key: 'all',         label: 'ALL',         count: stats.total },
               { key: 'pending',     label: 'PENDING',     count: stats.pending },
@@ -919,7 +928,7 @@ function TodoPage() {
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
                   className={`
-                    px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
+                    px-3 py-1.5 sm:py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5
                     ${isActive
                       ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/35 shadow-xs font-bold'
                       : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
@@ -937,7 +946,7 @@ function TodoPage() {
           </div>
 
           {/* Search + Sort */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-shrink-0">
             {/* Search */}
             <div className="relative flex-1 min-w-0 sm:w-60">
               <input
@@ -959,44 +968,46 @@ function TodoPage() {
               )}
             </div>
 
-            {/* Sort */}
-            <div className="w-44">
-              <CustomSelect
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                options={[
-                  { value: 'deadline', label: 'Batas Waktu Terdekat' },
-                  { value: 'priority', label: 'Prioritas Tertinggi' },
-                  { value: 'newest',   label: 'Terbaru Dibuat' },
-                ]}
-                size="sm"
-                aria-label="Urutkan Todo"
-              />
-            </div>
+            {/* Sort + Reset row */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 sm:flex-none sm:w-44 min-w-0">
+                <CustomSelect
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  options={[
+                    { value: 'deadline', label: 'Batas Waktu Terdekat' },
+                    { value: 'priority', label: 'Prioritas Tertinggi' },
+                    { value: 'newest',   label: 'Terbaru Dibuat' },
+                  ]}
+                  size="sm"
+                  aria-label="Urutkan Todo"
+                />
+              </div>
 
-            {/* Reset */}
-            {(statusFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setCategoryFilter('all');
-                  setSearchQuery('');
-                }}
-                className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors"
-              >
-                Reset Filter
-              </button>
-            )}
+              {/* Reset */}
+              {(statusFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setCategoryFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Row 2: Category Pills */}
-        <div className="pt-2 border-t border-border-subtle flex flex-col gap-1.5">
+        <div className="pt-2.5 border-t border-border-subtle flex flex-col gap-2">
           <span className="text-[10px] text-text-muted font-semibold uppercase tracking-widest font-mono flex items-center gap-1 flex-shrink-0">
             <Tag className="w-3 h-3" /> Kategori
           </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 snap-x">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide snap-x -mx-0.5 px-0.5">
             {CATEGORIES.map((cat) => {
               const count = cat.id === 'all'
                 ? todos.length
