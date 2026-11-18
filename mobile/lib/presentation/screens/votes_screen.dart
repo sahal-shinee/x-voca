@@ -242,6 +242,61 @@ class _VotesScreenState extends ConsumerState<VotesScreen>
     }
   }
 
+  /// Menghapus game dari sistem dengan dialog konfirmasi edukatif.
+  Future<void> _handleDeleteGame(GameModel game) async {
+    HapticFeedback.lightImpact();
+
+    String contentMessage;
+    if (game.status == 'requested') {
+      contentMessage =
+          'Usulan game "${game.title}" akan ditolak dan dihapus permanen dari daftar usulan.';
+    } else if (game.status == 'done') {
+      contentMessage =
+          'PERINGATAN RIWAYAT:\n'
+          'Game "${game.title}" sudah berstatus Tamat/Selesai.\n\n'
+          'Menghapus game ini akan menghilangkan rekam jejaknya dari riwayat trofi pencapaian fansite.\n\n'
+          'Tetap hapus hanya jika data ini merupakan kesalahan input atau duplikat.';
+    } else {
+      contentMessage =
+          'PERHATIAN:\n'
+          'Game "${game.title}" akan dihapus permanen dari daftar polling.\n\n'
+          '💡 Catatan Konsep:\n'
+          'Gunakan tombol Hapus ini HANYA jika game ini salah input, usulan spam/troll, atau batal dimainkan.\n\n'
+          'Jika Anda sudah memainkan dan menamatkan game ini di siaran, sebaiknya gunakan opsi "Tandai Selesai" agar tercatat di riwayat tamat fansite.';
+    }
+
+    final confirm = await _showConfirmDialog(
+      context: context,
+      title: 'Hapus Game "${game.title}"?',
+      content: contentMessage,
+      confirmText: 'Tetap Hapus',
+      confirmColor: AppColors.accentRed,
+      icon: LucideIcons.trash,
+    );
+
+    if (confirm) {
+      try {
+        await ref.read(gameProvider.notifier).deleteGame(game.id);
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Game "${game.title}" berhasil dihapus',
+            isSuccess: true,
+            icon: LucideIcons.trash,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          _showFloatingToast(
+            context,
+            message: 'Gagal menghapus game: $e',
+            isSuccess: false,
+          );
+        }
+      }
+    }
+  }
+
   // Modal Tambah Usulan Game Kandidat Baru
   /// Menampilkan modal dialog untuk mendaftarkan game kandidat voting baru.
   void _showAddGameModal() {
@@ -1514,217 +1569,219 @@ class _VotesScreenState extends ConsumerState<VotesScreen>
                       ),
                     ),
 
-                    // Moderasi Bar Aksi untuk Game Status Non-Done
-                    if (game.status != 'done') ...[
-                      Divider(color: borderSubtle, height: 1),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (game.status == 'requested') ...[
-                              // Touch Target Minimum 44x44 dp: Tolak Game
-                              InkWell(
-                                borderRadius: BorderRadius.circular(6),
-                                onTap: () async {
-                                  HapticFeedback.lightImpact();
-                                  final confirm = await _showConfirmDialog(
-                                    context: context,
-                                    title: 'Hapus Usulan Game?',
-                                    content:
-                                        'Game "${game.title}" akan ditolak dan dihapus permanen dari daftar usulan.',
-                                    confirmText: 'Tolak & Hapus',
-                                    confirmColor: AppColors.accentRed,
-                                    icon: LucideIcons.trash,
-                                  );
-
-                                  if (confirm) {
-                                    await ref
-                                        .read(gameProvider.notifier)
-                                        .deleteGame(game.id);
-                                    if (mounted) {
-                                      _showFloatingToast(
-                                        context,
-                                        message: 'Usulan game "${game.title}" ditolak',
-                                        isSuccess: true,
-                                        icon: LucideIcons.trash,
-                                      );
-                                    }
-                                  }
-                                },
-                                child: Container(
-                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(LucideIcons.trash,
-                                          size: 13, color: AppColors.accentRed),
-                                      const SizedBox(width: 5),
-                                      Text('Tolak',
-                                          style: GoogleFonts.spaceMono(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.accentRed)),
-                                    ],
+                    // Bar Aksi Moderasi Game
+                    Divider(color: borderSubtle, height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      child: Row(
+                        children: [
+                          // Kiri: Tombol Hapus (Tersedia untuk semua status dengan teks spesifik)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap: () => _handleDeleteGame(game),
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 40, minWidth: 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(LucideIcons.trash,
+                                      size: 13, color: AppColors.accentRed),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    game.status == 'requested'
+                                        ? 'Tolak Usulan'
+                                        : (game.status == 'done'
+                                            ? 'Hapus Riwayat'
+                                            : 'Hapus Game'),
+                                    style: GoogleFonts.spaceMono(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accentRed,
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const Spacer(),
+
+                          // Kanan: Tombol Aksi Status Utama
+                          if (game.status == 'requested')
+                            InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () async {
+                                HapticFeedback.lightImpact();
+                                final confirm = await _showConfirmDialog(
+                                  context: context,
+                                  title: 'Terima Usulan Game?',
+                                  content:
+                                      'Game "${game.title}" akan disetujui dan masuk ke daftar polling resmi.',
+                                  confirmText: 'Ya, Terima',
+                                  confirmColor: AppColors.accentCyan,
+                                  icon: LucideIcons.circle_check,
+                                );
+
+                                if (confirm) {
+                                  await ref
+                                      .read(gameProvider.notifier)
+                                      .updateGameStatus(game.id, 'accepted');
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Game "${game.title}" disetujui untuk voting!',
+                                      isSuccess: true,
+                                    );
+                                  }
+                                }
+                              },
+                              child: Container(
+                                constraints: const BoxConstraints(minHeight: 40),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(LucideIcons.circle_check,
+                                        size: 13, color: AppColors.accentCyan),
+                                    const SizedBox(width: 5),
+                                    Text('Terima & Buka Vote',
+                                        style: GoogleFonts.spaceMono(
+                                            fontSize: 10.5,
+                                            color: AppColors.primary(isDark),
+                                            fontWeight: FontWeight.bold)),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                            ),
 
-                              // Touch Target Minimum 44x44 dp: Terima Game
-                              InkWell(
-                                borderRadius: BorderRadius.circular(6),
-                                onTap: () async {
-                                  HapticFeedback.lightImpact();
-                                  final confirm = await _showConfirmDialog(
-                                    context: context,
-                                    title: 'Terima Usulan Game?',
-                                    content:
-                                        'Game "${game.title}" akan disetujui dan masuk ke daftar polling resmi.',
-                                    confirmText: 'Ya, Terima',
-                                    confirmColor: AppColors.accentCyan,
-                                    icon: LucideIcons.circle_check,
-                                  );
+                          if (game.status == 'accepted')
+                            InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () async {
+                                HapticFeedback.lightImpact();
+                                final confirm = await _showConfirmDialog(
+                                  context: context,
+                                  title: 'Mulai Mainkan Game?',
+                                  content:
+                                      'Status "${game.title}" akan diubah menjadi Sedang Dimainkan (Playing).',
+                                  confirmText: 'Ya, Mainkan',
+                                  confirmColor: AppColors.accentEmerald,
+                                  icon: LucideIcons.play,
+                                );
 
-                                  if (confirm) {
-                                    await ref
-                                        .read(gameProvider.notifier)
-                                        .updateGameStatus(game.id, 'accepted');
-                                    if (mounted) {
-                                      _showFloatingToast(
-                                        context,
-                                        message: 'Game "${game.title}" disetujui untuk voting!',
-                                        isSuccess: true,
-                                      );
-                                    }
+                                if (confirm) {
+                                  await ref
+                                      .read(gameProvider.notifier)
+                                      .updateGameStatus(game.id, 'playing');
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Game "${game.title}" kini sedang dimainkan!',
+                                      isSuccess: true,
+                                      icon: LucideIcons.play,
+                                    );
                                   }
-                                },
-                                child: Container(
-                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(LucideIcons.circle_check,
-                                          size: 13, color: AppColors.accentCyan),
-                                      const SizedBox(width: 5),
-                                      Text('Terima',
-                                          style: GoogleFonts.spaceMono(
-                                              fontSize: 11,
-                                              color: AppColors.primary(isDark),
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
+                                }
+                              },
+                              child: Container(
+                                constraints: const BoxConstraints(minHeight: 40),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(LucideIcons.play,
+                                        size: 13, color: AppColors.accentEmerald),
+                                    const SizedBox(width: 5),
+                                    Text('Mulai Mainkan',
+                                        style: GoogleFonts.spaceMono(
+                                            fontSize: 10.5,
+                                            color: AppColors.accentEmerald,
+                                            fontWeight: FontWeight.bold)),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
 
-                            if (game.status == 'accepted')
-                              // Touch Target Minimum 44x44 dp: Mulai Mainkan
-                              InkWell(
-                                borderRadius: BorderRadius.circular(6),
-                                onTap: () async {
-                                  HapticFeedback.lightImpact();
-                                  final confirm = await _showConfirmDialog(
-                                    context: context,
-                                    title: 'Mulai Mainkan Game?',
-                                    content:
-                                        'Status "${game.title}" akan diubah menjadi Sedang Dimainkan (Playing).',
-                                    confirmText: 'Ya, Mainkan',
-                                    confirmColor: AppColors.accentEmerald,
-                                    icon: LucideIcons.play,
-                                  );
+                          if (game.status == 'playing')
+                            InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () async {
+                                HapticFeedback.lightImpact();
+                                final confirm = await _showConfirmDialog(
+                                  context: context,
+                                  title: 'Selesaikan Game?',
+                                  content:
+                                      'Game "${game.title}" akan ditandai Tamat / Selesai (Done).\n\nGame ini akan tersimpan rapi di riwayat pencapaian tamat fansite.',
+                                  confirmText: 'Ya, Selesai (Tamat)',
+                                  confirmColor: AppColors.accentEmerald,
+                                  icon: LucideIcons.check_check,
+                                );
 
-                                  if (confirm) {
-                                    await ref
-                                        .read(gameProvider.notifier)
-                                        .updateGameStatus(game.id, 'playing');
-                                    if (mounted) {
-                                      _showFloatingToast(
-                                        context,
-                                        message: 'Game "${game.title}" kini sedang dimainkan!',
-                                        isSuccess: true,
-                                        icon: LucideIcons.play,
-                                      );
-                                    }
+                                if (confirm) {
+                                  await ref
+                                      .read(gameProvider.notifier)
+                                      .updateGameStatus(game.id, 'done');
+                                  if (mounted) {
+                                    _showFloatingToast(
+                                      context,
+                                      message: 'Game "${game.title}" ditandai selesai (Tamat)!',
+                                      isSuccess: true,
+                                      icon: LucideIcons.check_check,
+                                    );
                                   }
-                                },
-                                child: Container(
-                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(LucideIcons.play,
-                                          size: 13, color: AppColors.accentEmerald),
-                                      const SizedBox(width: 5),
-                                      Text('Mulai Mainkan',
-                                          style: GoogleFonts.spaceMono(
-                                              fontSize: 11,
-                                              color: AppColors.accentEmerald,
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
+                                }
+                              },
+                              child: Container(
+                                constraints: const BoxConstraints(minHeight: 40),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(LucideIcons.check_check,
+                                        size: 13, color: AppColors.accentEmerald),
+                                    const SizedBox(width: 5),
+                                    Text('Tandai Selesai (Tamat)',
+                                        style: GoogleFonts.spaceMono(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.accentEmerald)),
+                                  ],
                                 ),
                               ),
+                            ),
 
-                            if (game.status == 'playing')
-                              // Touch Target Minimum 44x44 dp: Tandai Selesai
-                              InkWell(
+                          if (game.status == 'done')
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGold.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
-                                onTap: () async {
-                                  HapticFeedback.lightImpact();
-                                  final confirm = await _showConfirmDialog(
-                                    context: context,
-                                    title: 'Selesaikan Game?',
-                                    content:
-                                        'Game "${game.title}" akan ditandai Tamat / Selesai (Done).',
-                                    confirmText: 'Ya, Selesai',
-                                    confirmColor: textMuted,
-                                    icon: LucideIcons.check_check,
-                                  );
-
-                                  if (confirm) {
-                                    await ref
-                                        .read(gameProvider.notifier)
-                                        .updateGameStatus(game.id, 'done');
-                                    if (mounted) {
-                                      _showFloatingToast(
-                                        context,
-                                        message: 'Game "${game.title}" ditandai selesai',
-                                        isSuccess: true,
-                                        icon: LucideIcons.check_check,
-                                      );
-                                    }
-                                  }
-                                },
-                                child: Container(
-                                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(LucideIcons.check_check,
-                                          size: 13, color: textMuted),
-                                      const SizedBox(width: 5),
-                                      Text('Tandai Selesai',
-                                          style: GoogleFonts.spaceMono(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: textMuted)),
-                                    ],
-                                  ),
-                                ),
+                                border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.25)),
                               ),
-                          ],
-                        ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(LucideIcons.trophy, size: 12, color: AppColors.accentGold),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Tamat di Siaran',
+                                    style: GoogleFonts.spaceMono(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accentGold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               );

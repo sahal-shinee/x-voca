@@ -2,6 +2,7 @@ import '../../data/models/collab_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/schedule_model.dart';
 import '../../data/services/schedule_service.dart';
+import '../../data/services/notification_service.dart';
 import 'auth_provider.dart' show dioProvider, authProvider;
 
 /// State penampung daftar jadwal streaming (Schedule State).
@@ -53,6 +54,17 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     try {
       final schedules = await _scheduleService.getSchedules();
       state = state.copyWith(isLoading: false, schedules: schedules);
+
+      // Sinkronkan alarm pengingat 30 menit untuk seluruh jadwal upcoming
+      for (final s in schedules) {
+        if (s.scheduledAt != null && s.status.toLowerCase() == 'upcoming') {
+          NotificationService.instance.scheduleStreamReminder(
+            scheduleId: s.id,
+            title: s.title,
+            streamTime: s.scheduledAt!,
+          );
+        }
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -87,6 +99,16 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
             .map((s) => s.id == tempId ? newSchedule : s)
             .toList(),
       );
+
+      // Pasang alarm pengingat 30 menit
+      if (newSchedule.scheduledAt != null &&
+          newSchedule.status.toLowerCase() == 'upcoming') {
+        NotificationService.instance.scheduleStreamReminder(
+          scheduleId: newSchedule.id,
+          title: newSchedule.title,
+          streamTime: newSchedule.scheduledAt!,
+        );
+      }
     } catch (e) {
       // 4. Rollback jika request server gagal
       state = state.copyWith(schedules: previousSchedules);
@@ -160,6 +182,18 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
         schedules:
             state.schedules.map((s) => s.id == id ? updated : s).toList(),
       );
+
+      // Sinkronkan alarm pengingat 30 menit
+      if (updated.scheduledAt != null &&
+          updated.status.toLowerCase() == 'upcoming') {
+        NotificationService.instance.scheduleStreamReminder(
+          scheduleId: updated.id,
+          title: updated.title,
+          streamTime: updated.scheduledAt!,
+        );
+      } else {
+        NotificationService.instance.cancelStreamReminder(id);
+      }
     } catch (e) {
       // 3. Rollback jika server error
       state = state.copyWith(schedules: previousSchedules);
@@ -179,6 +213,9 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     state = state.copyWith(
       schedules: state.schedules.where((s) => s.id != id).toList(),
     );
+
+    // Batalkan alarm pengingat 30 menit
+    NotificationService.instance.cancelStreamReminder(id);
 
     try {
       await _scheduleService.deleteSchedule(id, userId: activeUserId);

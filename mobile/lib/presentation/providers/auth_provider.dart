@@ -85,6 +85,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   /// Mengeluarkan sesi login aktif dan mengosongkan state user menjadi `null`.
   Future<void> logout() async {
+    unawaited(NotificationService.instance.unsubscribeAllTopics());
     await _authService.logout();
     state = const AsyncValue.data(null);
   }

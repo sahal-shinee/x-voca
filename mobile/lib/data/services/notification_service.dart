@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import '../models/notification_model.dart';
 
 /// Handler tingkat atas (top-level) untuk memproses pesan FCM yang masuk saat
@@ -74,6 +76,9 @@ class NotificationService {
     if (_initialized) return;
 
     try {
+      // Inisialisasi basis data zona waktu untuk scheduling alarm lokal
+      tz.initializeTimeZones();
+
       // 1. Meminta izin notifikasi pengguna (wajib untuk iOS dan Android 13+)
       final settings = await _messaging.requestPermission(
         alert: true,
@@ -138,6 +143,13 @@ class NotificationService {
     try {
       final type = message.data['type'] ?? 'SYSTEM_UPDATE';
 
+      // Filter khusus: HP Host tidak perlu menampilkan notifikasi penonton saat diri sendiri mulai LIVE
+      if (type == 'BROADCASTING_START' ||
+          message.from?.contains('stream_alerts') == true) {
+        debugPrint('[FCM] Mengabaikan notifikasi stream_alerts pada HP host');
+        return;
+      }
+
       // Menentukan tab tujuan navigasi berdasarkan tipe notifikasi
       int? targetTab;
       if (type.contains('GAME') || type.contains('VOTE')) {
@@ -198,15 +210,104 @@ class NotificationService {
   }
 
   /// Mendaftarkan (subscribe) perangkat ke topik FCM khusus creator/streamer:
-  /// - `stream_alerts`: Notifikasi siaran langsung dan perubahan jadwal stream.
-  /// - `creator_alerts`: Notifikasi aktivitas creator seperti voting dan pengajuan collab baru.
+  /// - `creator_alerts`: Notifikasi aktivitas creator seperti voting, usulan game, dan pengajuan collab baru.
+  ///
+  /// Catatan Arsitektur:
+  /// HP Host secara otomatis di-unsubscribe dari `stream_alerts` (notifikasi "Xion Regalia Sedang LIVE!"),
+  /// karena topik tersebut khusus ditujukan untuk fans/penonton fansite, sehingga HP host tidak membunyikan notifikasi live ke diri sendiri.
   Future<void> subscribeCreatorTopics() async {
     try {
-      await _messaging.subscribeToTopic('stream_alerts');
+      // Pastikan unsubscribe dari stream_alerts (topik penonton)
+      await _messaging.unsubscribeFromTopic('stream_alerts');
+      // Berlangganan HANYA ke topik creator/host
       await _messaging.subscribeToTopic('creator_alerts');
-      debugPrint('[FCM] Subscribed to stream_alerts & creator_alerts');
+      debugPrint('[FCM] Berhasil berlangganan creator_alerts saja (unsubscribed dari stream_alerts)');
     } catch (e) {
-      debugPrint('[FCM] Topic subscription error: $e');
+      debugPrint('[FCM] Gagal registrasi topik FCM creator: $e');
+    }
+  }
+
+  /// Membatalkan langganan (unsubscribe) dari semua topik saat notifikasi dinonaktifkan di Settings atau logout.
+  Future<void> unsubscribeAllTopics() async {
+    try {
+      await _messaging.unsubscribeFromTopic('stream_alerts');
+      await _messaging.unsubscribeFromTopic('creator_alerts');
+      debugPrint('[FCM] Unsubscribed dari seluruh topik FCM');
+    } catch (e) {
+      debugPrint('[FCM] Topic unsubscription error: $e');
+    }
+  }
+
+  /// Memasang alarm lokal pengingat siaran (Tepat 30 Menit sebelum jam tayang).
+  ///
+  /// Menggunakan [FlutterLocalNotificationsPlugin.zonedSchedule] dengan AlarmManager native Android.
+  /// Bekerja mandiri di HP host tanpa bergantung pada server internet.
+  Future<void> scheduleStreamReminder({
+    required int scheduleId,
+    required String title,
+    required DateTime streamTime,
+  }) async {
+    try {
+      // Hitung waktu pengingat: Tepat 30 menit sebelum jadwal live
+      final reminderTime = streamTime.subtract(const Duration(minutes: 30));
+      final now = DateTime.now();
+
+      // Jika waktu 30 menit sebelum jadwal sudah lewat, lewati
+      if (reminderTime.isBefore(now)) {
+        debugPrint('[REMINDER] Waktu 30m sebelum jadwal sudah lewat untuk: "$title"');
+        return;
+      }
+
+      final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
+      final notifId = 10000 + (scheduleId > 0 ? scheduleId : scheduleId.abs());
+
+      final hourStr = streamTime.hour.toString().padLeft(2, '0');
+      final minStr = streamTime.minute.toString().padLeft(2, '0');
+
+      await _localNotifications.zonedSchedule(
+        notifId,
+        '⏰ Siaran 30 Menit Lagi!',
+        'Sesi "$title" akan dimulai pukul $hourStr:$minStr WIB. Siapkan OBS & rig sekarang!',
+        scheduledDate,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.max,
+            priority: Priority.max,
+            visibility: NotificationVisibility.public,
+            icon: '@drawable/ic_notification',
+            color: const Color(0xFF863BFF),
+            playSound: true,
+            enableVibration: true,
+            ticker: 'Pengingat Siaran 30 Menit',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[REMINDER] Alarm 30m terpasang pada: $scheduledDate untuk "$title"');
+    } catch (e) {
+      debugPrint('[REMINDER] Gagal pasang alarm pengingat 30m: $e');
+    }
+  }
+
+  /// Membatalkan alarm pengingat siaran jika jadwal dihapus atau sudah selesai.
+  Future<void> cancelStreamReminder(int scheduleId) async {
+    try {
+      final notifId = 10000 + (scheduleId > 0 ? scheduleId : scheduleId.abs());
+      await _localNotifications.cancel(notifId);
+      debugPrint('[REMINDER] Alarm pengingat dibatalkan untuk ID: $scheduleId');
+    } catch (e) {
+      debugPrint('[REMINDER] Gagal membatalkan alarm: $e');
     }
   }
 }

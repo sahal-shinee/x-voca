@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/env.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/user_model.dart';
+import '../../data/services/notification_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -667,6 +668,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     }
 
                     setState(() => _notificationsEnabled = val);
+
+                    if (val) {
+                      await NotificationService.instance.subscribeCreatorTopics();
+                    } else {
+                      await NotificationService.instance.unsubscribeAllTopics();
+                    }
+
                     _showFloatingToast(
                       message: val
                           ? 'Notifikasi push diaktifkan'
@@ -711,7 +719,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    Env.useProduction ? 'Railway Cloud API • Active' : 'Local ADB Reverse • Active',
+                    Env.useProduction ? 'Vercel Cloud API • Active' : 'Local ADB Reverse • Active',
                     style: GoogleFonts.spaceMono(
                       fontSize: 10,
                       color: textSecondary,
@@ -912,7 +920,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   trailing: Icon(LucideIcons.external_link, color: AppColors.primary(isDark), size: 16),
-                  onTap: () => _openUrl('https://x-voca.vercel.app'),
+                  onTap: () => _openUrl(Env.vercelProductionUrl),
                 ),
                 Divider(color: borderSubtle, height: 1),
 
