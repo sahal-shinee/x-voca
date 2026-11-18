@@ -441,121 +441,220 @@ const pushNotification = async ({ userId = 'default', type = 'SYSTEM_UPDATE', ti
 };
 
 /**
- * Subscribe a Web/Mobile FCM registration token to a topic
+ * Simpan FCM token ke Firebase RTDB
+ * Digunakan sebagai pengganti topic subscription (tidak butuh IAM permission khusus)
  * @param {string} token - FCM registration token
- * @param {string} topic - Topic name (e.g. 'stream_alerts', 'creator_alerts')
+ * @returns {Promise<boolean>}
  */
-const subscribeTokenToTopic = async (token, topic = 'stream_alerts') => {
+const saveFcmToken = async (token) => {
+  const db = getDb();
+  if (!db) {
+    console.warn('⚠️ RTDB tidak tersedia, token tidak disimpan');
+    return false;
+  }
   try {
-    const app = getFirebaseAdmin();
-    if (!app) {
-      return { success: false, message: 'Firebase Admin SDK belum dikonfigurasi.' };
-    }
-    const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
-    const response = await messaging.subscribeToTopic(token, topic);
-
-    // Log detail lengkap untuk debugging
-    console.log(`[FCM] subscribeToTopic("${topic}") response:`, JSON.stringify({
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-      errors: response.errors || []
-    }));
-
-    if (response.failureCount > 0 && response.errors?.length > 0) {
-      const errDetail = response.errors.map(e => `index=${e.index} reason=${e.error?.code || e.error}`).join(', ');
-      console.error(`❌ FCM: Topic subscription gagal — ${errDetail}`);
-      // Jika token tidak valid / tidak terdaftar, tetap anggap ok (browser refresh = token baru)
-      if (response.errors.some(e => ['registration-token-not-registered', 'invalid-registration-token'].includes(e.error?.code))) {
-        return { success: false, message: 'Token browser tidak valid atau kedaluwarsa. Coba refresh halaman dan daftar ulang.' };
-      }
-    }
-
-    if (response.successCount > 0) {
-      console.log(`✅ FCM: Token berhasil didaftarkan ke topic "${topic}"`);
-    } else if (response.failureCount === 0 && response.successCount === 0) {
-      // successCount 0 & failureCount 0 = token sudah terdaftar sebelumnya (idempotent)
-      console.log(`ℹ️ FCM: Token sudah terdaftar di topic "${topic}" sebelumnya (tidak ada perubahan)`);
-    }
-
-    return { success: true, response };
-  } catch (error) {
-    console.error(`❌ FCM subscribeTokenToTopic(${topic}) error:`, error.message, error.code || '');
-    return { success: false, message: error.message };
+    // Buat key aman dari 40 karakter pertama base64 token (hindari karakter invalid RTDB)
+    const tokenKey = Buffer.from(token).toString('base64').slice(0, 40).replace(/[.#$[\]/]/g, '_');
+    await db.ref(`/fcm_tokens/${tokenKey}`).set({
+      token,
+      savedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    console.log(`✅ FCM: Token disimpan ke RTDB (/fcm_tokens/${tokenKey})`);
+    return true;
+  } catch (err) {
+    console.error('❌ saveFcmToken error:', err.message);
+    return false;
   }
 };
 
 /**
- * Send push notification via FCM to a topic
- * @param {string} topic - Target topic ('stream_alerts' | 'creator_alerts')
+ * Kirim push notification langsung ke semua token yang tersimpan di RTDB
+ * Tidak membutuhkan permission cloudmessaging.topicSubscriptions.create
  * @param {{ title: string, body: string, data?: Record<string, string> }} payload
+ * @returns {Promise<boolean>}
  */
-const sendTopicNotification = async (topic, { title, body, data = {} }) => {
+const sendToAllTokens = async ({ title, body, data = {} }) => {
+  const db = getDb();
+  const app = getFirebaseAdmin();
+  if (!db || !app) {
+    console.warn('⚠️ Firebase tidak tersedia, skip sendToAllTokens');
+    return false;
+  }
+
   try {
-    const app = getFirebaseAdmin();
-    if (!app) {
-      console.warn(`⚠️ FCM: Skip topic "${topic}" notification (Firebase Admin belum siap).`);
-      return false;
+    const snapshot = await db.ref('/fcm_tokens').once('value');
+    const tokensObj = snapshot.val();
+
+    if (!tokensObj) {
+      console.log('ℹ️ FCM: Tidak ada subscriber tersimpan di RTDB');
+      return true;
     }
+
+    const tokenEntries = Object.entries(tokensObj);
+    const tokens = tokenEntries.map(([, v]) => v.token).filter(Boolean);
+
+    if (tokens.length === 0) {
+      console.log('ℹ️ FCM: Tidak ada token valid di RTDB');
+      return true;
+    }
+
+    console.log(`📤 FCM: Mengirim notifikasi ke ${tokens.length} device...`);
 
     const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
     const stringData = Object.fromEntries(
       Object.entries(data || {}).map(([k, v]) => [String(k), String(v ?? '')])
     );
 
-    const message = {
-      topic,
-      notification: {
-        title,
-        body,
-      },
-      data: stringData,
-      android: {
-        priority: 'high',
-        notification: {
-          channelId: 'xvoca_high_importance_channel',
-          priority: 'max',
-          sound: 'default',
-          defaultSound: true,
-          visibility: 'public',
-        },
-      },
-      webpush: {
-        headers: {
-          Urgency: 'high',
-        },
-        notification: {
-          title,
-          body,
-          icon: '/images/logo_xion.png',
-          badge: '/images/logo_xion.png',
-        },
-        fcmOptions: {
-          link: stringData.url || '/',
-        },
-      },
-    };
+    // FCM limit: max 500 token per request → batch jika lebih
+    const BATCH_SIZE = 500;
+    let totalSuccess = 0;
+    let totalFail = 0;
+    const invalidKeys = [];
 
-    const messageId = await messaging.send(message);
-    console.log(`✅ FCM: Sent notification to topic "${topic}" (ID: ${messageId})`);
+    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+      const batchTokens = tokens.slice(i, i + BATCH_SIZE);
+      const batchKeys = tokenEntries.slice(i, i + BATCH_SIZE).map(([k]) => k);
 
-    // Synchronously write to Realtime Database so Web & Mobile in-app bells receive it in real time
-    try {
-      await pushNotification({
-        userId: 'default',
-        type: stringData.type || (topic === 'stream_alerts' ? 'BROADCASTING_START' : 'SYSTEM_UPDATE'),
-        title,
-        message: body,
-        link: stringData.url || null
-      });
-    } catch (pushErr) {
-      console.warn('Realtime database pushNotification warning:', pushErr.message);
+      const message = {
+        tokens: batchTokens,
+        notification: { title, body },
+        data: stringData,
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            title,
+            body,
+            icon: '/images/logo_xion.png',
+            badge: '/images/logo_xion.png',
+          },
+          fcmOptions: { link: stringData.url || '/' },
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'xvoca_high_importance_channel',
+            priority: 'max',
+            sound: 'default',
+            defaultSound: true,
+            visibility: 'public',
+          },
+        },
+      };
+
+      const response = await messaging.sendEachForMulticast(message);
+      totalSuccess += response.successCount;
+      totalFail += response.failureCount;
+
+      // Tandai token expired/tidak valid untuk dibersihkan
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errCode = resp.error?.code || '';
+            console.warn(`⚠️ FCM token gagal [${errCode}]`);
+            if ([
+              'messaging/registration-token-not-registered',
+              'messaging/invalid-registration-token',
+            ].includes(errCode)) {
+              invalidKeys.push(batchKeys[idx]);
+            }
+          }
+        });
+      }
     }
 
-    return true;
-  } catch (error) {
-    console.error(`❌ FCM sendTopicNotification(${topic}) error:`, error.message);
+    console.log(`✅ FCM: Terkirim ke ${totalSuccess}/${tokens.length} device (gagal: ${totalFail})`);
+
+    // Bersihkan token tidak valid dari RTDB secara async
+    if (invalidKeys.length > 0) {
+      Promise.all(invalidKeys.map((k) => db.ref(`/fcm_tokens/${k}`).remove())).then(() => {
+        console.log(`🧹 FCM: ${invalidKeys.length} token tidak valid dibersihkan`);
+      }).catch(() => {});
+    }
+
+    return totalSuccess > 0 || tokens.length === 0;
+  } catch (err) {
+    console.error('❌ sendToAllTokens error:', err.message);
     return false;
   }
+};
+
+/**
+ * Subscribe token: simpan ke RTDB (Opsi B — tidak butuh IAM topic subscription permission)
+ * @param {string} token - FCM registration token
+ * @param {string} topic - Diabaikan (kompatibilitas), token disimpan ke RTDB
+ */
+const subscribeTokenToTopic = async (token, topic = 'stream_alerts') => {
+  // Simpan token ke RTDB → primary approach tanpa butuh cloudmessaging.topicSubscriptions.create
+  const saved = await saveFcmToken(token);
+  if (saved) {
+    console.log(`✅ FCM: Token berhasil disimpan ke RTDB (topic "${topic}" via RTDB storage)`);
+    return { success: true, response: { successCount: 1, failureCount: 0, errors: [] } };
+  }
+
+  // Fallback: coba topic subscription langsung (jika RTDB tidak tersedia)
+  try {
+    const app = getFirebaseAdmin();
+    if (!app) return { success: false, message: 'Firebase Admin SDK belum dikonfigurasi.' };
+    const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
+    const response = await messaging.subscribeToTopic(token, topic);
+    return { success: response.successCount > 0, response };
+  } catch (error) {
+    console.error(`❌ FCM subscribeTokenToTopic fallback error:`, error.message);
+    return { success: false, message: 'Gagal menyimpan token notifikasi.' };
+  }
+};
+
+/**
+ * Kirim push notification ke semua subscriber (via RTDB tokens + topic fallback)
+ * @param {string} topic - Target topic (digunakan sebagai fallback)
+ * @param {{ title: string, body: string, data?: Record<string, string> }} payload
+ */
+const sendTopicNotification = async (topic, { title, body, data = {} }) => {
+  const stringData = Object.fromEntries(
+    Object.entries(data || {}).map(([k, v]) => [String(k), String(v ?? '')])
+  );
+
+  // PRIMARY: Kirim langsung ke semua token tersimpan di RTDB
+  const sentToTokens = await sendToAllTokens({ title, body, data: stringData });
+
+  // FALLBACK: Coba kirim via topic juga (untuk device yang subscribe via cara lain)
+  try {
+    const app = getFirebaseAdmin();
+    if (app) {
+      const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
+      await messaging.send({
+        topic,
+        notification: { title, body },
+        data: stringData,
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: { title, body, icon: '/images/logo_xion.png' },
+          fcmOptions: { link: stringData.url || '/' },
+        },
+        android: { priority: 'high' },
+      });
+      console.log(`✅ FCM: Juga terkirim ke topic "${topic}"`);
+    }
+  } catch (topicErr) {
+    // Topic send gagal tidak masalah selama token-based send berhasil
+    console.warn(`⚠️ FCM: Topic send gagal (tidak kritis): ${topicErr.message}`);
+  }
+
+  // Tulis ke RTDB notification bell (in-app notification)
+  try {
+    await pushNotification({
+      userId: 'default',
+      type: stringData.type || (topic === 'stream_alerts' ? 'BROADCASTING_START' : 'SYSTEM_UPDATE'),
+      title,
+      message: body,
+      link: stringData.url || null,
+    });
+  } catch (pushErr) {
+    console.warn('RTDB pushNotification warning:', pushErr.message);
+  }
+
+  return sentToTokens;
 };
 
 /**
@@ -661,6 +760,8 @@ module.exports = {
   pushNotification,
   subscribeTokenToTopic,
   sendTopicNotification,
+  saveFcmToken,
+  sendToAllTokens,
   getNotificationsFromDb,
   markNotificationRead,
   markAllNotificationsRead,
