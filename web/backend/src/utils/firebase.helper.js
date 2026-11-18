@@ -453,10 +453,33 @@ const subscribeTokenToTopic = async (token, topic = 'stream_alerts') => {
     }
     const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
     const response = await messaging.subscribeToTopic(token, topic);
-    console.log(`✅ FCM: Subscribed token to topic "${topic}" (successCount: ${response.successCount})`);
+
+    // Log detail lengkap untuk debugging
+    console.log(`[FCM] subscribeToTopic("${topic}") response:`, JSON.stringify({
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      errors: response.errors || []
+    }));
+
+    if (response.failureCount > 0 && response.errors?.length > 0) {
+      const errDetail = response.errors.map(e => `index=${e.index} reason=${e.error?.code || e.error}`).join(', ');
+      console.error(`❌ FCM: Topic subscription gagal — ${errDetail}`);
+      // Jika token tidak valid / tidak terdaftar, tetap anggap ok (browser refresh = token baru)
+      if (response.errors.some(e => ['registration-token-not-registered', 'invalid-registration-token'].includes(e.error?.code))) {
+        return { success: false, message: 'Token browser tidak valid atau kedaluwarsa. Coba refresh halaman dan daftar ulang.' };
+      }
+    }
+
+    if (response.successCount > 0) {
+      console.log(`✅ FCM: Token berhasil didaftarkan ke topic "${topic}"`);
+    } else if (response.failureCount === 0 && response.successCount === 0) {
+      // successCount 0 & failureCount 0 = token sudah terdaftar sebelumnya (idempotent)
+      console.log(`ℹ️ FCM: Token sudah terdaftar di topic "${topic}" sebelumnya (tidak ada perubahan)`);
+    }
+
     return { success: true, response };
   } catch (error) {
-    console.error(`❌ FCM subscribeTokenToTopic(${topic}) error:`, error.message);
+    console.error(`❌ FCM subscribeTokenToTopic(${topic}) error:`, error.message, error.code || '');
     return { success: false, message: error.message };
   }
 };
