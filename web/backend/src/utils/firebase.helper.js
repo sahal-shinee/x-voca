@@ -34,7 +34,8 @@ const parseServiceAccount = (envValue) => {
   try {
     if (typeof envValue === 'object') return envValue;
     let clean = String(envValue).trim();
-    // Support Base64 encoding (very common in Vercel to avoid newline issues)
+
+    // Support Base64 encoding (recommended for Vercel to avoid newline issues)
     if (!clean.startsWith('{')) {
       try {
         const decoded = Buffer.from(clean, 'base64').toString('utf8');
@@ -43,10 +44,18 @@ const parseServiceAccount = (envValue) => {
         }
       } catch (_) {}
     }
-    if (clean.includes('\\n')) {
-      clean = clean.replace(/\\n/g, '\n');
-    }
-    return JSON.parse(clean);
+
+    // Try 1: Parse as-is (handles correctly escaped JSON)
+    try { return JSON.parse(clean); } catch (_) {}
+
+    // Try 2: Escape literal newlines → handles Vercel storing actual \n characters
+    // in env var (common when pasting raw JSON into Vercel UI)
+    try { return JSON.parse(clean.replace(/\n/g, '\\n').replace(/\r/g, '')); } catch (_) {}
+
+    // Try 3: Handle double-escaped newlines (\\n → \n then parse)
+    try { return JSON.parse(clean.replace(/\\n/g, '\n')); } catch (_) {}
+
+    throw new Error('Semua metode parsing gagal');
   } catch (err) {
     console.error('❌ Firebase: Gagal parse service account:', err.message);
     return null;
