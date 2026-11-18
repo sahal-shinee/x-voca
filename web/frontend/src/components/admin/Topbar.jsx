@@ -15,6 +15,7 @@ import NotificationBell from './NotificationBell';
 import ThemeToggle from './ThemeToggle';
 import { useBroadcastingStatus } from '../../hooks/useFirebase';
 import { useAuth } from '../../context/AuthContext';
+import logoXion from '../../assets/logo_xion.webp';
 
 /**
  * Topbar Component
@@ -53,7 +54,6 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
   };
 
   const currentPage = pageNames[location.pathname] || 'Dashboard';
-  const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'X';
   const userName = user?.name || 'Xion Regalia';
   const userEmail = user?.email || 'creator@x-voca.space';
 
@@ -153,10 +153,17 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
             className="flex items-center gap-2 p-1 rounded-xl hover:bg-bg-surface transition-colors focus:outline-none"
             aria-label="Menu profil"
           >
-            <div className="w-8 h-8 rounded-lg bg-accent-purple/15 border border-accent-purple/30 flex items-center justify-center shadow-sm">
-              <span className="text-xs font-bold font-mono text-accent-purple">
-                {userInitial}
-              </span>
+            <div className="w-8 h-8 rounded-full aspect-square shrink-0 p-[1.5px] bg-gradient-to-tr from-accent-cyan/50 to-accent-purple/50 shadow-sm">
+              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
+                <img
+                  src={logoXion}
+                  alt={userName}
+                  width="32"
+                  height="32"
+                  decoding="async"
+                  className="w-[86%] h-[86%] object-contain"
+                />
+              </div>
             </div>
             <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform duration-150 ${isAvatarDropdownOpen ? 'rotate-180' : ''}`} />
           </button>

@@ -478,16 +478,16 @@ function VotingModerationPage() {
 
       {/* ── Page Header & Command Toolbar ──────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <Gamepad2 className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Voting
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Kelola usulan komunitas, pantau voting real-time, dan jadwalkan game siaran
               </p>
             </div>
@@ -571,14 +571,14 @@ function VotingModerationPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Periode Voting Aktif */}
         <div className="col-span-2 md:col-span-1 bg-bg-card border border-border-subtle rounded-2xl p-4 flex flex-col justify-between transition-all hover:border-accent-purple/40 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Periode Aktif</p>
               <h3 className="text-base font-bold text-text-primary mt-0.5 truncate">
                 {formatPeriodLabel(currentPeriodKey)}
               </h3>
             </div>
-            <div className="w-8 h-8 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
               <CalendarDays className="w-4 h-4" />
             </div>
           </div>
@@ -610,9 +610,9 @@ function VotingModerationPage() {
               : 'border-border-subtle hover:border-amber-500/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Menunggu Review</p>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Menunggu Review</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
               <Clock className="w-4 h-4" />
             </div>
           </div>
@@ -636,9 +636,9 @@ function VotingModerationPage() {
               : 'border-border-subtle hover:border-accent-purple/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Diterima</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Diterima</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
               <Check className="w-4 h-4" />
             </div>
           </div>
@@ -662,9 +662,9 @@ function VotingModerationPage() {
               : 'border-border-subtle hover:border-accent-gold/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Sedang Dimainkan</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Sedang Dimainkan</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
               <Play className="w-4 h-4 fill-accent-gold/20" />
             </div>
           </div>
@@ -688,9 +688,9 @@ function VotingModerationPage() {
               : 'border-border-subtle hover:border-emerald-500/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Selesai</p>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Selesai</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
               <CheckCircle className="w-4 h-4" />
             </div>
           </div>

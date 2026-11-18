@@ -8,6 +8,7 @@ import { todoService } from '../../services/todoService';
 import { useBroadcastingStatus } from '../../hooks/useFirebase';
 import { useToast } from '../../components/common/Toast';
 import Toggle from '../../components/common/Toggle';
+import logoXion from '../../assets/logo_xion.webp';
 import {
   Calendar,
   CalendarPlus,
@@ -474,13 +475,20 @@ function DashboardPage() {
 
         <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           {/* Left: Streamer Identity & Studio Clock */}
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-bg-surface border border-border-subtle flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-accent-cyan">
-                {userName.charAt(0).toUpperCase()}
-              </span>
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full aspect-square shrink-0 p-[2px] bg-gradient-to-tr from-accent-cyan/60 via-white/20 to-accent-purple/50 shadow-sm">
+              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
+                <img
+                  src={logoXion}
+                  alt={userName}
+                  width="56"
+                  height="56"
+                  decoding="async"
+                  className="w-[86%] h-[86%] object-contain"
+                />
+              </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className={`w-2 h-2 rounded-full ${isLiveState ? 'bg-status-live animate-ping' : 'bg-emerald-500'}`} />
                 <span className="text-[11px] font-mono text-text-muted uppercase tracking-widest font-semibold">

@@ -366,16 +366,16 @@ function CollabRequestsPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <Users className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Collab Requests
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Koordinasi usulan kolaborasi streamer dari komunitas dan realisasikan siaran bersama
               </p>
             </div>
@@ -464,9 +464,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-purple/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Total Usulan</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Total Usulan</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -490,14 +490,14 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-cyan/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
               <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Usulan Baru</p>
               {stats.pending > 0 && (
-                <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping shrink-0" />
               )}
             </div>
-            <div className="w-8 h-8 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
               <Clock className="w-4 h-4" />
             </div>
           </div>
@@ -521,9 +521,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-gold/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Disimpan (Shortlist)</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Disimpan (Shortlist)</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
               <Bookmark className="w-4 h-4" />
             </div>
           </div>
@@ -547,9 +547,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-status-done/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Dijadwalkan</p>
-            <div className="w-8 h-8 rounded-xl bg-status-done/10 border border-status-done/20 flex items-center justify-center text-status-done">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Dijadwalkan</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-status-done/10 border border-status-done/20 flex items-center justify-center text-status-done">
               <CalendarCheck className="w-4 h-4" />
             </div>
           </div>

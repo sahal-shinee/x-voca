@@ -580,6 +580,63 @@ const sendToAllTokens = async ({ title, body, data = {} }) => {
 };
 
 /**
+ * Hapus FCM token dari Firebase RTDB
+ * @param {string} token - FCM registration token
+ * @returns {Promise<boolean>}
+ */
+const removeFcmToken = async (token) => {
+  const db = getDb();
+  if (!db) {
+    console.warn('⚠️ RTDB tidak tersedia, skip removeFcmToken');
+    return false;
+  }
+  try {
+    const tokenKey = Buffer.from(token).toString('base64').slice(0, 40).replace(/[.#$[\]/]/g, '_');
+    await db.ref(`/fcm_tokens/${tokenKey}`).remove();
+
+    // Safeguard: hapus jika ada entri lain dengan token persis sama
+    const snapshot = await db.ref('/fcm_tokens').once('value');
+    const tokensObj = snapshot.val();
+    if (tokensObj) {
+      const matchingKeys = Object.entries(tokensObj)
+        .filter(([, v]) => v && v.token === token)
+        .map(([k]) => k);
+      if (matchingKeys.length > 0) {
+        await Promise.all(matchingKeys.map((k) => db.ref(`/fcm_tokens/${k}`).remove()));
+      }
+    }
+
+    console.log(`✅ FCM: Token dihapus dari RTDB (/fcm_tokens/${tokenKey})`);
+    return true;
+  } catch (err) {
+    console.error('❌ removeFcmToken error:', err.message);
+    return false;
+  }
+};
+
+/**
+ * Unsubscribe token: hapus dari RTDB + best-effort unsubscribeFromTopic
+ * @param {string} token - FCM registration token
+ * @param {string} topic - Target topic
+ */
+const unsubscribeTokenFromTopic = async (token, topic = 'stream_alerts') => {
+  const removed = await removeFcmToken(token);
+
+  try {
+    const app = getFirebaseAdmin();
+    if (app) {
+      const messaging = typeof app.messaging === 'function' ? app.messaging() : getMessaging(app);
+      await messaging.unsubscribeFromTopic(token, topic);
+    }
+  } catch (error) {
+    // Non-fatal jika tidak punya IAM topic permission
+    console.warn(`⚠️ FCM unsubscribeFromTopic warning:`, error.message);
+  }
+
+  return { success: true, removed };
+};
+
+/**
  * Subscribe token: simpan ke RTDB (Opsi B — tidak butuh IAM topic subscription permission)
  * @param {string} token - FCM registration token
  * @param {string} topic - Diabaikan (kompatibilitas), token disimpan ke RTDB
@@ -759,8 +816,10 @@ module.exports = {
   triggerContentUpdate,
   pushNotification,
   subscribeTokenToTopic,
+  unsubscribeTokenFromTopic,
   sendTopicNotification,
   saveFcmToken,
+  removeFcmToken,
   sendToAllTokens,
   getNotificationsFromDb,
   markNotificationRead,

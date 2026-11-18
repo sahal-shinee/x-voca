@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { useState, useEffect, useRef } from 'react';
 import {
   Shield,
@@ -9,11 +10,12 @@ import {
   Radio,
   Bell,
   BellRing,
+  BellOff,
   Loader2,
 } from 'lucide-react';
 import { useBroadcastingStatus, useNextSchedule } from '../../hooks/useFirebase';
 import api from '../../services/api';
-import { requestWebPushToken } from '../../utils/firebase';
+import { requestWebPushToken, deleteWebPushToken } from '../../utils/firebase';
 import { useToast } from '../common/Toast';
 import logoXion from '../../assets/logo_xion.webp';
 import logoSaweria from '../../assets/logo_saweria.webp';
@@ -25,6 +27,7 @@ const TopNav = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -83,13 +86,13 @@ const TopNav = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll on mobile menu open
+  // Lock body scroll on mobile menu or confirmation modal open
   useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+    document.body.style.overflow = isMenuOpen || showUnsubscribeModal ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, showUnsubscribeModal]);
 
   // Jump smoothly to live stream section
   const handleLiveClick = () => {
@@ -104,6 +107,16 @@ const TopNav = () => {
     }
   };
 
+  // Toggle stream alerts: activate immediately, or open confirmation modal to deactivate
+  const handleToggleAlerts = () => {
+    if (notifLoading) return;
+    if (isSubscribed) {
+      setShowUnsubscribeModal(true);
+    } else {
+      handleSubscribeAlerts();
+    }
+  };
+
   // Subscribe browser to FCM stream alerts
   const handleSubscribeAlerts = async () => {
     if (notifLoading) return;
@@ -112,6 +125,7 @@ const TopNav = () => {
       const token = await requestWebPushToken();
       await api.post('/api/notifications/subscribe', { token });
       localStorage.setItem('xvoca_stream_alerts_subscribed', 'true');
+      localStorage.setItem('xvoca_fcm_token', token);
       setIsSubscribed(true);
       toast.success('Pengingat siaran aktif! Kamu bakal dapet notif saat Xion LIVE atau ada jadwal baru.');
     } catch (err) {
@@ -127,6 +141,38 @@ const TopNav = () => {
         }
       }
       toast.error(msg);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  // Confirm unsubscribe from FCM stream alerts
+  const handleConfirmUnsubscribe = async () => {
+    if (notifLoading) return;
+    setNotifLoading(true);
+    try {
+      let token = localStorage.getItem('xvoca_fcm_token') || '';
+      if (!token) {
+        try {
+          token = await requestWebPushToken();
+        } catch {
+          // Best-effort token retrieval if it wasn't previously cached
+        }
+      }
+
+      if (token) {
+        await api.post('/api/notifications/unsubscribe', { token }).catch(() => {});
+      }
+
+      await deleteWebPushToken();
+      localStorage.removeItem('xvoca_stream_alerts_subscribed');
+      localStorage.removeItem('xvoca_fcm_token');
+      setIsSubscribed(false);
+      setShowUnsubscribeModal(false);
+      toast.info('Pengingat siaran berhasil dinonaktifkan.');
+    } catch (err) {
+      console.error('Web Push unsubscribe error:', err);
+      toast.error('Gagal menonaktifkan pengingat notifikasi.');
     } finally {
       setNotifLoading(false);
     }
@@ -246,15 +292,16 @@ const TopNav = () => {
           {/* Bell / Notification - Circle Icon */}
           <button
             type="button"
-            onClick={handleSubscribeAlerts}
+            onClick={handleToggleAlerts}
             disabled={notifLoading}
-            title={isSubscribed ? 'Pengingat siaran aktif' : 'Aktifkan notifikasi saat Xion LIVE'}
-            aria-label={isSubscribed ? 'Pengingat siaran aktif' : 'Ingatkan Live'}
+            title={isSubscribed ? 'Pengingat siaran aktif — klik untuk menonaktifkan' : 'Aktifkan notifikasi saat Xion LIVE'}
+            aria-label={isSubscribed ? 'Nonaktifkan pengingat siaran' : 'Aktifkan pengingat siaran'}
+            aria-pressed={isSubscribed}
             className={`
               w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0
               border transition-all duration-200 active:scale-95 disabled:opacity-60 cursor-pointer
               ${isSubscribed
-                ? 'bg-accent-cyan/15 border-accent-cyan/40 text-accent-cyan shadow-[0_0_12px_rgba(94,234,212,0.2)]'
+                ? 'bg-accent-cyan/15 border-accent-cyan/40 text-accent-cyan shadow-[0_0_12px_rgba(94,234,212,0.2)] hover:bg-accent-cyan/25'
                 : 'bg-white/[0.04] border-white/[0.10] text-white/70 hover:text-accent-cyan hover:bg-accent-cyan/10 hover:border-accent-cyan/40 hover:shadow-[0_0_12px_rgba(94,234,212,0.15)]'
               }
             `}
@@ -351,12 +398,12 @@ const TopNav = () => {
               <ChevronRight className="w-4 h-4 opacity-40" />
             </button>
 
-            {/* Stream Alert Subscribe (Mobile) */}
+            {/* Stream Alert Subscribe / Unsubscribe (Mobile) */}
             <button
               type="button"
               onClick={() => {
                 setIsMenuOpen(false);
-                handleSubscribeAlerts();
+                handleToggleAlerts();
               }}
               disabled={notifLoading}
               className={`py-2.5 px-3.5 rounded-xl text-sm font-medium flex items-center justify-between transition-all border ${
@@ -373,7 +420,7 @@ const TopNav = () => {
                 ) : (
                   <Bell className="w-4 h-4 text-accent-cyan" />
                 )}
-                <span>{isSubscribed ? 'Pengingat Siaran Aktif' : 'Ingatkan Live'}</span>
+                <span>{isSubscribed ? 'Pengingat Siaran Aktif (Nonaktifkan)' : 'Ingatkan Live'}</span>
               </span>
               <ChevronRight className="w-4 h-4 opacity-40" />
             </button>
@@ -398,6 +445,74 @@ const TopNav = () => {
         </div>
       </div>
     </header>
+
+    {/* ── Unsubscribe Confirmation Modal ─────────────────────────────────── */}
+    {showUnsubscribeModal && createPortal(
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !notifLoading) {
+            setShowUnsubscribeModal(false);
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="unsubscribe-alert-title"
+      >
+        <div className="relative w-full max-w-sm rounded-3xl bg-[#161229] border border-white/10 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.75)] text-center">
+          {/* Subtle top highlight */}
+          <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent pointer-events-none" />
+
+          <button
+            type="button"
+            onClick={() => !notifLoading && setShowUnsubscribeModal(false)}
+            disabled={notifLoading}
+            className="absolute top-4 right-4 p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-40"
+            aria-label="Tutup dialog"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300 mx-auto mb-4 shadow-[0_0_20px_rgba(251,191,36,0.15)]">
+            <BellOff className="w-5 h-5" />
+          </div>
+
+          <h3 id="unsubscribe-alert-title" className="text-base font-bold text-white font-display">
+            Nonaktifkan Pengingat Siaran?
+          </h3>
+          <p className="text-xs text-[#94a3b8] mt-2 leading-relaxed">
+            Apakah Anda yakin ingin menonaktifkan notifikasi pengingat siaran? Anda tidak akan menerima pemberitahuan saat Xion LIVE atau ada jadwal baru.
+          </p>
+
+          <div className="flex items-center gap-2.5 mt-6">
+            <button
+              type="button"
+              onClick={() => setShowUnsubscribeModal(false)}
+              disabled={notifLoading}
+              className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold text-white/80 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 transition-all disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmUnsubscribe}
+              disabled={notifLoading}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-rose-500 hover:bg-rose-600 shadow-[0_6px_18px_rgba(244,63,94,0.3)] transition-all active:scale-95 disabled:opacity-50"
+            >
+              {notifLoading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                <span>Ya, Nonaktifkan</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
   </>
   );
 };

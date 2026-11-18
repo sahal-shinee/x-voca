@@ -645,16 +645,16 @@ function TodoPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <CheckSquare className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Todo List
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Kelola checklist tugas, persiapan stream, dan target operasional studio
               </p>
             </div>

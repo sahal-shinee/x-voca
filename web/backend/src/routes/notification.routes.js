@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   subscribeTokenToTopic,
+  unsubscribeTokenFromTopic,
   getNotificationsFromDb,
   markNotificationRead,
   markAllNotificationsRead,
@@ -172,6 +173,33 @@ router.post('/subscribe', async (req, res) => {
       success: false,
       data: null,
       message: 'Terjadi kesalahan saat mengaktifkan notifikasi.'
+    });
+  }
+});
+
+/**
+ * POST /api/notifications/unsubscribe
+ * Public endpoint to unsubscribe a web/mobile FCM token from 'stream_alerts'
+ */
+router.post('/unsubscribe', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+
+    if (token && typeof token === 'string' && token.trim()) {
+      await unsubscribeTokenFromTopic(token.trim(), 'stream_alerts');
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { topic: 'stream_alerts' },
+      message: 'Pengingat notifikasi siaran berhasil dinonaktifkan.'
+    });
+  } catch (error) {
+    console.error('Notification unsubscribe error:', error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: 'Terjadi kesalahan saat menonaktifkan notifikasi.'
     });
   }
 });

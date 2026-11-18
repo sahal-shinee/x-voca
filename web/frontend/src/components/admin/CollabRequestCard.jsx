@@ -115,34 +115,34 @@ export function CollabRequestCard({
       `}
     >
       {/* ── Top Row: Avatar, Streamer Name, Social Tag, Status Pill ── */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Avatar */}
           <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-base shadow-sm ${cfg.avatarStyle}`}
+            className={`w-11 h-11 rounded-2xl aspect-square flex items-center justify-center shrink-0 font-bold text-base shadow-sm ${cfg.avatarStyle}`}
           >
             {streamerInitial}
           </div>
 
           {/* Info */}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold text-text-primary truncate leading-tight">
               {cleanName}
             </h3>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border ${platform.color}`}>
+              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border whitespace-nowrap ${platform.color}`}>
                 {platform.label}
               </span>
-              <span className="text-[11px] text-text-muted flex items-center gap-1 font-mono">
-                <Clock className="w-3 h-3" />
+              <span className="text-[11px] text-text-muted flex items-center gap-1 font-mono whitespace-nowrap">
+                <Clock className="w-3 h-3 shrink-0" />
                 {safeFormatTimeAgo(created_at)}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Status Dropdown (Wide & Never Clipped) */}
-        <div className="w-36 flex-shrink-0">
+        {/* Status Dropdown (Full width on mobile, fixed on tablet/desktop) */}
+        <div className="w-full sm:w-36 shrink-0">
           <CustomSelect
             value={status}
             onChange={handleStatusChange}
