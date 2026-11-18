@@ -118,6 +118,7 @@ function ScheduleFormPanel({
   const [youtubeSuccess, setYoutubeSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [showCollab, setShowCollab] = useState(false);
+  const [mobileTab, setMobileTab] = useState('form'); // 'form' | 'preview' on < lg screens
 
   // Accepted games from voting system
   const [acceptedGames, setAcceptedGames] = useState([]);
@@ -184,6 +185,7 @@ function ScheduleFormPanel({
     setErrors({});
     setYoutubeError('');
     setYoutubeSuccess(false);
+    setMobileTab('form');
   }, [schedule, initialCollabData, isOpen]);
 
   // Fetch accepted games from voting system
@@ -319,7 +321,10 @@ function ScheduleFormPanel({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setMobileTab('form');
+      return;
+    }
 
     const scheduled_at = new Date(`${formData.date}T${formData.time}:00`).toISOString();
 
@@ -388,7 +393,7 @@ function ScheduleFormPanel({
       {/* Modern Center Studio Split-Pane Dialog */}
       <div
         className={`
-          relative w-full max-w-5xl max-h-[92vh]
+          relative w-full max-w-5xl max-h-[92dvh]
           bg-bg-card border border-border-subtle rounded-3xl shadow-2xl
           flex flex-col z-10 overflow-hidden
           transition-all duration-200 ease-out
@@ -397,16 +402,16 @@ function ScheduleFormPanel({
         onClick={(e) => e.stopPropagation()}
       >
         {/* 1. Clean, Spacious Header */}
-        <div className="px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
+        <div className="px-5 py-4 sm:px-7 sm:py-5 border-b border-border-subtle flex items-center justify-between gap-3 shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl aspect-square bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
               <Calendar className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-xl font-bold font-display text-text-primary leading-tight truncate">
                 {isEdit ? 'Edit Jadwal Siaran' : 'Tambah Jadwal Siaran'}
               </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-snug line-clamp-2 sm:truncate">
                 {isFromCollab && initialCollabData?.collab_guest
                   ? `Jadwal dari usulan kolaborasi bersama @${initialCollabData.collab_guest.replace(/^@/, '')}`
                   : 'Atur jadwal penayangan siaran langsung untuk portal penonton'}
@@ -417,7 +422,7 @@ function ScheduleFormPanel({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl aspect-square flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
             title="Tutup (Esc)"
             aria-label="Tutup Form"
           >
@@ -425,21 +430,51 @@ function ScheduleFormPanel({
           </button>
         </div>
 
-        {/* 2. Split-Pane Content Hub */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+        {/* Mobile Segmented Switcher: Form vs Live Preview (keeps mobile spacious & clean) */}
+        <div className="lg:hidden px-5 py-2.5 border-b border-border-subtle bg-bg-surface/50 shrink-0">
+          <div className="grid grid-cols-2 p-1 bg-bg-card border border-border-subtle rounded-xl gap-1">
+            <button
+              type="button"
+              onClick={() => setMobileTab('form')}
+              className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                mobileTab === 'form'
+                  ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 shadow-xs'
+                  : 'text-text-muted hover:text-text-primary border border-transparent'
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+              <span>Isi Form</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab('preview')}
+              className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                mobileTab === 'preview'
+                  ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 shadow-xs'
+                  : 'text-text-muted hover:text-text-primary border border-transparent'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5 shrink-0" />
+              <span>Pratinjau Kartu</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Split-Pane Content Hub (Tabbed on Mobile, Side-by-Side on Desktop) */}
+        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">
           {/* ================================================================= */}
           {/* LEFT COLUMN: Controls & Form Inputs (7 cols = ~58%)               */}
           {/* ================================================================= */}
           <form
             id="schedule-form"
             onSubmit={handleSubmit}
-            className="lg:col-span-7 flex flex-col min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6 border-b lg:border-b-0 lg:border-r border-border-subtle overscroll-contain"
+            className={`${mobileTab === 'form' ? 'flex' : 'hidden'} lg:flex lg:col-span-7 flex-1 flex-col min-h-0 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6 space-y-5 lg:border-r border-border-subtle overscroll-contain`}
           >
             {/* Tautan YouTube Auto-Fill */}
-            <div className="p-4 bg-bg-surface border border-border-subtle rounded-xl space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-4 bg-bg-surface border border-border-subtle rounded-2xl space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <label className="text-xs font-semibold text-text-secondary flex items-center gap-2">
-                  <Play className="w-3.5 h-3.5 text-red-500 fill-current" />
+                  <Play className="w-3.5 h-3.5 text-red-500 fill-current shrink-0" />
                   <span>Tautan YouTube</span>
                   <span className="text-[11px] text-text-muted font-normal">(Opsional)</span>
                 </label>
@@ -449,7 +484,7 @@ function ScheduleFormPanel({
                     href={formData.youtube_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-accent-cyan hover:underline flex items-center gap-1 font-medium"
+                    className="text-xs text-accent-cyan hover:underline flex items-center gap-1 font-medium whitespace-nowrap"
                   >
                     <span>Uji Tautan</span>
                     <ExternalLink className="w-3 h-3" />
@@ -457,20 +492,20 @@ function ScheduleFormPanel({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   type="url"
                   name="youtube_url"
                   value={formData.youtube_url}
                   onChange={handleChange}
                   placeholder="https://youtube.com/live/... atau https://youtu.be/..."
-                  className="flex-1 px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 bg-bg-input border border-border-subtle rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors"
                 />
                 <button
                   type="button"
                   onClick={handleYoutubeFetch}
                   disabled={youtubeLoading || !formData.youtube_url}
-                  className="px-4 py-2.5 bg-bg-card border border-border-subtle hover:border-accent-cyan/50 text-text-primary rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 hover:bg-bg-surface"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-bg-card border border-border-subtle hover:border-accent-cyan/50 text-text-primary rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:bg-bg-surface whitespace-nowrap"
                 >
                   {youtubeLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-cyan" />
@@ -617,43 +652,49 @@ function ScheduleFormPanel({
 
               {/* Date & Time Input Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div>
+                <div className="min-w-0">
                   <label className="text-[11px] font-medium text-text-secondary block mb-1.5">
                     Tanggal Siaran
                   </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
-                      errors.date ? 'border-status-live' : 'border-border-subtle'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className={`studio-picker w-full pl-3.5 pr-10 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
+                        errors.date ? 'border-status-live' : 'border-border-subtle'
+                      }`}
+                    />
+                    <Calendar className="w-4 h-4 text-text-muted pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
                   {errors.date && (
                     <p className="text-xs text-status-live mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{errors.date}</span>
                     </p>
                   )}
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="text-[11px] font-medium text-text-secondary block mb-1.5">
                     Jam Mulai (WIB)
                   </label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={formData.time}
-                    onChange={handleChange}
-                    className={`w-full px-3.5 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
-                      errors.time ? 'border-status-live' : 'border-border-subtle'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="time"
+                      name="time"
+                      value={formData.time}
+                      onChange={handleChange}
+                      className={`studio-picker w-full pl-3.5 pr-10 py-2.5 bg-bg-input border rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-colors ${
+                        errors.time ? 'border-status-live' : 'border-border-subtle'
+                      }`}
+                    />
+                    <Clock className="w-4 h-4 text-text-muted pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
                   {errors.time && (
                     <p className="text-xs text-status-live mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{errors.time}</span>
                     </p>
                   )}
@@ -662,7 +703,7 @@ function ScheduleFormPanel({
             </div>
 
             {/* Kolaborasi Streamer (Collapsible) */}
-            <div className={`border rounded-xl overflow-hidden transition-all ${
+            <div className={`border rounded-2xl overflow-hidden transition-all ${
               isFromCollab
                 ? 'border-accent-purple/40 bg-accent-purple/5'
                 : 'border-border-subtle bg-bg-surface'
@@ -670,25 +711,25 @@ function ScheduleFormPanel({
               <button
                 type="button"
                 onClick={() => setShowCollab(!showCollab)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-bg-card-hover/40 transition-colors text-left"
+                className="w-full px-4 py-3.5 flex items-center justify-between gap-3 hover:bg-bg-card-hover/40 transition-colors text-left"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-accent-purple/15 text-accent-purple flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-lg aspect-square shrink-0 bg-accent-purple/15 text-accent-purple flex items-center justify-center">
                     <Users className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <span className="text-xs font-semibold text-text-primary block">
                       Kolaborasi Streamer (Opsional)
                     </span>
-                    <span className="text-[11px] text-text-muted">
+                    <span className="text-[11px] text-text-muted block truncate">
                       {formData.collab_guest ? `Tamu: @${formData.collab_guest.replace(/^@/, '')}` : 'Informasi guest creator atau streamer kolaborasi'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {isFromCollab && (
-                    <span className="text-[10px] bg-accent-purple/15 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-[10px] bg-accent-purple/15 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                       Dari Request
                     </span>
                   )}
@@ -743,21 +784,21 @@ function ScheduleFormPanel({
             </div>
 
             {/* Pengaturan Hitung Mundur Fansite */}
-            <div className="p-4 rounded-xl bg-bg-surface border border-border-subtle space-y-3">
+            <div className="p-4 rounded-2xl bg-bg-surface border border-border-subtle space-y-3">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className={`w-8 h-8 rounded-lg aspect-square shrink-0 flex items-center justify-center mt-0.5 ${
                     formData.countdown_enabled
-                      ? 'bg-accent-cyan/15 text-accent-cyan'
-                      : 'bg-bg-card text-text-muted'
+                      ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/20'
+                      : 'bg-bg-card text-text-muted border border-border-subtle'
                   }`}>
                     <Clock className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-text-primary">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-semibold text-text-primary leading-snug">
                       Hitung Mundur di Halaman Utama
                     </h4>
-                    <p className="text-[11px] text-text-muted mt-0.5">
+                    <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
                       Tampilkan banner countdown jadwal ini pada beranda portal fansite.
                     </p>
                   </div>
@@ -769,13 +810,13 @@ function ScheduleFormPanel({
                 />
               </div>
 
-              <div className={`p-2.5 rounded-lg border text-[11px] leading-relaxed transition-all ${
+              <div className={`p-2.5 rounded-xl border text-[11px] leading-relaxed transition-all ${
                 formData.countdown_enabled
                   ? 'bg-accent-cyan/10 border-accent-cyan/25 text-accent-cyan'
                   : 'bg-bg-card border-border-subtle text-text-muted'
               }`}>
                 {formData.countdown_enabled ? (
-                  <div className="flex items-center gap-1.5 font-medium">
+                  <div className="flex items-center gap-2 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                     <span>Banner hitung mundur aktif dan akan tampil di halaman depan.</span>
                   </div>
@@ -789,7 +830,7 @@ function ScheduleFormPanel({
           {/* ================================================================= */}
           {/* RIGHT COLUMN: Live Fansite Card Preview (5 cols = ~42%)           */}
           {/* ================================================================= */}
-          <div className="lg:col-span-5 flex flex-col min-h-0 overflow-y-auto p-5 sm:p-6 bg-bg-surface/50 space-y-4">
+          <div className={`${mobileTab === 'preview' ? 'flex' : 'hidden'} lg:flex lg:col-span-5 flex-1 flex-col min-h-0 overflow-y-auto p-5 sm:p-6 bg-bg-surface/50 space-y-4 overscroll-contain`}>
             {/* Header Pratinjau di Kolom Kanan */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -891,7 +932,7 @@ function ScheduleFormPanel({
         </div>
 
         {/* 3. Sticky Action Footer */}
-        <div className="px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md flex items-center justify-between gap-3.5 flex-shrink-0">
+        <div className="px-5 py-3.5 sm:px-7 sm:py-4 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <div className="hidden sm:flex items-center gap-2 text-xs text-text-muted">
             <kbd className="px-2 py-0.5 rounded-lg bg-bg-card border border-border-subtle font-mono text-[10px] text-text-secondary">
               Esc
@@ -899,12 +940,12 @@ function ScheduleFormPanel({
             <span>untuk membatalkan</span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50"
+              className="px-4 sm:px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50 text-center"
             >
               Batal
             </button>
@@ -912,7 +953,7 @@ function ScheduleFormPanel({
               type="submit"
               form="schedule-form"
               disabled={loading}
-              className="px-6 py-2.5 bg-accent-cyan text-white text-xs font-bold rounded-xl hover:bg-accent-cyan-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+              className="px-4 sm:px-6 py-2.5 bg-accent-cyan text-text-on-cta text-xs font-bold rounded-xl hover:bg-accent-cyan-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap"
             >
               {loading ? (
                 <>

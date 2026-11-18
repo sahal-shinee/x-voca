@@ -572,7 +572,7 @@ function SchedulePage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                     activeFilter === tab.key ? 'bg-black/20 text-white' : 'bg-bg-surface text-text-muted'
                   }`}>
                     {count}

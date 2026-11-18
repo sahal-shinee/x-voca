@@ -976,7 +976,7 @@ function VotingModerationPage() {
                       `}
                     >
                       <span>{tab.label}</span>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                         isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                       }`}>
                         {count}
@@ -988,60 +988,70 @@ function VotingModerationPage() {
             </div>
 
             {/* Row 2: Select All & Counters */}
-            <div className="flex items-center justify-between pt-2 border-t border-border-subtle text-xs text-text-muted">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border-subtle text-xs text-text-muted">
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                className="flex items-center gap-2 hover:text-text-primary transition-colors font-medium"
+                className="inline-flex items-center gap-2 hover:text-text-primary transition-colors font-medium whitespace-nowrap"
               >
-                <span className="w-4 h-4 flex items-center justify-center">
+                <span className="w-4 h-4 shrink-0 flex items-center justify-center">
                   {allVisibleSelected ? (
                     <CheckCircle className="w-4 h-4 text-accent-cyan" />
                   ) : (
                     <Circle className="w-4 h-4" />
                   )}
                 </span>
-                <span>{allVisibleSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua Game Terlihat'}</span>
+                <span>{allVisibleSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua'}</span>
               </button>
 
-              <span>
+              <span className="whitespace-nowrap">
                 Menampilkan <strong className="text-text-primary font-mono">{filteredGames.length}</strong> dari{' '}
                 <strong className="text-text-primary font-mono">{allGames.length}</strong> game
               </span>
             </div>
 
-            {/* Row 3: Bulk Actions Ribbon (When items selected) */}
+            {/* Row 3: Bulk Actions Ribbon (Cleanly responsive, zero overflow) */}
             {selectedCount > 0 && (
-              <div className="flex items-center justify-between gap-3 p-3 bg-accent-cyan/10 border border-accent-cyan/30 rounded-xl animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse" />
-                  <span className="text-xs font-bold text-accent-cyan">
-                    {selectedCount} game dipilih
-                  </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-accent-cyan/10 border border-accent-cyan/30 rounded-xl animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full aspect-square shrink-0 bg-accent-cyan animate-pulse" />
+                    <span className="text-xs font-bold text-accent-cyan whitespace-nowrap">
+                      {selectedCount} game dipilih
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="sm:hidden text-xs font-semibold text-text-muted hover:text-text-primary transition-colors px-2 py-1 rounded-lg hover:bg-bg-card/60 whitespace-nowrap"
+                  >
+                    Batal
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
                   <button
                     type="button"
                     onClick={handleBulkAccept}
                     disabled={loadingAction}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-accent-cyan bg-bg-card border border-accent-cyan/40 rounded-lg hover:bg-accent-cyan/15 disabled:opacity-50 transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-xs font-semibold text-accent-cyan bg-bg-card border border-accent-cyan/40 rounded-lg hover:bg-accent-cyan/15 disabled:opacity-50 transition-colors whitespace-nowrap"
                   >
-                    {loadingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {loadingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Check className="w-3.5 h-3.5 shrink-0" />}
                     <span>Terima Semua</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleBulkDelete}
                     disabled={loadingAction}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-status-live bg-bg-card border border-status-live/40 rounded-lg hover:bg-status-live/15 disabled:opacity-50 transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-xs font-semibold text-status-live bg-bg-card border border-status-live/40 rounded-lg hover:bg-status-live/15 disabled:opacity-50 transition-colors whitespace-nowrap"
                   >
-                    {loadingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                    {loadingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <X className="w-3.5 h-3.5 shrink-0" />}
                     <span>Hapus Semua</span>
                   </button>
                   <button
                     type="button"
                     onClick={clearSelection}
-                    className="text-xs text-text-muted hover:text-text-secondary transition-colors px-2 py-1"
+                    className="hidden sm:inline-flex items-center text-xs font-medium text-text-muted hover:text-text-primary transition-colors px-2 py-1 whitespace-nowrap"
                   >
                     Batal
                   </button>

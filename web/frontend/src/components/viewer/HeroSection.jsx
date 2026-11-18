@@ -560,7 +560,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
   };
 
   return (
-    <div className="w-full max-w-[280px] sm:max-w-[400px] lg:max-w-[600px] mx-auto">
+    <div className="w-full max-w-[340px] sm:max-w-[430px] lg:max-w-[600px] mx-auto">
       <div
         ref={stageRef}
         onMouseMove={handleMove}
@@ -624,11 +624,11 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 
         {/* Pill status persona */}
         <div
-          className="absolute left-[15%] sm:left-[20%] lg:left-[120px] top-[8%] sm:top-[5%] lg:top-[60px]"
+          className="absolute left-[2%] sm:left-[18%] lg:left-[120px] top-[2%] sm:top-[5%] lg:top-[60px]"
           style={depth(22)}
         >
           <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-[#15102a]/90 backdrop-blur-sm border border-white/10 shadow-sm">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] shrink-0" />
             <span className="font-semibold text-white/90 text-[9px] sm:text-[10px] tracking-wider uppercase whitespace-nowrap font-mono">
               MODE: {mood.label}
             </span>
@@ -637,7 +637,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
 
         {/* Bubble ucapan */}
         <div
-          className="absolute right-[0%] sm:right-0 top-[6%] sm:top-[18%] w-[120px] sm:w-[200px] lg:w-[220px]"
+          className="absolute right-[0%] sm:right-0 top-[2%] sm:top-[16%] w-[132px] sm:w-[200px] lg:w-[220px]"
           style={depth(28)}
           aria-live="polite"
         >
@@ -646,7 +646,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
             className="xv-pop relative px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl rounded-bl-sm bg-[rgba(35,31,66,0.92)] backdrop-blur-sm border"
             style={{ borderColor: `rgba(${mood.glow},0.45)`, transition: 'border-color 0.6s ease' }}
           >
-            <p className="relative text-[9px] sm:text-xs leading-[1.5] text-[#f1f0f5] font-body">
+            <p className="relative text-[10px] sm:text-xs leading-[1.45] text-[#f1f0f5] font-body">
               <span className="invisible block" aria-hidden="true">{line}</span>
               <span className="absolute inset-0 block" aria-hidden="true">{typed}</span>
             </p>
@@ -656,7 +656,7 @@ function CharacterStage({ moodIndex, onMoodChange }) {
       </div>
 
       {/* Pemilih mood & tombol Full Body */}
-      <div className="mt-5 flex flex-col items-center gap-2">
+      <div className="mt-3 sm:mt-5 flex flex-col items-center gap-2">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <div role="group" aria-label="Pilih mood Xion" className="inline-flex items-center gap-1 p-1 rounded-full bg-[rgba(35,31,66,0.85)] border border-[rgba(61,53,96,0.6)]">
             {MOODS.map((m, i) => {
@@ -1002,10 +1002,10 @@ function HeroSection({ onRequestCollab }) {
         />
 
         {/* Main Container */}
-        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pb-28 lg:pb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-10 pt-6 sm:pt-10 lg:pt-0 lg:items-center min-h-[calc(100vh-70px)] lg:min-h-[calc(100vh-70px-112px)]">
+        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pb-24 lg:pb-32">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-10 pt-3 sm:pt-8 lg:pt-0 lg:items-center lg:min-h-[calc(100vh-70px-112px)]">
             {/* LEFT SIDE CONTENT */}
-            <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-12 lg:pt-8 pb-12 lg:pb-0">
+            <div className="lg:col-span-5 flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-2 lg:order-1 pt-3 sm:pt-6 lg:pt-8 pb-8 lg:pb-0">
               {/* Heading */}
               <div className="animate-fade-in">
                 <h1 className="font-extrabold tracking-[-1px] sm:tracking-[-2px] text-white font-display" style={{ fontSize: 'clamp(46px, 9vw, 80px)', lineHeight: 1 }}>

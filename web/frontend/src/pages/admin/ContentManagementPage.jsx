@@ -572,7 +572,7 @@ function ContentManagementPage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                     isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                   }`}>
                     {count}

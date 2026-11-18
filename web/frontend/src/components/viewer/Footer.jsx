@@ -566,7 +566,7 @@ const Footer = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="px-6 py-5 sm:px-7 sm:py-5.5 border-b border-border-subtle flex items-center justify-between bg-bg-surface/80 backdrop-blur-md">
+            <div className="px-6 py-4 sm:px-7 sm:py-5 border-b border-border-subtle flex items-center justify-between bg-bg-surface/80 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />

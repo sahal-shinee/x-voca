@@ -71,7 +71,7 @@ export function ContentRow({
               {content.title || 'Tanpa Judul'}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-semibold bg-bg-surface border border-border-subtle text-accent-cyan uppercase">
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-bg-surface border border-border-subtle text-accent-cyan uppercase">
                 {categoryLabel}
               </span>
               {content.total_duration && (

@@ -587,7 +587,7 @@ function CollabRequestsPage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                     isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                   }`}>
                     {count}
@@ -943,16 +943,16 @@ function CollabRequestsPage() {
             </div>
 
             {messageModal.request.requested_streamer_social && (
-              <div className="p-3 bg-bg-surface border border-border-subtle rounded-xl text-xs flex items-center justify-between">
-                <span className="text-text-muted">Tautan Sosmed:</span>
+              <div className="p-3 bg-bg-surface border border-border-subtle rounded-xl text-xs flex flex-wrap items-center justify-between gap-2">
+                <span className="text-text-muted shrink-0">Tautan Sosmed:</span>
                 <a
                   href={messageModal.request.requested_streamer_social}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent-cyan hover:underline inline-flex items-center gap-1 font-mono"
+                  className="text-accent-cyan hover:underline inline-flex items-center gap-1 font-mono min-w-0 max-w-full"
                 >
-                  <span>{messageModal.request.requested_streamer_social}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="truncate">{messageModal.request.requested_streamer_social}</span>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 </a>
               </div>
             )}

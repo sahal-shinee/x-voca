@@ -1020,7 +1020,7 @@ function DashboardPage() {
                           {formatScheduleTime(stream.scheduled_at)} WIB
                         </span>
                         {stream.game_category && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-bg-card border border-border-subtle text-text-secondary truncate max-w-[120px]">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-card border border-border-subtle text-text-secondary truncate max-w-[120px]">
                             {stream.game_category}
                           </span>
                         )}

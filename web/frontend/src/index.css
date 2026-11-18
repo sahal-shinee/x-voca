@@ -393,6 +393,35 @@ body {
   outline-offset: 2px;
 }
 
+/* Native Date & Time Inputs: Hide misaligned browser arrow & make full field clickable */
+input[type="date"].studio-picker,
+input[type="time"].studio-picker {
+  position: relative;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 42px;
+  color-scheme: dark;
+}
+
+#admin-root[data-theme="light"] input[type="date"].studio-picker,
+#admin-root[data-theme="light"] input[type="time"].studio-picker,
+[data-admin-theme="light"] input[type="date"].studio-picker,
+[data-admin-theme="light"] input[type="time"].studio-picker {
+  color-scheme: light;
+}
+
+input[type="date"].studio-picker::-webkit-calendar-picker-indicator,
+input[type="time"].studio-picker::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 /* Selection */
 ::selection {
   background-color: rgba(45, 255, 194, 0.3);
