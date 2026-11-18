@@ -232,8 +232,10 @@ function DashboardPage() {
     }
   }, [fbIsReady, loadingBroadcasting]);
 
-  // Combined live state: either manual toggle is active, Firebase reports ready, or there is an active stream
-  const isLiveState = Boolean(isBroadcasting || fbIsReady || stats.activeBroadcast);
+  // Combined live state: while toggling, trust optimistic state immediately; otherwise combine all sources
+  const isLiveState = loadingBroadcasting
+    ? isBroadcasting
+    : Boolean(isBroadcasting || fbIsReady || stats.activeBroadcast);
 
   // ── Live clock ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -262,30 +264,42 @@ function DashboardPage() {
   // ── Execute broadcasting status change upon confirmation ───────────────────
   const confirmToggleBroadcasting = async () => {
     const targetVal = pendingBroadcastVal;
+    const prevBroadcasting = isBroadcasting;
+    const prevActiveBroadcast = stats.activeBroadcast;
+
     setShowBroadcastModal(false);
     setLoadingBroadcasting(true);
 
+    // Optimistic instant UI update (no wait & no stale activeBroadcast blocking OFF state)
+    setIsBroadcasting(targetVal);
+    if (!targetVal) {
+      setStats((prev) => ({ ...prev, activeBroadcast: null }));
+    }
+
     try {
       await authAPI.toggleBroadcasting(targetVal);
-      setIsBroadcasting(targetVal);
 
       if (targetVal) {
         toast.success('Status siaran diaktifkan: LIVE ON AIR!');
       } else {
         toast.info('Status siaran dinonaktifkan (STANDBY).');
       }
+
+      // Silently re-sync stats & upcoming schedules so activeBroadcast and Room link stay accurate
+      await Promise.all([fetchStats(true), fetchUpcomingStreams(true)]);
     } catch (error) {
       console.error('Error toggling broadcasting:', error);
       toast.error('Gagal memperbarui status siaran. Silakan coba lagi.');
-      setIsBroadcasting(!targetVal);
+      setIsBroadcasting(prevBroadcasting);
+      setStats((prev) => ({ ...prev, activeBroadcast: prevActiveBroadcast }));
     } finally {
       setLoadingBroadcasting(false);
     }
   };
 
   // ── Fetch stats ────────────────────────────────────────────────────
-  const fetchStats = useCallback(async () => {
-    setStatsLoading(true);
+  const fetchStats = useCallback(async (silent = false) => {
+    if (!silent) setStatsLoading(true);
     try {
       const response = await getStats();
       const b = response?.data?.data?.stats || response?.data?.stats || response?.data || {};
@@ -389,8 +403,8 @@ function DashboardPage() {
   }, [auditLogsLimit]);
 
   // ── Fetch upcoming streams ─────────────────────────────────────────────────
-  const fetchUpcomingStreams = useCallback(async () => {
-    setUpcomingLoading(true);
+  const fetchUpcomingStreams = useCallback(async (silent = false) => {
+    if (!silent) setUpcomingLoading(true);
     try {
       const response = await getSchedules({ status: 'upcoming', limit: 4 });
       const data = response?.data || response || [];
