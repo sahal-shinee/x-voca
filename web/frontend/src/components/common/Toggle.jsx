@@ -25,7 +25,8 @@ export function Toggle({
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
       className={`
-        relative w-[50px] h-[28px] rounded-full p-1
+        relative inline-flex items-center shrink-0
+        w-[48px] h-[26px] rounded-full p-[3px]
         transition-all duration-200 ease-out
         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-card
         ${checked
@@ -38,7 +39,7 @@ export function Toggle({
     >
       <span
         className={`
-          block w-[18px] h-[18px] rounded-full
+          block w-[20px] h-[20px] rounded-full shrink-0
           bg-white shadow-md
           transition-transform duration-200 ease-out
           ${checked ? 'translate-x-[22px]' : 'translate-x-0'}

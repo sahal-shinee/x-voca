@@ -15,6 +15,7 @@ import NotificationBell from './NotificationBell';
 import ThemeToggle from './ThemeToggle';
 import { useBroadcastingStatus } from '../../hooks/useFirebase';
 import { useAuth } from '../../context/AuthContext';
+import logoXion from '../../assets/logo_xion.webp';
 
 /**
  * Topbar Component
@@ -53,7 +54,6 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
   };
 
   const currentPage = pageNames[location.pathname] || 'Dashboard';
-  const userInitial = user?.name?.charAt(0)?.toUpperCase() || 'X';
   const userName = user?.name || 'Xion Regalia';
   const userEmail = user?.email || 'creator@x-voca.space';
 
@@ -62,31 +62,31 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       sticky top-0 z-30 h-16
       bg-bg-nav/95 backdrop-blur-md
       border-b border-border-subtle
-      flex items-center justify-between
-      px-4 lg:px-6
+      flex items-center justify-between gap-2
+      px-3 sm:px-4 lg:px-6
     ">
       {/* ── LEFT: Mobile Menu + Breadcrumb ── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 sm:flex-initial">
         <button
           type="button"
           onClick={onToggleMobileMenu}
-          className="lg:hidden p-2 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-xl transition-colors"
+          className="lg:hidden p-2 text-text-muted hover:text-text-primary hover:bg-bg-surface rounded-xl transition-colors flex-shrink-0"
           aria-label="Toggle menu navigasi"
         >
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1.5 text-sm min-w-0">
           <Link
             to="/admin/dashboard"
-            className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors"
+            className="hidden sm:flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+            aria-label="Dashboard"
           >
             <Home className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-xs font-mono">ADMIN</span>
           </Link>
-          <span className="text-text-muted/60 text-xs font-mono">/</span>
-          <span className="text-sm font-semibold text-text-primary tracking-tight">
+          <span className="hidden sm:inline text-text-muted/60 text-xs font-mono flex-shrink-0">/</span>
+          <span className="text-sm font-semibold text-text-primary tracking-tight truncate">
             {currentPage}
           </span>
         </div>
@@ -125,7 +125,7 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
       </button>
 
       {/* ── RIGHT: Broadcasting status + Notification + Avatar Dropdown ── */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Broadcasting Status */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface border border-border-subtle">
           <Radio className={`w-3.5 h-3.5 ${fbIsReady ? 'text-accent-cyan' : 'text-text-muted'}`} />
@@ -153,10 +153,17 @@ export function Topbar({ isMobileMenuOpen, onToggleMobileMenu, onOpenSearch }) {
             className="flex items-center gap-2 p-1 rounded-xl hover:bg-bg-surface transition-colors focus:outline-none"
             aria-label="Menu profil"
           >
-            <div className="w-8 h-8 rounded-lg bg-accent-purple/15 border border-accent-purple/30 flex items-center justify-center shadow-sm">
-              <span className="text-xs font-bold font-mono text-accent-purple">
-                {userInitial}
-              </span>
+            <div className="w-8 h-8 rounded-full aspect-square shrink-0 p-[1.5px] bg-gradient-to-tr from-accent-cyan/50 to-accent-purple/50 shadow-sm">
+              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
+                <img
+                  src={logoXion}
+                  alt={userName}
+                  width="32"
+                  height="32"
+                  decoding="async"
+                  className="w-[86%] h-[86%] object-contain"
+                />
+              </div>
             </div>
             <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform duration-150 ${isAvatarDropdownOpen ? 'rotate-180' : ''}`} />
           </button>

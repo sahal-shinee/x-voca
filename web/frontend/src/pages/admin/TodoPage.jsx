@@ -645,29 +645,29 @@ function TodoPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <CheckSquare className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Todo List
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Kelola checklist tugas, persiapan stream, dan target operasional studio
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {/* Dual View Mode Switcher */}
-          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
+          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9 sm:h-10">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 sm:h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'list'
                   ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -681,7 +681,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-7 sm:h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'kanban'
                   ? 'bg-accent-cyan/15 text-accent-cyan font-bold border border-accent-cyan/30 shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -699,7 +699,7 @@ function TodoPage() {
             type="button"
             onClick={() => fetchTodos()}
             disabled={loading}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
+            className="h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang daftar todo"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -711,7 +711,7 @@ function TodoPage() {
             <button
               type="button"
               onClick={() => setShowClearModal(true)}
-              className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors shrink-0"
+              className="h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 text-xs font-semibold text-status-live bg-status-live/10 border border-status-live/30 rounded-xl hover:bg-status-live/20 transition-colors shrink-0"
               title="Bersihkan semua tugas yang sudah selesai"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -723,7 +723,7 @@ function TodoPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
+            className="h-9 sm:h-10 inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap justify-center shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Todo</span>
@@ -828,12 +828,14 @@ function TodoPage() {
         </div>
 
         {/* Integrated Progress Strip */}
-        <div className="pt-2 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs">
-            <BarChart3 className="w-3.5 h-3.5 text-accent-cyan" />
-            <span className="text-text-muted">Progres Penyelesaian:</span>
-            <strong className="text-text-primary font-mono">
-              {stats.completed} dari {stats.total} tugas ({stats.percent}%)
+        <div className="pt-3 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center justify-between sm:justify-start gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-text-muted">
+              <BarChart3 className="w-3.5 h-3.5 text-accent-cyan shrink-0" />
+              <span className="whitespace-nowrap">Progres Penyelesaian</span>
+            </span>
+            <strong className="text-text-primary font-mono whitespace-nowrap">
+              {stats.completed}/{stats.total} tugas ({stats.percent}%)
             </strong>
           </div>
           <div className="w-full sm:max-w-sm h-2 bg-bg-surface rounded-full overflow-hidden border border-border-subtle">
@@ -848,21 +850,21 @@ function TodoPage() {
       {/* ── 3. Quick-Add Inline Bar ──────────────────────────────────────────── */}
       <form
         onSubmit={handleQuickAdd}
-        className="bg-bg-card border border-border-subtle rounded-2xl p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+        className="bg-bg-card border border-border-subtle rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-2.5"
       >
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <input
             type="text"
             value={quickTitle}
             onChange={(e) => setQuickTitle(e.target.value)}
             placeholder="Tambah tugas cepat (ketik lalu tekan Enter)..."
-            className="w-full pl-3.5 pr-3 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none"
+            className="w-full pl-3.5 pr-3 py-2.5 md:py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
           {/* Category Select */}
-          <div className="w-36">
+          <div className="w-full sm:w-40 min-w-0">
             <CustomSelect
               value={quickCategory}
               onChange={(e) => setQuickCategory(e.target.value)}
@@ -876,7 +878,7 @@ function TodoPage() {
           </div>
 
           {/* Priority Select */}
-          <div className="w-28">
+          <div className="w-full sm:w-28 min-w-0">
             <CustomSelect
               value={quickPriority}
               onChange={(e) => setQuickPriority(e.target.value)}
@@ -893,19 +895,26 @@ function TodoPage() {
           <button
             type="submit"
             disabled={!quickTitle.trim() || isQuickAdding}
-            className="h-8 px-4 text-xs font-semibold bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta rounded-xl transition-all disabled:opacity-40 flex-shrink-0 shadow-xs active:scale-95"
+            className="col-span-2 sm:col-span-1 w-full sm:w-auto h-9 px-4 text-xs font-semibold bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta rounded-xl transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 flex-shrink-0 shadow-xs active:scale-95 whitespace-nowrap"
           >
-            {isQuickAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '+ Tambah'}
+            {isQuickAdding ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Tambah</span>
+              </>
+            )}
           </button>
         </div>
       </form>
 
       {/* ── 4. Controller: Search, Filter Tabs, Categories & Sort ────────────── */}
-      <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 space-y-3 shadow-sm">
+      <div className="bg-bg-card border border-border-subtle rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-sm">
         {/* Row 1: Search, Status Tabs, Sort */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-0.5 px-0.5">
             {[
               { key: 'all',         label: 'ALL',         count: stats.total },
               { key: 'pending',     label: 'PENDING',     count: stats.pending },
@@ -919,7 +928,7 @@ function TodoPage() {
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
                   className={`
-                    px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
+                    px-3 py-1.5 sm:py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5
                     ${isActive
                       ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/35 shadow-xs font-bold'
                       : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
@@ -937,9 +946,9 @@ function TodoPage() {
           </div>
 
           {/* Search + Sort */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-shrink-0">
             {/* Search */}
-            <div className="relative flex-1 sm:w-60">
+            <div className="relative flex-1 min-w-0 sm:w-60">
               <input
                 type="text"
                 value={searchQuery}
@@ -959,44 +968,46 @@ function TodoPage() {
               )}
             </div>
 
-            {/* Sort */}
-            <div className="w-44">
-              <CustomSelect
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                options={[
-                  { value: 'deadline', label: 'Batas Waktu Terdekat' },
-                  { value: 'priority', label: 'Prioritas Tertinggi' },
-                  { value: 'newest',   label: 'Terbaru Dibuat' },
-                ]}
-                size="sm"
-                aria-label="Urutkan Todo"
-              />
-            </div>
+            {/* Sort + Reset row */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 sm:flex-none sm:w-44 min-w-0">
+                <CustomSelect
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  options={[
+                    { value: 'deadline', label: 'Batas Waktu Terdekat' },
+                    { value: 'priority', label: 'Prioritas Tertinggi' },
+                    { value: 'newest',   label: 'Terbaru Dibuat' },
+                  ]}
+                  size="sm"
+                  aria-label="Urutkan Todo"
+                />
+              </div>
 
-            {/* Reset */}
-            {(statusFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setCategoryFilter('all');
-                  setSearchQuery('');
-                }}
-                className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors"
-              >
-                Reset Filter
-              </button>
-            )}
+              {/* Reset */}
+              {(statusFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setCategoryFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Row 2: Category Pills */}
-        <div className="pt-2 border-t border-border-subtle flex items-center gap-2 overflow-x-auto scrollbar-none">
-          <span className="text-xs text-text-muted font-medium flex-shrink-0 flex items-center gap-1">
-            <Tag className="w-3 h-3" /> Kategori:
+        <div className="pt-2.5 border-t border-border-subtle flex flex-col gap-2">
+          <span className="text-[10px] text-text-muted font-semibold uppercase tracking-widest font-mono flex items-center gap-1 flex-shrink-0">
+            <Tag className="w-3 h-3" /> Kategori
           </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide snap-x -mx-0.5 px-0.5">
             {CATEGORIES.map((cat) => {
               const count = cat.id === 'all'
                 ? todos.length
@@ -1009,7 +1020,7 @@ function TodoPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => setCategoryFilter(cat.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                  className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/40 shadow-sm font-semibold'
                       : 'bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-surface/80'
@@ -1216,18 +1227,18 @@ function TodoPage() {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="bg-bg-card border border-border-subtle rounded-3xl w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl w-full max-w-2xl shadow-2xl animate-scale-in max-h-[92dvh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
+            <div className="flex justify-between items-center gap-3 px-5 py-4 sm:px-7 sm:py-5 border-b border-border-subtle shrink-0 bg-bg-surface/85 backdrop-blur-md">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl aspect-square bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/25 flex items-center justify-center shrink-0 shadow-xs">
                   <CheckSquare className="w-5 h-5" />
                 </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-xl font-bold font-display text-text-primary leading-tight truncate">
                     {editingTodo ? 'Edit Todo' : 'Tambah Todo Baru'}
                   </h2>
-                  <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-snug line-clamp-2 sm:truncate">
                     Isi detail tugas checklist kerja dan deadline operasional
                   </p>
                 </div>
@@ -1235,7 +1246,7 @@ function TodoPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl aspect-square flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
                 title="Tutup (Esc)"
               >
                 <X className="w-5 h-5" />
@@ -1243,7 +1254,7 @@ function TodoPage() {
             </div>
 
             {/* Form Body */}
-            <form onSubmit={handleSave} className="flex-1 min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6 overscroll-contain">
+            <form onSubmit={handleSave} className="flex-1 min-h-0 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6 space-y-5 overscroll-contain">
               {/* Title */}
               <div>
                 <label className="text-xs font-semibold text-text-secondary block mb-2">
@@ -1329,26 +1340,29 @@ function TodoPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-text-secondary block mb-2">
-                    Batas Waktu (Deadline)
-                  </label>
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <label className="text-xs font-semibold text-text-secondary block">
+                      Batas Waktu (Deadline)
+                    </label>
+                    {formData.deadline && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, deadline: '' }))}
+                        className="text-[11px] text-rose-500 hover:underline font-semibold"
+                      >
+                        Hapus Tanggal
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type="date"
                       value={formData.deadline}
                       onChange={(e) => setFormData((prev) => ({ ...prev, deadline: e.target.value }))}
-                      className="w-full px-4 py-2.5 sm:py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-all"
+                      className="studio-picker w-full pl-3.5 pr-10 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 focus:border-accent-cyan transition-all"
                     />
-                    {formData.deadline && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, deadline: '' }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-muted hover:text-rose-500 font-medium hover:bg-rose-500/10 rounded-lg transition-colors"
-                      >
-                        Hapus
-                      </button>
-                    )}
+                    <Calendar className="w-4 h-4 text-text-muted pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
               </div>
@@ -1386,11 +1400,11 @@ function TodoPage() {
             </form>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3.5 px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
+            <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2.5 sm:gap-3 px-5 py-3.5 sm:px-7 sm:py-4 border-t border-border-subtle shrink-0 bg-bg-surface/85 backdrop-blur-md">
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all"
+                className="px-4 sm:px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-all text-center"
               >
                 Batal
               </button>
@@ -1398,7 +1412,7 @@ function TodoPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={!formData.title.trim() || isSubmitting}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold rounded-xl text-xs disabled:opacity-50 transition-all shadow-sm active:scale-95"
+                className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta font-semibold rounded-xl text-xs disabled:opacity-50 transition-all shadow-sm active:scale-95 whitespace-nowrap"
               >
                 {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{editingTodo ? 'Simpan Perubahan' : 'Buat Todo'}</span>

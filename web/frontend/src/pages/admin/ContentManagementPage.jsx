@@ -358,16 +358,16 @@ function ContentManagementPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple shadow-sm">
               <BookOpen className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Content Guide
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Kelola katalog konten, arsip video, dan playlist YouTube untuk portal penonton
               </p>
             </div>
@@ -455,9 +455,9 @@ function ContentManagementPage() {
               : 'border-border-subtle hover:border-accent-purple/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Total Konten</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Total Konten</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
               <Video className="w-4 h-4" />
             </div>
           </div>
@@ -481,9 +481,9 @@ function ContentManagementPage() {
               : 'border-border-subtle hover:border-emerald-500/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Publik Visible</p>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Publik Visible</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
               <Eye className="w-4 h-4" />
             </div>
           </div>
@@ -507,9 +507,9 @@ function ContentManagementPage() {
               : 'border-border-subtle hover:border-status-live/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Hidden / Draft</p>
-            <div className="w-8 h-8 rounded-xl bg-status-live/10 border border-status-live/20 flex items-center justify-center text-status-live">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Hidden / Draft</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-status-live/10 border border-status-live/20 flex items-center justify-center text-status-live">
               <Archive className="w-4 h-4" />
             </div>
           </div>
@@ -533,9 +533,9 @@ function ContentManagementPage() {
               : 'border-border-subtle hover:border-accent-gold/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Sorotan Utama</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Sorotan Utama</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
               <Star className="w-4 h-4 fill-accent-gold/30" />
             </div>
           </div>
@@ -572,7 +572,7 @@ function ContentManagementPage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                     isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                   }`}>
                     {count}
@@ -583,9 +583,9 @@ function ContentManagementPage() {
           </div>
 
           {/* Search & Sort Dropdowns */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {/* Search Input */}
-            <div className="relative flex-1 sm:w-60">
+            <div className="relative flex-1 min-w-0 sm:w-60">
               <input
                 type="text"
                 value={searchQuery}
@@ -605,30 +605,32 @@ function ContentManagementPage() {
               )}
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="w-44">
-              <CustomSelect
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                options={SORT_OPTIONS}
-                size="sm"
-                aria-label="Urutkan Konten"
-              />
-            </div>
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="flex-1 sm:flex-none sm:w-44 min-w-0">
+                <CustomSelect
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  options={SORT_OPTIONS}
+                  size="sm"
+                  aria-label="Urutkan Konten"
+                />
+              </div>
 
-            {/* Reset Filter Button */}
-            {(statusFilter !== 'all' || searchQuery !== '') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setSearchQuery('');
-                }}
-                className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors"
-              >
-                Reset Filter
-              </button>
-            )}
+              {/* Reset Filter Button */}
+              {(statusFilter !== 'all' || searchQuery !== '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-accent-cyan hover:underline whitespace-nowrap px-2 py-1 transition-colors shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

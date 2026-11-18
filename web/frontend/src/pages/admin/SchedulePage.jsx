@@ -406,27 +406,28 @@ function SchedulePage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
 
       {/* ========== 1. HEADER SECTION ========== */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2 h-2 rounded-full bg-accent-cyan" />
-            <span className="text-xs font-mono text-accent-cyan font-semibold tracking-wider uppercase">
-              Siaran & Penjadwalan
-            </span>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+                Schedule
+              </h1>
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
+                Kelola sesi streaming Xion, koordinasi kolaborasi, dan sinkronisasi hitung mundur publik.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
-            Schedule
-          </h1>
-          <p className="text-xs sm:text-sm text-text-secondary mt-1">
-            Kelola sesi streaming Xion, koordinasi kolaborasi, dan sinkronisasi hitung mundur publik.
-          </p>
         </div>
 
         {/* Add Button */}
         <button
           type="button"
           onClick={handleAddSchedule}
-          className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap self-stretch sm:self-auto justify-center shrink-0"
+          className="h-10 inline-flex items-center gap-2 px-5 bg-accent-cyan hover:bg-accent-cyan-hover text-text-on-cta text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 whitespace-nowrap self-stretch md:self-auto justify-center shrink-0"
         >
           <CalendarPlus className="w-4 h-4" />
           <span>Tambah Jadwal</span>
@@ -571,7 +572,7 @@ function SchedulePage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                     activeFilter === tab.key ? 'bg-black/20 text-white' : 'bg-bg-surface text-text-muted'
                   }`}>
                     {count}
@@ -582,22 +583,22 @@ function SchedulePage() {
           </div>
 
           {/* Right Toolbar: Search, View Mode Switcher, Refresh */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Search Input */}
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative flex-1 min-w-0 sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari judul, game, atau deskripsi..."
-                className="w-full pl-9 pr-4 py-2 bg-bg-card border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
+                className="w-full pl-9 pr-8 py-2 bg-bg-card border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
                 >
                   &times;
                 </button>
@@ -680,7 +681,7 @@ function SchedulePage() {
           /* ================================================================= */
           /* 3.A RICH STREAM CARDS VIEW (Mengatasi Ruang Kosong Melompong)     */
           /* ================================================================= */
-          <div className="p-4 sm:p-5 space-y-3">
+          <div className="p-3.5 sm:p-5 space-y-3">
             {filteredSchedules.map((schedule) => {
               const status = getScheduleStatus(schedule);
               const statusBadge = getStatusBadge(status);
@@ -695,35 +696,35 @@ function SchedulePage() {
                 <div
                   key={schedule.id}
                   className={`
-                    flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-2xl border transition-all duration-200
+                    flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 overflow-hidden
                     ${isLive
                       ? 'bg-status-live/5 border-status-live/30 shadow-md ring-1 ring-status-live/20'
                       : 'bg-bg-surface hover:bg-bg-card-hover border-border-subtle hover:border-border-active shadow-sm'}
                   `}
                 >
-                  {/* Left: Date Block + Thumbnail Preview + Info */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                  {/* Left: Date Block + Thumbnail Preview + Info (w-full prevents flex-col overflow) */}
+                  <div className="w-full flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
                     {/* Calendar Date Block */}
                     <div className={`
-                      w-14 h-14 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 border shadow-sm
+                      w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl aspect-square flex flex-col items-center justify-center shrink-0 border shadow-sm
                       ${isLive
                         ? 'bg-status-live/15 border-status-live/30 text-status-live'
                         : 'bg-bg-card border-border-subtle'}
                     `}>
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-accent-purple">
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-accent-purple leading-none">
                         {dayInfo.dayName}
                       </span>
-                      <span className="text-xl font-extrabold font-mono text-text-primary leading-none mt-0.5">
+                      <span className="text-lg sm:text-xl font-extrabold font-mono text-text-primary leading-tight">
                         {dayInfo.dayNum}
                       </span>
-                      <span className="text-[8px] font-mono text-text-muted uppercase mt-0.5">
+                      <span className="text-[8px] font-mono text-text-muted uppercase leading-none">
                         {dayInfo.month}
                       </span>
                     </div>
 
                     {/* Thumbnail Preview (Hidden on small mobile) */}
                     {thumbnailSrc && (
-                      <div className="w-24 h-14 rounded-xl overflow-hidden bg-black/40 border border-border-subtle flex-shrink-0 hidden md:block relative shadow-inner">
+                      <div className="w-24 h-14 rounded-xl overflow-hidden bg-black/40 border border-border-subtle shrink-0 hidden md:block relative shadow-inner">
                         <img
                           src={thumbnailSrc}
                           alt={schedule.title}
@@ -738,121 +739,125 @@ function SchedulePage() {
 
                     {/* Stream Content Details */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1.5">
                         {/* Status Badge */}
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${statusBadge.class}`}>
-                          <StatusIcon className="w-3 h-3" />
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border whitespace-nowrap shrink-0 ${statusBadge.class}`}>
+                          <StatusIcon className="w-3 h-3 shrink-0" />
                           {statusBadge.label}
                         </span>
 
                         {/* Schedule Time */}
-                        <span className="text-[11px] font-mono text-text-muted flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
+                        <span className="text-[11px] font-mono text-text-muted inline-flex items-center gap-1 whitespace-nowrap shrink-0">
+                          <Clock className="w-3 h-3 shrink-0" />
                           {formatTimeOnly(schedule.scheduled_at)}
                         </span>
 
                         {/* Game Category Chip */}
                         {schedule.game_category && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-card border border-border-subtle text-text-secondary truncate max-w-[130px]">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-card border border-border-subtle text-text-secondary truncate max-w-full sm:max-w-[150px]">
                             {schedule.game_category}
                           </span>
                         )}
 
                         {/* Collab Guest Chip */}
                         {schedule.collab_guest && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-accent-purple/10 text-accent-purple border border-accent-purple/20">
-                            <Users className="w-3 h-3" />
-                            @{schedule.collab_guest.replace(/^@/, '')}
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-accent-purple/10 text-accent-purple border border-accent-purple/20 max-w-full truncate">
+                            <Users className="w-3 h-3 shrink-0" />
+                            <span className="truncate">@{schedule.collab_guest.replace(/^@/, '')}</span>
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-sm sm:text-base font-bold text-text-primary truncate">
+                      <h3 className="text-sm sm:text-base font-bold text-text-primary leading-snug line-clamp-2 sm:truncate break-words">
                         {schedule.title}
                       </h3>
 
                       {schedule.description ? (
-                        <p className="text-xs text-text-muted truncate mt-0.5 max-w-2xl">
+                        <p className="text-xs text-text-muted line-clamp-2 sm:truncate mt-1 leading-relaxed break-words max-w-2xl">
                           {schedule.description}
                         </p>
                       ) : (
-                        <p className="text-xs text-text-muted italic mt-0.5">
+                        <p className="text-xs text-text-muted italic mt-1">
                           Tidak ada deskripsi tambahan
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Right: Action Buttons (User Friendly & Prominent) */}
-                  <div className="flex items-center gap-2 flex-shrink-0 self-end lg:self-center w-full lg:w-auto justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-border-subtle">
-                    {/* Prominent CTA for Finished Streams: + Content Guide */}
-                    {isDone && (
+                  {/* Right: Action Buttons (Clean split on mobile: CTA left, icon tools right) */}
+                  <div className="w-full lg:w-auto flex flex-wrap items-center justify-between lg:justify-end gap-2 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-border-subtle">
+                    <div className="flex items-center gap-2">
+                      {/* Prominent CTA for Finished Streams: + Content Guide */}
+                      {isDone && (
+                        <button
+                          type="button"
+                          onClick={() => handleDirectConvertToContent(schedule)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all active:scale-95 shadow-sm whitespace-nowrap"
+                          title="Buat Content Guide dari siaran ini"
+                        >
+                          <BookPlus className="w-3.5 h-3.5 shrink-0" />
+                          <span>+ Content Guide</span>
+                        </button>
+                      )}
+
+                      {/* Live Streamer End Button */}
+                      {isLive && (
+                        <button
+                          type="button"
+                          onClick={() => handleEndStreamClick(schedule)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors shadow-sm whitespace-nowrap"
+                          title="Akhiri Siaran Langsung"
+                        >
+                          <Power className="w-3.5 h-3.5 shrink-0" />
+                          <span>Akhiri</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 ml-auto lg:ml-0">
+                      {/* YouTube Link */}
+                      {schedule.youtube_url && (
+                        <a
+                          href={schedule.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors border border-transparent hover:border-border-subtle"
+                          title="Buka YouTube"
+                        >
+                          <YouTubeIcon size={16} />
+                        </a>
+                      )}
+
+                      {/* Preview Detail */}
                       <button
                         type="button"
-                        onClick={() => handleDirectConvertToContent(schedule)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/35 text-accent-cyan text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap"
-                        title="Buat Content Guide dari siaran ini"
+                        onClick={() => handlePreview(schedule)}
+                        className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-card rounded-xl transition-colors border border-transparent hover:border-border-subtle"
+                        title="Lihat Detail Siaran"
                       >
-                        <BookPlus className="w-3.5 h-3.5" />
-                        <span>+ Content Guide</span>
+                        <Eye className="w-4 h-4" />
                       </button>
-                    )}
 
-                    {/* Live Streamer End Button */}
-                    {isLive && (
+                      {/* Edit */}
                       <button
                         type="button"
-                        onClick={() => handleEndStreamClick(schedule)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-status-live/15 hover:bg-status-live/25 text-status-live border border-status-live/30 transition-colors shadow-sm"
-                        title="Akhiri Siaran Langsung"
+                        onClick={() => handleEditSchedule(schedule)}
+                        className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-xl transition-colors border border-transparent hover:border-accent-cyan/30"
+                        title="Edit Jadwal"
                       >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>Akhiri</span>
+                        <Edit className="w-4 h-4" />
                       </button>
-                    )}
 
-                    {/* YouTube Link */}
-                    {schedule.youtube_url && (
-                      <a
-                        href={schedule.youtube_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors border border-transparent hover:border-border-subtle"
-                        title="Buka YouTube"
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClick(schedule)}
+                        className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-xl transition-colors border border-transparent hover:border-status-live/30"
+                        title="Hapus Jadwal"
                       >
-                        <YouTubeIcon size={16} />
-                      </a>
-                    )}
-
-                    {/* Preview Detail */}
-                    <button
-                      type="button"
-                      onClick={() => handlePreview(schedule)}
-                      className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-card rounded-xl transition-colors border border-transparent hover:border-border-subtle"
-                      title="Lihat Detail Siaran"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-
-                    {/* Edit */}
-                    <button
-                      type="button"
-                      onClick={() => handleEditSchedule(schedule)}
-                      className="p-2 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10 rounded-xl transition-colors border border-transparent hover:border-accent-cyan/30"
-                      title="Edit Jadwal"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteClick(schedule)}
-                      className="p-2 text-text-muted hover:text-status-live hover:bg-status-live/10 rounded-xl transition-colors border border-transparent hover:border-status-live/30"
-                      title="Hapus Jadwal"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

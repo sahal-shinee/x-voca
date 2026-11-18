@@ -140,21 +140,21 @@ function Modal({
       {/* Modal Content */}
       <div
         className={`
-          relative w-full ${modalSize}
+          relative w-full ${modalSize} max-h-[90dvh]
           bg-bg-card border border-border-subtle
-          rounded-3xl shadow-2xl overflow-hidden
+          rounded-3xl shadow-2xl overflow-hidden flex flex-col
           transform transition-all duration-200
           ${isOpen && !isAnimatingOut ? 'scale-100' : 'scale-95'}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle bg-bg-surface/85 backdrop-blur-md">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-7 sm:py-5 border-b border-border-subtle bg-bg-surface/85 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {/* Icon */}
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${styles.iconBox}`}>
+            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl aspect-square flex items-center justify-center shrink-0 shadow-xs ${styles.iconBox}`}>
               {icon || styles.defaultIcon}
             </div>
-            <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">{title}</h2>
+            <h2 className="text-base sm:text-lg font-bold font-display text-text-primary leading-tight truncate">{title}</h2>
           </div>
 
           {/* Close Button */}
@@ -162,7 +162,7 @@ function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface border border-transparent hover:border-border-subtle transition-colors shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl aspect-square flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface border border-transparent hover:border-border-subtle transition-colors shrink-0"
               aria-label="Tutup modal"
             >
               <X className="w-5 h-5" />
@@ -171,13 +171,13 @@ function Modal({
         </div>
 
         {/* Body */}
-        <div className="p-7 sm:p-8 max-h-[calc(85vh-140px)] overflow-y-auto">
+        <div className="p-5 sm:p-7 flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {children}
         </div>
 
         {/* Footer */}
         {footer !== null && (
-          <div className="flex items-center justify-end gap-3.5 px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center justify-end gap-2.5 sm:gap-3 px-5 py-3.5 sm:px-7 sm:py-4 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md shrink-0">
             {footer ? (
               footer
             ) : (

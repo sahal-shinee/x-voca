@@ -366,16 +366,16 @@ function CollabRequestsPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <Users className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Collab Requests
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Koordinasi usulan kolaborasi streamer dari komunitas dan realisasikan siaran bersama
               </p>
             </div>
@@ -464,9 +464,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-purple/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Total Usulan</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Total Usulan</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -490,14 +490,14 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-cyan/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
               <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Usulan Baru</p>
               {stats.pending > 0 && (
-                <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping shrink-0" />
               )}
             </div>
-            <div className="w-8 h-8 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan">
               <Clock className="w-4 h-4" />
             </div>
           </div>
@@ -521,9 +521,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-accent-gold/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Disimpan (Shortlist)</p>
-            <div className="w-8 h-8 rounded-xl bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Disimpan (Shortlist)</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center text-accent-gold">
               <Bookmark className="w-4 h-4" />
             </div>
           </div>
@@ -547,9 +547,9 @@ function CollabRequestsPage() {
               : 'border-border-subtle hover:border-status-done/40'}
           `}
         >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Dijadwalkan</p>
-            <div className="w-8 h-8 rounded-xl bg-status-done/10 border border-status-done/20 flex items-center justify-center text-status-done">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted min-w-0">Dijadwalkan</p>
+            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-status-done/10 border border-status-done/20 flex items-center justify-center text-status-done">
               <CalendarCheck className="w-4 h-4" />
             </div>
           </div>
@@ -587,7 +587,7 @@ function CollabRequestsPage() {
                   `}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                     isActive ? 'bg-black/15 text-text-on-cta' : 'bg-bg-card text-text-secondary'
                   }`}>
                     {count}
@@ -598,23 +598,9 @@ function CollabRequestsPage() {
           </div>
 
           {/* Period Select & Search Bar */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            {/* Period Dropdown */}
-            <div className="w-36">
-              <CustomSelect
-                value={selectedPeriod}
-                onChange={(e) => {
-                  setSelectedPeriod(e.target.value);
-                  setCurrentPage(1);
-                }}
-                options={periodOptions}
-                size="sm"
-                aria-label="Filter berdasarkan Periode"
-              />
-            </div>
-
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0 sm:w-64">
               <input
                 type="text"
                 value={searchInput}
@@ -637,6 +623,20 @@ function CollabRequestsPage() {
                 </button>
               )}
             </form>
+
+            {/* Period Dropdown */}
+            <div className="w-full sm:w-40 min-w-0">
+              <CustomSelect
+                value={selectedPeriod}
+                onChange={(e) => {
+                  setSelectedPeriod(e.target.value);
+                  setCurrentPage(1);
+                }}
+                options={periodOptions}
+                size="sm"
+                aria-label="Filter berdasarkan Periode"
+              />
+            </div>
 
             {/* Reset Filter Button */}
             {(activeStatus !== 'all' || selectedPeriod !== 'all' || activeSearch !== '') && (
@@ -943,16 +943,16 @@ function CollabRequestsPage() {
             </div>
 
             {messageModal.request.requested_streamer_social && (
-              <div className="p-3 bg-bg-surface border border-border-subtle rounded-xl text-xs flex items-center justify-between">
-                <span className="text-text-muted">Tautan Sosmed:</span>
+              <div className="p-3 bg-bg-surface border border-border-subtle rounded-xl text-xs flex flex-wrap items-center justify-between gap-2">
+                <span className="text-text-muted shrink-0">Tautan Sosmed:</span>
                 <a
                   href={messageModal.request.requested_streamer_social}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent-cyan hover:underline inline-flex items-center gap-1 font-mono"
+                  className="text-accent-cyan hover:underline inline-flex items-center gap-1 font-mono min-w-0 max-w-full"
                 >
-                  <span>{messageModal.request.requested_streamer_social}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="truncate">{messageModal.request.requested_streamer_social}</span>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 </a>
               </div>
             )}

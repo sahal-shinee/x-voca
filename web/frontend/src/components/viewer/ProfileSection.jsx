@@ -446,39 +446,39 @@ const ProfileSection = () => {
                 </p>
 
                 {/* Stats Grid: Total Sesi, Total Video, Debut */}
-                <div ref={statsRef} className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
-                    <p className="text-[#fbbf24] text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
+                <div ref={statsRef} className="grid grid-cols-3 gap-2 mb-6">
+                  <div className="p-2.5 sm:p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat min-w-0">
+                    <p className="text-[#fbbf24] text-xl sm:text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       {subsCount >= 1000
                         ? `${(subsCount / 1000).toFixed(subsCount >= 10000 ? 0 : 1)}K`
                         : subsCount}
                     </p>
-                    <p className="text-white text-xs font-semibold">Subscribers</p>
+                    <p className="text-white text-[10px] sm:text-xs font-semibold leading-tight">Subscribers</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] animate-pulse" />
-                      <p className="text-[#a89ec0] text-[10px] font-mono">YouTube · Live</p>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] animate-pulse shrink-0" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono truncate leading-tight">YouTube · Live</p>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
-                    <p className="text-[#7ee0d2] text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
+                  <div className="p-2.5 sm:p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat min-w-0">
+                    <p className="text-[#7ee0d2] text-xl sm:text-2xl lg:text-3xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       {videosCount}
                     </p>
-                    <p className="text-white text-xs font-semibold">Total Video</p>
+                    <p className="text-white text-[10px] sm:text-xs font-semibold leading-tight">Total Video</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
-                      <p className="text-[#a89ec0] text-[10px] font-mono">YouTube · Arsip</p>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] shrink-0" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono truncate leading-tight">YouTube · Arsip</p>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat">
-                    <p className="text-[#c084fc] text-xl lg:text-2xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
+                  <div className="p-2.5 sm:p-4 rounded-xl bg-[#231f42]/70 border border-[#3d3560] hover:border-[#7ee0d2]/40 hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-300 group/stat min-w-0">
+                    <p className="text-[#c084fc] text-lg sm:text-xl lg:text-2xl font-bold font-display leading-none mb-1 group-hover/stat:scale-105 transition-transform duration-200">
                       8 Feb
                     </p>
-                    <p className="text-white text-xs font-semibold">Tanggal Debut</p>
+                    <p className="text-white text-[10px] sm:text-xs font-semibold leading-tight">Tanggal Debut</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc]" />
-                      <p className="text-[#a89ec0] text-[10px] font-mono">{activeDaysCount} Hari Mengudara</p>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc] shrink-0" />
+                      <p className="text-[#a89ec0] text-[10px] font-mono truncate leading-tight">{activeDaysCount} Hari</p>
                     </div>
                   </div>
                 </div>

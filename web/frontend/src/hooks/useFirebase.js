@@ -44,9 +44,13 @@ export function useFirebase(path) {
         }
       );
 
-      // Cleanup on unmount or path change
+      // Cleanup only this component's listener on unmount or path change
       return () => {
-        off(dataRef);
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        } else {
+          off(dataRef);
+        }
       };
     } catch (err) {
       console.error('Firebase hook error:', err);

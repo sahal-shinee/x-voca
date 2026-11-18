@@ -137,10 +137,10 @@ export function CollabRequestModal({ isOpen, onClose, onSuccess }) {
       {/* Modal Container */}
       <div
         className="
-          relative w-full max-w-lg
+          relative w-full max-w-lg max-h-[90dvh] overflow-y-auto overscroll-contain
           bg-[#18132b] border border-[rgba(192,132,252,0.3)]
           rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)]
-          overflow-hidden z-10 transition-all duration-300
+          z-10 transition-all duration-300
           animate-scale-in text-white
         "
         style={{

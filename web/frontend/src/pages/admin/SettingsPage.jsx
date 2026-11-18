@@ -24,6 +24,7 @@ import {
 import { authAPI } from '../../services/api';
 import { safeFormatDate } from '../../utils/dateUtils';
 import { isFirebaseConfigured } from '../../utils/firebase';
+import logoXion from '../../assets/logo_xion.webp';
 
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -151,16 +152,16 @@ function SettingsPage() {
 
       {/* ── 1. Page Header & Command Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-bg-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aspect-square shrink-0 bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center text-accent-cyan shadow-sm">
               <SettingsIcon className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                 Settings
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
                 Kelola profil akun, keamanan otentikasi, dan preferensi platform streaming
               </p>
             </div>
@@ -183,10 +184,17 @@ function SettingsPage() {
 
           {/* Profile Identity Card */}
           <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm text-center relative overflow-hidden">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-cyan/20 via-accent-purple/20 to-accent-gold/20 border border-accent-cyan/30 flex items-center justify-center mx-auto shadow-md mb-3">
-              <span className="text-3xl font-bold font-mono text-accent-cyan select-none">
-                {accountInfo?.name?.charAt(0)?.toUpperCase() || 'A'}
-              </span>
+            <div className="w-20 h-20 rounded-full aspect-square p-[2.5px] bg-gradient-to-tr from-accent-cyan/60 via-white/20 to-accent-purple/60 mx-auto shadow-md mb-3">
+              <div className="w-full h-full rounded-full bg-[#120e28] overflow-hidden flex items-center justify-center">
+                <img
+                  src={logoXion}
+                  alt={accountInfo?.name || 'Administrator'}
+                  width="80"
+                  height="80"
+                  decoding="async"
+                  className="w-[86%] h-[86%] object-contain"
+                />
+              </div>
             </div>
 
             <h3 className="text-base font-bold text-text-primary truncate">

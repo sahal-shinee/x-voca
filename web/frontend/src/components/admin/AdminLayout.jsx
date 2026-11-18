@@ -61,7 +61,7 @@ export function AdminLayout() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] lg:h-screen overflow-hidden">
         {/* Modular Topbar */}
         <Topbar
           isMobileMenuOpen={isMobileMenuOpen}

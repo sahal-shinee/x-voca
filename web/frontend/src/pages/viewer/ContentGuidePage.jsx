@@ -607,7 +607,7 @@ function ContentGuidePage() {
               `}
             >
               <span>Semua Konten</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${activeCategory === 'all' ? 'bg-[#0D0B1A]/20 text-[#0D0B1A]' : 'bg-white/10 text-[#8E8AAB]'}`}>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${activeCategory === 'all' ? 'bg-[#0D0B1A]/20 text-[#0D0B1A]' : 'bg-white/10 text-[#8E8AAB]'}`}>
                 {totalContent}
               </span>
             </button>
@@ -629,7 +629,7 @@ function ContentGuidePage() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color || '#7ee0d2' }} />
                   <span>{cat.name}</span>
-                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${isActive ? 'bg-[#0D0B1A]/20 text-[#0D0B1A]' : 'bg-white/10 text-[#8E8AAB]'}`}>
+                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${isActive ? 'bg-[#0D0B1A]/20 text-[#0D0B1A]' : 'bg-white/10 text-[#8E8AAB]'}`}>
                     {cat.count || 0}
                   </span>
                 </button>

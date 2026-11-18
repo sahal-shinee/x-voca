@@ -8,7 +8,7 @@
 // Firebase SDK imports
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
-import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, deleteToken, isSupported, onMessage } from 'firebase/messaging';
 
 // Fallback Web Push config (FCM)
 const FCM_FALLBACK_CONFIG = {
@@ -143,6 +143,37 @@ export async function requestWebPushToken() {
 }
 
 /**
+ * Delete current browser FCM Web Push token (used when user deactivates stream alerts)
+ * @returns {Promise<boolean>}
+ */
+export async function deleteWebPushToken() {
+  try {
+    if (typeof window === 'undefined') return false;
+    const supported = await isSupported().catch(() => false);
+    if (!supported) return false;
+
+    let messagingApp = getApps().find((a) => a.name === 'xvoca-fcm') || null;
+    if (!messagingApp) {
+      const fcmConfig = {
+        apiKey: import.meta.env.VITE_FCM_API_KEY || FCM_FALLBACK_CONFIG.apiKey,
+        authDomain: FCM_FALLBACK_CONFIG.authDomain,
+        projectId: FCM_FALLBACK_CONFIG.projectId,
+        storageBucket: FCM_FALLBACK_CONFIG.storageBucket,
+        messagingSenderId: FCM_FALLBACK_CONFIG.messagingSenderId,
+        appId: FCM_FALLBACK_CONFIG.appId,
+      };
+      messagingApp = initializeApp(fcmConfig, 'xvoca-fcm');
+    }
+
+    const messaging = getMessaging(messagingApp);
+    return await deleteToken(messaging);
+  } catch (err) {
+    console.warn('deleteWebPushToken warning:', err?.message || err);
+    return false;
+  }
+}
+
+/**
  * Listen to foreground FCM push notifications
  */
 export function listenForegroundMessages(callback) {
@@ -166,5 +197,6 @@ export default {
   getFirebaseDatabase,
   isFirebaseConfigured,
   requestWebPushToken,
+  deleteWebPushToken,
   firebaseConfig,
 };

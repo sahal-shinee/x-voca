@@ -317,7 +317,7 @@ function GameFormPanel({
       {/* Modern Center Studio Dialog */}
       <div
         className={`
-          relative w-full max-w-2xl lg:max-w-3xl max-h-[90vh]
+          relative w-full max-w-2xl lg:max-w-3xl max-h-[92dvh]
           bg-bg-card border border-border-subtle rounded-3xl shadow-2xl
           flex flex-col z-10 overflow-hidden
           transition-all duration-200 ease-out
@@ -326,16 +326,16 @@ function GameFormPanel({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header (Sticky) */}
-        <div className="px-7 py-5.5 sm:px-8 sm:py-6 border-b border-border-subtle flex items-center justify-between flex-shrink-0 bg-bg-surface/85 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-accent-purple/15 text-accent-purple border border-accent-purple/20 flex items-center justify-center shrink-0 shadow-xs">
+        <div className="px-5 py-4 sm:px-7 sm:py-5 border-b border-border-subtle flex items-center justify-between gap-3 shrink-0 bg-bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl aspect-square bg-accent-purple/15 text-accent-purple border border-accent-purple/20 flex items-center justify-center shrink-0 shadow-xs">
               <Gamepad2 className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold font-display text-text-primary leading-tight">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-xl font-bold font-display text-text-primary leading-tight truncate">
                 {isEdit ? 'Edit Data Game' : 'Tambah Game Baru'}
               </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-snug line-clamp-2 sm:truncate">
                 Kandidat tayang dan voting penonton portal fansite
               </p>
             </div>
@@ -343,7 +343,7 @@ function GameFormPanel({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl aspect-square flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors border border-transparent hover:border-border-subtle shrink-0"
             title="Tutup (Esc)"
             aria-label="Tutup panel"
           >
@@ -355,7 +355,7 @@ function GameFormPanel({
         <form
           id="game-form"
           onSubmit={handleSubmit}
-          className="flex-1 min-h-0 overflow-y-auto px-7 py-6 sm:px-8 sm:py-7 space-y-6"
+          className="flex-1 min-h-0 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6 space-y-5 overscroll-contain"
         >
           {/* Judul Game */}
           <div>
@@ -596,12 +596,12 @@ function GameFormPanel({
         </form>
 
         {/* Footer Actions (Sticky) */}
-        <div className="px-7 py-4.5 sm:px-8 sm:py-5 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md flex items-center justify-between gap-3.5 flex-shrink-0">
+        <div className="px-5 py-3.5 sm:px-7 sm:py-4 border-t border-border-subtle bg-bg-surface/85 backdrop-blur-md grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2.5 sm:gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50"
+            className="px-4 sm:px-5 py-2.5 rounded-xl border border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors disabled:opacity-50 text-center"
           >
             Batal
           </button>
@@ -609,7 +609,7 @@ function GameFormPanel({
             type="submit"
             form="game-form"
             disabled={loading || imageProcessing}
-            className="px-6 py-2.5 rounded-xl bg-accent-cyan text-white text-xs font-bold hover:bg-accent-cyan-hover transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            className="px-4 sm:px-6 py-2.5 rounded-xl bg-accent-cyan text-text-on-cta text-xs font-bold hover:bg-accent-cyan-hover transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
           >
             {loading ? (
               <>
