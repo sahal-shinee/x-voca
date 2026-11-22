@@ -4,7 +4,7 @@ import '../models/collab_model.dart';
 /// Service untuk mengelola data permohonan kolaborasi (Collab Requests).
 ///
 /// Bertanggung jawab atas:
-/// - Mengambil seluruh daftar pengajuan collab dari partner / vtuber lain.
+/// - Mengambil seluruh daftar pengajuan collab dari vtuber lain.
 /// - Menyetujui, menolak, atau meninjau (review) permohonan collab.
 /// - Menyimpan catatan review internal admin.
 /// - Menghapus data permohonan collab.

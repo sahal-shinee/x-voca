@@ -176,11 +176,32 @@ const SORT_OPTIONS = [
 ];
 
 // ========== MODERN CUSTOM DROPDOWN (ZERO NATIVE OS STIFFNESS) ==========
-function CustomDropdown({ value, options, onChange }) {
+function CustomDropdown({
+  value,
+  options = [],
+  onChange,
+  placeholder = 'Pilih...',
+  fullWidth = false,
+  size = 'sm',
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef(null);
 
-  const selectedOption = options.find((o) => o.value === value) || options[0];
+  // Normalize options: supports string array or object array { value, label }
+  const normalizedOptions = useMemo(
+    () =>
+      options.map((opt) =>
+        typeof opt === 'object' && opt !== null
+          ? { value: opt.value, label: opt.label ?? String(opt.value) }
+          : { value: opt, label: String(opt) }
+      ),
+    [options]
+  );
+
+  const selectedOption = normalizedOptions.find(
+    (o) => String(o.value) === String(value) && o.value !== ''
+  );
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -200,25 +221,59 @@ function CustomDropdown({ value, options, onChange }) {
     };
   }, []);
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setIsOpen(false);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setHighlightedIndex(0);
+      } else {
+        setHighlightedIndex((prev) => (prev < normalizedOptions.length - 1 ? prev + 1 : 0));
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setHighlightedIndex(normalizedOptions.length - 1);
+      } else {
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : normalizedOptions.length - 1));
+      }
+    } else if (e.key === 'Enter' && isOpen && highlightedIndex >= 0) {
+      e.preventDefault();
+      onChange(normalizedOptions[highlightedIndex].value);
+      setIsOpen(false);
+    }
+  };
+
+  const isSmall = size === 'sm';
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={`relative ${fullWidth ? 'w-full' : ''}`} ref={dropdownRef}>
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
+        onKeyDown={handleKeyDown}
         className={`
-          flex items-center justify-between gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200
+          flex items-center justify-between gap-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer text-left
+          ${fullWidth ? 'w-full text-sm px-4 py-2.5' : isSmall ? 'text-xs px-3.5 py-1.5' : 'text-sm px-3.5 py-2.5'}
           ${isOpen
-            ? 'bg-[#181432] border-[#7ee0d2]/60 text-white shadow-[0_0_14px_rgba(126,224,210,0.18)] ring-1 ring-[#7ee0d2]/30'
+            ? 'bg-[#181432] border-[#7ee0d2]/70 text-white shadow-[0_0_16px_rgba(126,224,210,0.22)] ring-1 ring-[#7ee0d2]/40'
             : 'bg-[#141126] border-white/10 text-white hover:border-[#7ee0d2]/40 hover:bg-[#181432]'
           } border
         `}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="truncate">{selectedOption.label}</span>
+        <span className={`truncate ${selectedOption ? 'text-white font-medium' : 'text-[#8E8AAB]/70 font-normal'}`}>
+          {selectedOption ? selectedOption.label : (placeholder || normalizedOptions[0]?.label || 'Pilih...')}
+        </span>
         <svg
-          className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#7ee0d2]' : 'text-[#8E8AAB]'}`}
+          className={`transition-transform duration-200 flex-shrink-0 ${
+            isSmall ? 'w-3.5 h-3.5' : 'w-4 h-4'
+          } ${isOpen ? 'rotate-180 text-[#7ee0d2]' : 'text-[#8E8AAB]'}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -234,31 +289,42 @@ function CustomDropdown({ value, options, onChange }) {
       {isOpen && (
         <div
           role="listbox"
-          className="absolute right-0 mt-1.5 w-44 rounded-xl bg-[#141128]/95 backdrop-blur-xl border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.6)] p-1 z-30 animate-in fade-in zoom-in-95 duration-150"
+          className={`
+            absolute mt-1.5 rounded-xl bg-[#141128]/95 backdrop-blur-xl border border-white/10
+            shadow-[0_16px_40px_rgba(0,0,0,0.7)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150
+            max-h-60 overflow-y-auto
+            [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full
+            ${fullWidth ? 'left-0 right-0 w-full' : 'right-0 w-44'}
+          `}
         >
-          {options.map((option) => {
-            const isSelected = option.value === value;
+          {normalizedOptions.map((option, idx) => {
+            const isSelected = String(option.value) === String(value);
+            const isHighlighted = idx === highlightedIndex;
             return (
               <button
-                key={option.value}
+                key={`${option.value}-${idx}`}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                onMouseEnter={() => setHighlightedIndex(idx)}
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
                 }}
                 className={`
-                  w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between text-left transition-all duration-150 cursor-pointer
+                  w-full px-3.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 cursor-pointer
+                  ${fullWidth ? 'py-2.5 text-sm' : isSmall ? 'py-1.5 text-xs' : 'py-2 text-xs'}
                   ${isSelected
-                    ? 'bg-[#7ee0d2]/15 text-[#7ee0d2] font-semibold'
+                    ? 'bg-[#7ee0d2]/15 text-[#7ee0d2] font-semibold border border-[#7ee0d2]/30'
+                    : isHighlighted
+                    ? 'text-white bg-white/[0.08]'
                     : 'text-[#A09BB8] hover:text-white hover:bg-white/[0.06]'
                   }
                 `}
               >
-                <span>{option.label}</span>
+                <span className="truncate">{option.label}</span>
                 {isSelected && (
-                  <svg className="w-3.5 h-3.5 text-[#7ee0d2] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 text-[#7ee0d2] flex-shrink-0 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
@@ -950,7 +1016,7 @@ function VotingPage() {
         onConfirm={handleSubmitRequest}
         loading={submittingRequest}
       >
-        <form onSubmit={handleSubmitRequest} className="space-y-4">
+        <form onSubmit={handleSubmitRequest} className="space-y-4 min-h-[280px]">
           <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-[#8E8AAB] leading-relaxed">
             Usulan game akan diverifikasi oleh Creator sebelum tampil di daftar voting publik.
           </div>
@@ -970,37 +1036,36 @@ function VotingPage() {
             />
           </div>
 
-          {/* Genre Selection (Dropdown + Lainnya) */}
+          {/* Genre Selection (Modern Custom Dropdown + Lainnya) */}
           <div className="space-y-2.5">
             <label className="block text-xs font-semibold text-white">
               Kategori / Genre <span className="text-[#8E8AAB] font-normal">(opsional)</span>
             </label>
-            <select
+            <CustomDropdown
               value={requestForm.genre}
-              onChange={(e) => {
-                const val = e.target.value;
+              options={[
+                { value: '', label: 'Pilih kategori game...' },
+                ...GAME_CATEGORIES.map((genre) => ({ value: genre, label: genre })),
+              ]}
+              onChange={(val) => {
                 setRequestForm((p) => ({
                   ...p,
                   genre: val,
                   customGenre: val === 'Lainnya' ? p.customGenre : '',
                 }));
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors cursor-pointer"
-            >
-              <option value="">Pilih kategori game...</option>
-              {GAME_CATEGORIES.map((genre) => (
-                <option key={genre} value={genre}>
-                  {genre}
-                </option>
-              ))}
-            </select>
+              placeholder="Pilih kategori game..."
+              fullWidth
+              size="md"
+            />
             {requestForm.genre === 'Lainnya' && (
               <input
                 type="text"
                 value={requestForm.customGenre}
                 onChange={(e) => setRequestForm((p) => ({ ...p, customGenre: e.target.value }))}
                 placeholder="Tulis kategori/genre lainnya..."
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-[#8E8AAB]/50 bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-[#8E8AAB]/50 bg-[#141126] border border-white/10 focus:border-[#7ee0d2]/60 focus:outline-none transition-colors animate-fade-in"
+                autoFocus
               />
             )}
           </div>

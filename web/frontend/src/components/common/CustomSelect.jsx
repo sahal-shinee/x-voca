@@ -160,8 +160,8 @@ export function CustomSelect({
               {selectedOption.icon}
             </span>
           )}
-          <span className={`truncate ${selectedOption ? 'font-medium' : 'text-text-muted'}`}>
-            {selectedOption ? selectedOption.label : placeholder}
+          <span className={`truncate ${selectedOption && selectedOption.value !== '' ? 'font-medium' : 'text-text-muted'}`}>
+            {selectedOption && selectedOption.value !== '' ? selectedOption.label : placeholder}
           </span>
           {selectedOption?.badge && (
             <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30">

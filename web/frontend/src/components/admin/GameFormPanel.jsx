@@ -13,6 +13,7 @@ import {
   Trash2,
   Loader2,
 } from 'lucide-react';
+import CustomSelect from '../common/CustomSelect';
 
 // Unified game categories (consistent across Web Admin, Web Viewer, and Android Mobile)
 const GAME_CATEGORIES = [
@@ -165,7 +166,7 @@ function GameFormPanel({
 
   // Handle category dropdown change
   const handleCategoryChange = (e) => {
-    const val = e.target.value;
+    const val = typeof e === 'object' && e?.target?.value !== undefined ? e.target.value : e;
     setSelectedCategory(val);
     if (val === 'Lainnya') {
       setFormData((prev) => ({ ...prev, genre: customGenre.trim() || 'Lainnya' }));
@@ -387,18 +388,17 @@ function GameFormPanel({
             <label className="text-xs font-semibold text-text-secondary block">
               Kategori / Genre
             </label>
-            <select
+            <CustomSelect
+              name="genre"
               value={selectedCategory}
               onChange={handleCategoryChange}
-              className="w-full px-4 py-3 bg-bg-surface border border-border-subtle rounded-xl text-sm text-text-primary focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/30 transition-colors cursor-pointer"
-            >
-              <option value="">Pilih kategori game (opsional)...</option>
-              {GAME_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              placeholder="Pilih kategori game (opsional)..."
+              options={[
+                { value: '', label: 'Pilih kategori game (opsional)...' },
+                ...GAME_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+              ]}
+              className="w-full"
+            />
             {selectedCategory === 'Lainnya' && (
               <input
                 type="text"
