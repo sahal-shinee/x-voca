@@ -39,11 +39,25 @@ router.get('/', async (req, res) => {
       list = recentLogs.map((log) => ({
         id: `audit_${log.id}`,
         type: log.action_type || 'SYSTEM_UPDATE',
-        title: log.action_type === 'collab_requested' ? '🤝 Request Collab Baru' : (log.action_type === 'game_requested' ? '🎮 Request Game Baru' : 'Aktivitas Studio'),
+        title: log.action_type === 'collab_requested'
+          ? '🤝 Request Collab Baru'
+          : log.action_type === 'game_requested'
+          ? '🎮 Request Game Baru'
+          : log.action_type === 'todo_created'
+          ? '📌 Tugas Baru Ditambahkan'
+          : log.action_type === 'todo_completed'
+          ? '✅ Tugas Diselesaikan'
+          : 'Aktivitas Studio',
         message: `${log.detail || ''}${log.sub_detail ? ` — ${log.sub_detail}` : ''}`,
         read: false,
         createdAt: new Date(log.created_at).getTime(),
-        link: log.action_type === 'collab_requested' ? '/admin/collab-requests' : (log.action_type === 'game_requested' ? '/admin/voting' : '/admin')
+        link: log.action_type === 'collab_requested'
+          ? '/admin/collab-requests'
+          : log.action_type === 'game_requested'
+          ? '/admin/voting'
+          : log.action_type?.startsWith('todo')
+          ? '/admin/todos'
+          : '/admin'
       }));
     }
 

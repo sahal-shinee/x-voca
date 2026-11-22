@@ -1,5 +1,6 @@
 const { Todo, AuditLog } = require('../models');
 const { Op } = require('sequelize');
+const { sendTopicNotification } = require('../utils/firebase.helper');
 
 /**
  * Get all todos for current user
@@ -156,6 +157,31 @@ const createTodo = async (req, res) => {
       status: 'pending'
     });
 
+    // Kirim notifikasi real-time jika tugas bertaraf Urgent
+    if (priority === 'urgent') {
+      try {
+        await sendTopicNotification('creator_alerts', {
+          title: '🚨 Tugas Urgent Baru Ditambahkan!',
+          body: `"${title}" perlu segera disiapkan untuk sesi streaming.`,
+          data: {
+            type: 'TODO_DEADLINE',
+            todoId: String(todo.id),
+            url: '/admin/todos'
+          }
+        });
+      } catch (err) {
+        console.warn('Urgent todo notification warning:', err.message);
+      }
+    }
+
+    // Catat ke AuditLog aktivitas studio
+    await AuditLog.create({
+      user_id: req.userId,
+      action_type: 'todo_created',
+      detail: `Tugas "${title}" dibuat`,
+      sub_detail: `Prioritas: ${priority || 'medium'}${deadline ? ` | Tenggat: ${new Date(deadline).toLocaleString('id-ID')}` : ''}`
+    }).catch(err => console.warn('AuditLog create todo error:', err.message));
+
     return res.status(201).json({
       success: true,
       data: todo,
@@ -221,6 +247,12 @@ const updateTodo = async (req, res) => {
     // Set or reset completed_at based on status
     if (updates.status === 'completed' && todo.status !== 'completed') {
       todo.completed_at = new Date();
+      await AuditLog.create({
+        user_id: req.userId,
+        action_type: 'todo_completed',
+        detail: `Tugas "${todo.title}" diselesaikan`,
+        sub_detail: 'Checklist persiapan selesai'
+      }).catch(err => console.warn('AuditLog complete todo error:', err.message));
     } else if (updates.status && updates.status !== 'completed') {
       todo.completed_at = null;
     }
@@ -266,6 +298,13 @@ const deleteTodo = async (req, res) => {
     }
 
     await todo.destroy();
+
+    await AuditLog.create({
+      user_id: req.userId,
+      action_type: 'todo_deleted',
+      detail: `Tugas "${todo.title}" dihapus`,
+      sub_detail: 'Dihapus dari daftar todo'
+    }).catch(err => console.warn('AuditLog delete todo error:', err.message));
 
     return res.status(200).json({
       success: true,

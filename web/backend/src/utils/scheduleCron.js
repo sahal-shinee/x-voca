@@ -10,7 +10,7 @@
  * - When schedule goes done → game status becomes 'done'
  */
 
-const { Schedule, Game } = require('../models');
+const { Schedule, Game, Todo } = require('../models');
 const { updateNextSchedule, sendTopicNotification } = require('./firebase.helper');
 const { Op } = require('sequelize');
 
@@ -243,6 +243,74 @@ const updateScheduleStatuses = async () => {
   }
 };
 
+// Track notified todo IDs in memory to avoid duplicate alerts in same session
+const notifiedTodoDeadlines = new Set();
+
+/**
+ * Check approaching deadlines for pending todos (within next 2 hours)
+ * and trigger push notifications to creator_alerts (Web Admin bell + Mobile FCM)
+ */
+const checkTodoDeadlines = async () => {
+  try {
+    const now = new Date();
+    // 2 hours window from now
+    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    const upcomingTodos = await Todo.findAll({
+      where: {
+        status: { [Op.in]: ['pending', 'in_progress'] },
+        deadline: {
+          [Op.gte]: now,
+          [Op.lte]: twoHoursLater,
+        },
+      },
+    });
+
+    for (const todo of upcomingTodos) {
+      if (notifiedTodoDeadlines.has(todo.id)) continue;
+
+      const deadlineTime = new Date(todo.deadline);
+      const diffMs = deadlineTime.getTime() - now.getTime();
+      const minutesRemaining = Math.max(1, Math.round(diffMs / 60000));
+      const hoursRemaining = Math.round(diffMs / 3600000);
+
+      const timeStr =
+        minutesRemaining <= 60
+          ? `${minutesRemaining} menit`
+          : `${hoursRemaining} jam`;
+
+      const hourPad = String(deadlineTime.getHours()).padStart(2, '0');
+      const minPad = String(deadlineTime.getMinutes()).padStart(2, '0');
+
+      const isUrgent = todo.priority === 'urgent' || todo.priority === 'high';
+      const title = isUrgent
+        ? '🚨 Tugas Urgent: Batas Waktu Mendekat!'
+        : '📌 Pengingat Tugas: Batas Waktu Mendekat';
+
+      const body = `Tugas "${todo.title}" tersisa ${timeStr} lagi (tenggat ${hourPad}:${minPad} WIB). Segera selesaikan persiapan!`;
+
+      console.log(`[Cron Todo] Sending deadline alert for: "${todo.title}" (ID: ${todo.id})`);
+
+      try {
+        await sendTopicNotification('creator_alerts', {
+          title,
+          body,
+          data: {
+            type: 'TODO_DEADLINE',
+            todoId: String(todo.id),
+            url: '/admin/todos',
+          },
+        });
+        notifiedTodoDeadlines.add(todo.id);
+      } catch (notifErr) {
+        console.warn('[Cron Todo] Notification error:', notifErr.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error in checkTodoDeadlines:', error.message);
+  }
+};
+
 /**
  * Initialize and start the schedule status cron job
  *
@@ -257,9 +325,13 @@ const startScheduleCron = (options = {}) => {
 
   // Initial check
   updateScheduleStatuses();
+  checkTodoDeadlines();
 
   // Set interval
-  const intervalId = setInterval(updateScheduleStatuses, intervalMs);
+  const intervalId = setInterval(async () => {
+    await updateScheduleStatuses();
+    await checkTodoDeadlines();
+  }, intervalMs);
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
@@ -277,5 +349,6 @@ const startScheduleCron = (options = {}) => {
 
 module.exports = {
   updateScheduleStatuses,
+  checkTodoDeadlines,
   startScheduleCron
 };

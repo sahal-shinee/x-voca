@@ -310,4 +310,89 @@ class NotificationService {
       debugPrint('[REMINDER] Gagal membatalkan alarm: $e');
     }
   }
+
+  /// Memasang alarm lokal pengingat tugas persiapan stream (To-Do) sebelum batas waktu (deadline).
+  ///
+  /// Memicu notifikasi lokal:
+  /// - 1 jam sebelum deadline jika sisa waktu > 1 jam.
+  /// - Tepat pada saat deadline jika sisa waktu < 1 jam namun belum terlewat.
+  Future<void> scheduleTodoReminder({
+    required int todoId,
+    required String title,
+    required DateTime deadline,
+    String priority = 'medium',
+  }) async {
+    try {
+      final now = DateTime.now();
+      if (deadline.isBefore(now)) {
+        debugPrint('[TODO REMINDER] Deadline sudah lewat untuk "$title"');
+        return;
+      }
+
+      // Prioritaskan pengingat 1 jam sebelum deadline, fallback ke deadline jika sisa waktu < 1 jam
+      DateTime reminderTime = deadline.subtract(const Duration(hours: 1));
+      if (reminderTime.isBefore(now)) {
+        reminderTime = deadline;
+      }
+
+      final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
+      final notifId = 20000 + (todoId > 0 ? todoId : todoId.abs());
+
+      final isUrgent = priority.toLowerCase() == 'urgent' || priority.toLowerCase() == 'high';
+      final hourStr = deadline.hour.toString().padLeft(2, '0');
+      final minStr = deadline.minute.toString().padLeft(2, '0');
+
+      final notifTitle = isUrgent
+          ? '🚨 Tugas Urgent: Batas Waktu Mendekat!'
+          : '📌 Pengingat Tugas: Batas Waktu Mendekat';
+
+      final notifBody =
+          'Tugas "$title" memiliki tenggat pukul $hourStr:$minStr WIB. Segera selesaikan persiapan stream!';
+
+      await _localNotifications.zonedSchedule(
+        notifId,
+        notifTitle,
+        notifBody,
+        scheduledDate,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.max,
+            priority: Priority.max,
+            visibility: NotificationVisibility.public,
+            icon: '@drawable/ic_notification',
+            color: const Color(0xFF863BFF),
+            playSound: true,
+            enableVibration: true,
+            ticker: 'Pengingat Deadline Tugas',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[TODO REMINDER] Alarm tugas terpasang pada: $scheduledDate untuk "$title"');
+    } catch (e) {
+      debugPrint('[TODO REMINDER] Gagal pasang alarm tugas: $e');
+    }
+  }
+
+  /// Membatalkan alarm pengingat tugas jika tugas sudah diselesaikan atau dihapus.
+  Future<void> cancelTodoReminder(int todoId) async {
+    try {
+      final notifId = 20000 + (todoId > 0 ? todoId : todoId.abs());
+      await _localNotifications.cancel(notifId);
+      debugPrint('[TODO REMINDER] Alarm tugas dibatalkan untuk ID: $todoId');
+    } catch (e) {
+      debugPrint('[TODO REMINDER] Gagal membatalkan alarm tugas: $e');
+    }
+  }
 }

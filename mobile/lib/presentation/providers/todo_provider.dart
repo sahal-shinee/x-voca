@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/todo_model.dart';
+import '../../data/services/notification_service.dart';
 import '../../data/services/todo_service.dart';
 import 'auth_provider.dart' show dioProvider;
 
@@ -65,6 +66,18 @@ class TodoNotifier extends StateNotifier<TodoState> {
         todos: result.todos,
         meta: result.meta,
       );
+
+      // Sinkronkan alarm pengingat deadline untuk seluruh tugas persiapan yang belum selesai
+      for (final t in result.todos) {
+        if (t.deadline != null && t.status != 'completed') {
+          NotificationService.instance.scheduleTodoReminder(
+            todoId: t.id,
+            title: t.title,
+            deadline: t.deadline!,
+            priority: t.priority,
+          );
+        }
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -121,6 +134,16 @@ class TodoNotifier extends StateNotifier<TodoState> {
       state = state.copyWith(
         todos: state.todos.map((t) => t.id == tempId ? newTodo : t).toList(),
       );
+
+      // Pasang alarm pengingat jika memiliki deadline dan belum selesai
+      if (newTodo.deadline != null && newTodo.status != 'completed') {
+        NotificationService.instance.scheduleTodoReminder(
+          todoId: newTodo.id,
+          title: newTodo.title,
+          deadline: newTodo.deadline!,
+          priority: newTodo.priority,
+        );
+      }
     } catch (e) {
       state = state.copyWith(todos: previousTodos, meta: previousMeta);
       rethrow;
@@ -174,6 +197,18 @@ class TodoNotifier extends StateNotifier<TodoState> {
             .map((t) => t.id == id ? updatedFromServer : t)
             .toList(),
       );
+
+      // Sinkronkan alarm reminder sesuai status dan deadline terbaru
+      if (updatedFromServer.status == 'completed' || updatedFromServer.deadline == null) {
+        NotificationService.instance.cancelTodoReminder(id);
+      } else {
+        NotificationService.instance.scheduleTodoReminder(
+          todoId: updatedFromServer.id,
+          title: updatedFromServer.title,
+          deadline: updatedFromServer.deadline!,
+          priority: updatedFromServer.priority,
+        );
+      }
     } catch (e) {
       state = state.copyWith(todos: previousTodos);
       rethrow;
@@ -202,6 +237,18 @@ class TodoNotifier extends StateNotifier<TodoState> {
       state = state.copyWith(
         todos: state.todos.map((t) => t.id == id ? updated : t).toList(),
       );
+
+      // Batalkan alarm jika selesai, pasang ulang jika diaktifkan kembali
+      if (isNowCompleted) {
+        NotificationService.instance.cancelTodoReminder(id);
+      } else if (updated.deadline != null) {
+        NotificationService.instance.scheduleTodoReminder(
+          todoId: updated.id,
+          title: updated.title,
+          deadline: updated.deadline!,
+          priority: updated.priority,
+        );
+      }
     } catch (e) {
       state = state.copyWith(todos: previousTodos);
       rethrow;
@@ -245,6 +292,7 @@ class TodoNotifier extends StateNotifier<TodoState> {
 
     try {
       await _todoService.deleteTodo(id);
+      NotificationService.instance.cancelTodoReminder(id);
     } catch (e) {
       state = state.copyWith(todos: previousTodos, meta: previousMeta);
       rethrow;
