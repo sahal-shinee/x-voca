@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/dashboardService';
-import { getGames, createGame, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
+import { getGames, getVotingPeriods, createGame, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
 import { downloadVotingPDF } from '../../utils/pdfExport';
 import Modal from '../../components/common/Modal';
 import GameCard from '../../components/common/GameCard';
@@ -31,6 +31,9 @@ import {
   Flame,
   Clock,
   Layers,
+  LayoutGrid,
+  List,
+  Archive,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -103,15 +106,36 @@ function VotingModerationPage() {
   const navigate = useNavigate();
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [currentPeriodKey, setCurrentPeriodKey] = useState(new Date().toISOString().slice(0, 7));
+  const [activePeriodKey, setActivePeriodKey] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState(new Date().toISOString().slice(0, 7));
+  const [availablePeriods, setAvailablePeriods] = useState([new Date().toISOString().slice(0, 7)]);
+  const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
+  const periodDropdownRef = useRef(null);
+
   const [totalVotes, setTotalVotes] = useState(0);
   const [statsLoading, setStatsLoading] = useState(true);
+
+  const isViewingArchive = selectedPeriodKey !== activePeriodKey;
 
   // All games dataset (master list to ensure metric counts never zero out)
   const [allGames, setAllGames] = useState([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('xvoca_voting_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('xvoca_voting_view_mode', mode);
+    } catch {}
+  };
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -134,23 +158,42 @@ function VotingModerationPage() {
   // PDF Export
   const [pdfExporting, setPdfExporting] = useState(false);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setExportDropdownOpen(false);
+      }
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
+        setPeriodDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ── Fetch Available Periods ─────────────────────────────────────────────────
+  const fetchPeriods = useCallback(async () => {
+    try {
+      const response = await getVotingPeriods();
+      if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+        setAvailablePeriods(response.data);
+      }
+      if (response?.current_period) {
+        setActivePeriodKey(response.current_period);
+      }
+    } catch (error) {
+      console.warn('Error fetching voting periods:', error);
+    }
+  }, []);
+
   // ── Fetch Master Games Data ─────────────────────────────────────────────────
-  const fetchAllGames = useCallback(async () => {
+  const fetchAllGames = useCallback(async (periodOverride) => {
+    const periodToFetch = periodOverride || selectedPeriodKey;
     setGamesLoading(true);
     setSelectedIds(new Set());
     try {
-      const response = await getGames();
+      const response = await getGames({ period_key: periodToFetch });
       let rawGames = [];
       if (response?.data) {
         if (Array.isArray(response.data)) {
@@ -170,7 +213,7 @@ function VotingModerationPage() {
         status: game.status,
         added_by: game.added_by || game.addedBy || 'creator',
         requester_info: game.requester_info || game.requesterInfo || '',
-        period_key: game.period_key || game.periodKey || currentPeriodKey,
+        period_key: game.period_key || game.periodKey || periodToFetch,
         isOfficial: game.added_by === 'creator' || game.addedBy === 'creator',
         addedBy: game.added_by === 'creator' ? 'Creator' : (game.requester_info || game.requesterInfo || 'Viewer'),
         category: game.genre || game.category || '',
@@ -183,24 +226,20 @@ function VotingModerationPage() {
       // Compute total votes
       const voteSum = sorted.reduce((sum, g) => sum + (g.vote_count || 0), 0);
       setTotalVotes(voteSum);
-
-      if (sorted.length > 0 && sorted[0].period_key) {
-        setCurrentPeriodKey(sorted[0].period_key);
-      }
     } catch (error) {
       console.error('Error fetching games:', error);
       setAllGames([]);
     } finally {
       setGamesLoading(false);
     }
-  }, [currentPeriodKey]);
+  }, [selectedPeriodKey]);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
       const response = await getStats();
       if (response?.data?.stats?.active_period) {
-        setCurrentPeriodKey(response.data.stats.active_period);
+        setActivePeriodKey(response.data.stats.active_period);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -209,11 +248,31 @@ function VotingModerationPage() {
     }
   }, []);
 
-  // Initialize once on mount
+  // Initialize on mount
   useEffect(() => {
     fetchStats();
+    fetchPeriods();
     fetchAllGames();
-  }, [fetchStats, fetchAllGames]);
+  }, [fetchStats, fetchPeriods, fetchAllGames]);
+
+  // Handle switching period
+  const handleSelectPeriod = (period) => {
+    setSelectedPeriodKey(period);
+    setPeriodDropdownOpen(false);
+    setActiveFilter('all');
+    setSearchQuery('');
+    fetchAllGames(period);
+  };
+
+  const handleBackToActivePeriod = () => {
+    handleSelectPeriod(activePeriodKey);
+  };
+
+  const handleRefreshAll = () => {
+    fetchStats();
+    fetchPeriods();
+    fetchAllGames(selectedPeriodKey);
+  };
 
   // ── Computed Variables ───────────────────────────────────────────────────────
   // Status counts calculated permanently from allGames (never drops to 0 on tab change!)
@@ -320,10 +379,11 @@ function VotingModerationPage() {
     try {
       const response = await resetVotingPeriod();
       setResetModal({ open: false });
-      if (response?.data?.new_period || response?.periodKey) {
-        setCurrentPeriodKey(response.data?.new_period || response.periodKey);
-      }
-      fetchAllGames();
+      const newPeriod = response?.data?.new_period || response?.periodKey || new Date().toISOString().slice(0, 7);
+      setActivePeriodKey(newPeriod);
+      setSelectedPeriodKey(newPeriod);
+      await fetchPeriods();
+      await fetchAllGames(newPeriod);
       setActiveFilter('all');
     } catch (error) {
       console.error('Error resetting period:', error);
@@ -373,7 +433,7 @@ function VotingModerationPage() {
       return;
     }
 
-    const periodLabel = formatPeriodLabel(currentPeriodKey);
+    const periodLabel = formatPeriodLabel(selectedPeriodKey);
     const nowStr = new Date().toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
@@ -394,7 +454,7 @@ function VotingModerationPage() {
 
     const metaRows = [
       ['LAPORAN REKAPITULASI VOTING GAME X-VOCA'],
-      ['Periode Voting', `${periodLabel} (${currentPeriodKey})`],
+      ['Periode Voting', `${periodLabel} (${selectedPeriodKey})`],
       ['Tanggal Ekspor', nowStr],
       ['Total Suara Terkumpul', `${totalVotes.toLocaleString('id-ID')} Suara`],
       ['Total Usulan Game', `${allGames.length} Game`],
@@ -443,7 +503,7 @@ function VotingModerationPage() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `rekap_voting_${currentPeriodKey}.csv`;
+    link.download = `rekap_voting_${selectedPeriodKey}.csv`;
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -460,7 +520,7 @@ function VotingModerationPage() {
     try {
       await downloadVotingPDF({
         games: allGames,
-        periodKey: currentPeriodKey,
+        periodKey: selectedPeriodKey,
         stats: { totalVotes, maxVotes, totalGames: allGames.length },
       });
     } catch (error) {
@@ -495,10 +555,82 @@ function VotingModerationPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          {/* Periode Dropdown Selector (Aktif & Arsip) */}
+          <div className="relative shrink-0" ref={periodDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setPeriodDropdownOpen((prev) => !prev)}
+              className={`h-10 flex items-center gap-2 px-3.5 text-xs font-semibold rounded-xl border transition-colors ${
+                isViewingArchive
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                  : 'bg-bg-surface border-border-subtle hover:bg-bg-card-hover text-text-primary'
+              }`}
+              title="Pilih periode voting untuk melihat usulan dan mencetak laporan"
+            >
+              <CalendarDays className={`w-3.5 h-3.5 ${isViewingArchive ? 'text-amber-400' : 'text-accent-purple'}`} />
+              <span className="font-mono">{formatPeriodLabel(selectedPeriodKey)}</span>
+              {isViewingArchive ? (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300">
+                  ARSIP
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-accent-cyan/15 text-accent-cyan">
+                  AKTIF
+                </span>
+              )}
+              <ChevronDown className="w-3 h-3 text-text-muted" />
+            </button>
+
+            {periodDropdownOpen && (
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-64 max-w-[calc(100vw-32px)] bg-bg-card border border-border-subtle rounded-xl shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
+                <div className="px-3 py-1.5 border-b border-border-subtle flex items-center justify-between">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Pilih Periode Voting</p>
+                  <Archive className="w-3.5 h-3.5 text-text-muted" />
+                </div>
+                <div className="max-h-56 overflow-y-auto py-1 scrollbar-thin">
+                  {availablePeriods.map((period) => {
+                    const isCurrent = period === activePeriodKey;
+                    const isSelected = period === selectedPeriodKey;
+                    return (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => handleSelectPeriod(period)}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors text-left ${
+                          isSelected
+                            ? 'bg-accent-cyan/15 text-accent-cyan font-bold'
+                            : 'text-text-primary hover:bg-bg-surface'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-status-live animate-pulse' : 'bg-text-muted/40'}`} />
+                          <span className="truncate">{formatPeriodLabel(period)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isCurrent && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent-cyan/20 text-accent-cyan font-semibold">
+                              Aktif
+                            </span>
+                          )}
+                          {!isCurrent && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-bg-surface border border-border-subtle text-text-muted">
+                              Arsip
+                            </span>
+                          )}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-accent-cyan" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Refresh Manual */}
           <button
             type="button"
-            onClick={() => { fetchAllGames(); fetchStats(); }}
+            onClick={handleRefreshAll}
             disabled={gamesLoading}
             className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
             title="Muat ulang data voting"
@@ -525,7 +657,7 @@ function VotingModerationPage() {
             </button>
 
             {exportDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-bg-card border border-border-subtle rounded-xl shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-32px)] bg-bg-card border border-border-subtle rounded-xl shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
                 <div className="px-3 py-1.5 border-b border-border-subtle">
                   <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Format Laporan</p>
                 </div>
@@ -569,33 +701,52 @@ function VotingModerationPage() {
 
       {/* ── Top Metric Ribbon (Symmetric 5-card deck) ────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
-        {/* 1. Periode Voting Aktif */}
-        <div className="col-span-2 md:col-span-1 bg-bg-card border border-border-subtle rounded-2xl p-4 flex flex-col justify-between transition-all hover:border-accent-purple/40 shadow-sm">
+        {/* 1. Periode Voting (Aktif vs Arsip) */}
+        <div className={`col-span-2 md:col-span-1 bg-bg-card border rounded-2xl p-4 flex flex-col justify-between transition-all shadow-sm ${
+          isViewingArchive ? 'border-amber-500/40 bg-amber-500/[0.03]' : 'border-border-subtle hover:border-accent-purple/40'
+        }`}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Periode Aktif</p>
+              <p className={`text-[11px] font-mono uppercase tracking-wider ${isViewingArchive ? 'text-amber-400 font-bold' : 'text-text-muted'}`}>
+                {isViewingArchive ? 'Arsip Periode' : 'Periode Aktif'}
+              </p>
               <h3 className="text-base font-bold text-text-primary mt-0.5 truncate">
-                {formatPeriodLabel(currentPeriodKey)}
+                {formatPeriodLabel(selectedPeriodKey)}
               </h3>
             </div>
-            <div className="w-8 h-8 rounded-xl aspect-square shrink-0 bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple">
-              <CalendarDays className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-xl aspect-square shrink-0 flex items-center justify-center ${
+              isViewingArchive
+                ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
+                : 'bg-accent-purple/10 border border-accent-purple/20 text-accent-purple'
+            }`}>
+              {isViewingArchive ? <Archive className="w-4 h-4" /> : <CalendarDays className="w-4 h-4" />}
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-border-subtle flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-status-live animate-ping" />
+              {!isViewingArchive && <span className="w-2 h-2 rounded-full bg-status-live animate-ping" />}
+              {isViewingArchive && <span className="w-2 h-2 rounded-full bg-amber-400" />}
               <span className="text-xs font-mono font-semibold text-text-primary">
                 {totalVotes.toLocaleString('id-ID')} <span className="text-[10px] text-text-muted font-normal">suara</span>
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setResetModal({ open: true })}
-              className="text-[11px] font-semibold text-status-live hover:text-status-live/80 hover:underline transition-colors"
-            >
-              Reset Periode
-            </button>
+            {isViewingArchive ? (
+              <button
+                type="button"
+                onClick={handleBackToActivePeriod}
+                className="text-[11px] font-semibold text-accent-cyan hover:underline transition-colors"
+              >
+                Kembali ke Aktif
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setResetModal({ open: true })}
+                className="text-[11px] font-semibold text-status-live hover:text-status-live/80 hover:underline transition-colors"
+              >
+                Reset Periode
+              </button>
+            )}
           </div>
         </div>
 
@@ -721,7 +872,7 @@ function VotingModerationPage() {
                 <span>JUARA VOTING #1</span>
               </span>
               <span className="text-[11px] font-mono text-text-muted">
-                Sisa {daysRemaining} Hari
+                {isViewingArchive ? 'Periode Selesai' : `Sisa ${daysRemaining} Hari`}
               </span>
             </div>
 
@@ -932,34 +1083,86 @@ function VotingModerationPage() {
         {/* ── Right Column: Moderation & Filter Deck (7 cols on xl) ────────── */}
         <div className="xl:col-span-8 space-y-4">
 
-          {/* Search, Filter Tabs & Bulk Actions Deck */}
-          <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3">
+          {/* Archive Mode Banner */}
+          {isViewingArchive && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-200 shadow-sm animate-in fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Archive className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  Menampilkan arsip periode <strong>{formatPeriodLabel(selectedPeriodKey)}</strong>. Ekspor PDF & CSV akan memuat data resmi periode ini.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleBackToActivePeriod}
+                className="text-xs font-bold text-accent-cyan hover:underline shrink-0 whitespace-nowrap self-end sm:self-auto"
+              >
+                Kembali ke Periode Aktif →
+              </button>
+            </div>
+          )}
 
-            {/* Row 1: Search & Filter Tabs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              {/* Search input */}
-              <div className="relative flex-1">
+          {/* Search, Filter Tabs & Bulk Actions Deck */}
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3.5">
+
+            {/* Row 1: Search Input (Full Breathing Room) + View Mode Switcher (Grid vs List) */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 min-w-0">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari judul game, genre, atau pengusul..."
-                  className="w-full pl-9 pr-8 py-2 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
+                  placeholder="Cari judul game, genre, pengusul..."
+                  className="w-full pl-9 pr-8 py-2.5 bg-bg-surface border border-border-subtle rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:outline-none transition-colors"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-0.5"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-0.5 rounded-md"
+                    title="Hapus pencarian"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
 
+              {/* View Mode Switcher: Grid vs List */}
+              <div className="flex items-center bg-bg-surface border border-border-subtle rounded-xl p-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange('grid')}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                  title="Tampilan Grid (Kartu)"
+                  aria-label="Tampilan Grid"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange('list')}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                  title="Tampilan List (Baris Horizontal)"
+                  aria-label="Tampilan List"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: Status Tabs + Counters & Select All */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border-subtle/70">
               {/* Status Tabs */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                 {FILTER_TABS.map((tab) => {
                   const count = countByStatus[tab.key] || 0;
                   const isActive = activeFilter === tab.key;
@@ -969,7 +1172,7 @@ function VotingModerationPage() {
                       type="button"
                       onClick={() => setActiveFilter(tab.key)}
                       className={`
-                        px-3 py-2 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
+                        px-3 py-1.5 text-xs font-mono font-semibold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5
                         ${isActive
                           ? 'bg-accent-cyan text-text-on-cta shadow-sm font-bold'
                           : 'bg-bg-surface text-text-muted hover:text-text-primary border border-border-subtle'}
@@ -985,29 +1188,31 @@ function VotingModerationPage() {
                   );
                 })}
               </div>
-            </div>
 
-            {/* Row 2: Select All & Counters */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border-subtle text-xs text-text-muted">
-              <button
-                type="button"
-                onClick={toggleSelectAll}
-                className="inline-flex items-center gap-2 hover:text-text-primary transition-colors font-medium whitespace-nowrap"
-              >
-                <span className="w-4 h-4 shrink-0 flex items-center justify-center">
-                  {allVisibleSelected ? (
-                    <CheckCircle className="w-4 h-4 text-accent-cyan" />
-                  ) : (
-                    <Circle className="w-4 h-4" />
-                  )}
+              {/* Counters & Select All */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-text-muted shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="inline-flex items-center gap-1.5 hover:text-text-primary transition-colors font-medium whitespace-nowrap"
+                >
+                  <span className="w-4 h-4 shrink-0 flex items-center justify-center">
+                    {allVisibleSelected ? (
+                      <CheckCircle className="w-4 h-4 text-accent-cyan" />
+                    ) : (
+                      <Circle className="w-4 h-4" />
+                    )}
+                  </span>
+                  <span>{allVisibleSelected ? 'Batalkan' : 'Pilih Semua'}</span>
+                </button>
+
+                <span className="text-border-subtle hidden sm:inline">|</span>
+
+                <span className="whitespace-nowrap">
+                  Menampilkan <strong className="text-text-primary font-mono">{filteredGames.length}</strong> dari{' '}
+                  <strong className="text-text-primary font-mono">{allGames.length}</strong> game
                 </span>
-                <span>{allVisibleSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua'}</span>
-              </button>
-
-              <span className="whitespace-nowrap">
-                Menampilkan <strong className="text-text-primary font-mono">{filteredGames.length}</strong> dari{' '}
-                <strong className="text-text-primary font-mono">{allGames.length}</strong> game
-              </span>
+              </div>
             </div>
 
             {/* Row 3: Bulk Actions Ribbon (Cleanly responsive, zero overflow) */}
@@ -1061,27 +1266,47 @@ function VotingModerationPage() {
 
           </div>
 
-          {/* Game Cards Grid */}
+          {/* Game Cards / List Display */}
           {gamesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-bg-card rounded-2xl border border-border-subtle p-5 animate-pulse space-y-4">
-                  <div className="flex justify-between">
-                    <div className="h-4 w-20 bg-bg-surface rounded" />
-                    <div className="h-4 w-10 bg-bg-surface rounded" />
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-xl bg-bg-surface shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-3/4 bg-bg-surface rounded" />
-                      <div className="h-3 w-1/2 bg-bg-surface rounded" />
-                      <div className="h-2 w-full bg-bg-surface rounded mt-2" />
+            viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-bg-card rounded-2xl border border-border-subtle p-5 animate-pulse space-y-4">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-20 bg-bg-surface rounded" />
+                      <div className="h-4 w-10 bg-bg-surface rounded" />
                     </div>
+                    <div className="flex gap-3">
+                      <div className="w-16 h-16 rounded-xl bg-bg-surface shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-3/4 bg-bg-surface rounded" />
+                        <div className="h-3 w-1/2 bg-bg-surface rounded" />
+                        <div className="h-2 w-full bg-bg-surface rounded mt-2" />
+                      </div>
+                    </div>
+                    <div className="h-8 w-full bg-bg-surface rounded-xl" />
                   </div>
-                  <div className="h-8 w-full bg-bg-surface rounded-xl" />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-bg-card rounded-2xl border border-border-subtle p-3.5 sm:p-4 animate-pulse flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-4 h-4 rounded bg-bg-surface shrink-0" />
+                      <div className="w-6 h-5 rounded bg-bg-surface shrink-0" />
+                      <div className="w-12 h-12 rounded-xl bg-bg-surface shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/3 bg-bg-surface rounded" />
+                        <div className="h-3 w-1/4 bg-bg-surface rounded" />
+                      </div>
+                    </div>
+                    <div className="w-36 h-3 bg-bg-surface rounded shrink-0 hidden md:block" />
+                    <div className="w-24 h-8 bg-bg-surface rounded-lg shrink-0" />
+                  </div>
+                ))}
+              </div>
+            )
           ) : filteredGames.length === 0 ? (
             <div className="bg-bg-card border border-border-subtle rounded-2xl p-12 text-center space-y-3 shadow-sm">
               <div className="w-14 h-14 rounded-2xl bg-bg-surface border border-border-subtle flex items-center justify-center mx-auto text-text-muted">
@@ -1125,13 +1350,14 @@ function VotingModerationPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3.5" : "space-y-2.5"}>
               {filteredGames.map((game, index) => (
                 <GameCard
                   key={game.id}
                   game={game}
                   rank={index + 1}
                   maxVotes={maxVotes}
+                  layout={viewMode}
                   selected={selectedIds.has(game.id)}
                   onSelect={toggleSelect}
                   onAccept={(g) => setActionModal({ open: true, game: g, action: 'accept' })}

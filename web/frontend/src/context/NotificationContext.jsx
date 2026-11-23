@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { getFirebaseDatabase, isFirebaseConfigured, listenForegroundMessages } from '../utils/firebase';
+import api from '../services/api';
 
 const NotificationContext = createContext(null);
 
@@ -119,14 +120,12 @@ export function NotificationProvider({ children, userId = 'default' }) {
   // Fetch notifications from Firebase RTDB & API fallback
   useEffect(() => {
     // 1. Initial hydration from REST API (with audit log fallback)
-    import('../services/api').then(({ default: api }) => {
-      api.get(`/api/notifications?userId=${userId}`).then((res) => {
-        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
-          const filtered = res.data.data.filter((n) => !isViewerLiveAlert(n));
-          setNotifications((prev) => (prev.length === 0 ? filtered : prev));
-        }
-      }).catch((e) => console.warn('API notification fallback skipped:', e.message));
-    });
+    api.get(`/api/notifications?userId=${userId}`).then((res) => {
+      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        const filtered = res.data.data.filter((n) => !isViewerLiveAlert(n));
+        setNotifications((prev) => (prev.length === 0 ? filtered : prev));
+      }
+    }).catch((e) => console.warn('API notification fallback skipped:', e.message));
 
     if (!isFirebaseConfigured()) {
       setLoading(false);

@@ -16,6 +16,7 @@ import HomePage from './pages/viewer/HomePage';
 // Lazy Loaded Secondary Viewer Pages
 const VotingPage = lazy(() => import('./pages/viewer/VotingPage'));
 const ContentGuidePage = lazy(() => import('./pages/viewer/ContentGuidePage'));
+const NotFoundPage = lazy(() => import('./pages/common/NotFoundPage'));
 
 // Admin Pages (Lazy loaded so public visitors never download heavy admin modules)
 const LoginPage = lazy(() => import('./pages/admin/LoginPage'));
@@ -93,8 +94,8 @@ function AppRouter() {
           <Route path="/admin/settings" element={<SettingsPage />} />
         </Route>
 
-        {/* ========== CATCH ALL ========== */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* ========== CATCH ALL / 404 ========== */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

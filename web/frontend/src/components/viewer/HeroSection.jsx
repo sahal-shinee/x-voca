@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Maximize2, X, ArrowRight } from 'lucide-react';
@@ -58,12 +57,6 @@ const YouTubeIcon = ({ size = 14, className = '' }) => (
   </svg>
 );
 
-const ClockIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10"/>
-    <polyline points="12,6 12,12 16,14"/>
-  </svg>
-);
 
 // ========== MOOD DATA ==========
 
@@ -826,6 +819,36 @@ const formatCountdownDisplay = (countdownData) => {
   };
 };
 
+// Ekstrak video ID dari berbagai format URL YouTube
+const extractYouTubeVideoId = (url) => {
+  if (!url) return null;
+  try {
+    // Handles: youtu.be/ID, youtube.com/watch?v=ID, youtube.com/live/ID, youtube.com/embed/ID
+    const patterns = [
+      /youtu\.be\/([^?&#]+)/,
+      /youtube\.com\/live\/([^?&#]+)/,
+      /youtube\.com\/embed\/([^?&#]+)/,
+      /[?&]v=([^&#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+};
+
+// Dapatkan URL thumbnail terbaik dari schedule (db atau fallback YouTube)
+const getScheduleThumbnail = (schedule) => {
+  if (!schedule) return null;
+  if (schedule.thumbnail_url) return schedule.thumbnail_url;
+  const videoId = extractYouTubeVideoId(schedule.youtube_url);
+  if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  return null;
+};
+
 // ========== HERO SECTION ==========
 
 function HeroSection({ onRequestCollab }) {
@@ -1037,158 +1060,129 @@ function HeroSection({ onRequestCollab }) {
                 </a>
               </div>
 
-              {/* Countdown Widget */}
-              <div className="w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[448px] mt-6 sm:mt-8 p-3.5 sm:p-5 rounded-2xl bg-[#181333]/85 border border-white/[0.08] shadow-lg relative overflow-hidden animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                {/* Header Section */}
-                <div className="border-b border-white/[0.08] pb-2.5 sm:pb-3.5">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon />
-                      <span className="font-semibold text-[#94a3b8] text-[9px] sm:text-[11px] tracking-wider uppercase font-mono">
-                        NEXT STREAM
+              {/* Next Stream Card — pure info, no thumbnail */}
+              <div
+                className="w-full max-w-[300px] sm:max-w-[360px] lg:max-w-[400px] mt-5 sm:mt-6 rounded-xl bg-[#181333]/90 border border-white/[0.08] shadow-lg overflow-hidden animate-fade-in"
+                style={{ animationDelay: '0.4s' }}
+              >
+                {/* ── Top bar: label + status ── */}
+                <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-1.5">
+                    <CalendarIcon />
+                    <span className="font-semibold text-[#94a3b8] text-[9px] tracking-widest uppercase font-mono">
+                      Next Stream
+                    </span>
+                  </div>
+
+                  {/* Status badge */}
+                  {loading ? (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse" />
+                      <span className="text-[#94a3b8] text-[8px] tracking-wider font-mono">LOADING</span>
+                    </div>
+                  ) : countdown.isEmpty ? (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]" />
+                      <span className="text-[#94a3b8] text-[8px] tracking-wider font-mono">NO SCHEDULE</span>
+                    </div>
+                  ) : countdown.isLive ? (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
+                      <span className="font-bold text-[#ef4444] text-[8px] tracking-wider font-mono">LIVE NOW</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/25">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
+                      <span className="font-semibold text-[#7ee0d2] text-[8px] tracking-wider font-mono truncate max-w-[110px] sm:max-w-none">
+                        {scheduleDateDisplay || 'TERJADWAL'}
                       </span>
                     </div>
-
-                    {/* Status Badge - Dynamic based on data */}
-                    {loading ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse"></div>
-                        <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
-                          LOADING...
-                        </span>
-                      </div>
-                    ) : countdown.isEmpty ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]"></div>
-                        <span className="font-medium text-[#94a3b8] text-[8px] sm:text-[10px] tracking-wider font-mono">
-                          NO SCHEDULE
-                        </span>
-                      </div>
-                    ) : countdown.isLive ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse"></div>
-                        <span className="font-semibold text-[#ef4444] text-[8px] sm:text-[10px] tracking-wider font-mono">
-                          LIVE NOW
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/30">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse"></div>
-                        <span className="font-semibold text-[#7ee0d2] text-[8px] sm:text-[10px] tracking-wider font-mono whitespace-nowrap overflow-hidden text-ellipsis max-w-[90px] sm:max-w-none">
-                          {scheduleDateDisplay || 'SYNCED'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                {/* Thumbnail & Countdown Section */}
-                <div className="flex items-center gap-2 sm:gap-3 py-2.5 sm:py-4">
-                  {/* Thumbnail Preview */}
-                  {nextSchedule?.thumbnail_url && !loading && !countdown.isEmpty && (
-                    <div className="flex-shrink-0 w-14 sm:w-20 h-14 sm:h-20 rounded-lg overflow-hidden border border-[rgba(61,53,96,0.5)]">
-                      <img
-                        src={nextSchedule.thumbnail_url}
-                        alt="Stream thumbnail"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
+                {/* ── Body: judul + countdown ── */}
+                <div className="px-3.5 pt-3 pb-2.5 space-y-2.5">
+
+                  {/* Judul stream */}
+                  {loading ? (
+                    <div className="space-y-1.5">
+                      <div className="h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse w-full" />
+                      <div className="h-4 bg-[rgba(61,53,96,0.3)] rounded animate-pulse w-3/5" />
                     </div>
+                  ) : countdown.isEmpty ? (
+                    <p className="text-white/50 text-xs font-medium leading-snug">
+                      Belum ada siaran dijadwalkan
+                    </p>
+                  ) : (
+                    <h3 className="text-white font-semibold text-xs sm:text-[13px] leading-snug line-clamp-2">
+                      {nextSchedule?.title || 'Siaran Mendatang'}
+                    </h3>
                   )}
 
-                  {/* Loading State */}
-                  {loading && (
-                    <div className="flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 rounded-lg bg-[rgba(61,53,96,0.3)] animate-pulse border border-[rgba(61,53,96,0.5)]"></div>
-                  )}
-
-                  {/* Countdown Display */}
-                  <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2">
-                    {loading ? (
-                      <>
-                        {[1, 2, 3].map((i) => (
-                          <div key={i} className="flex flex-col items-center px-2 py-2 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] flex-1 min-w-0">
-                            <div className="w-8 sm:w-10 h-6 sm:h-8 bg-[rgba(61,53,96,0.4)] rounded animate-pulse mb-1"></div>
-                            <div className="w-6 sm:w-8 h-2 bg-[rgba(61,53,96,0.3)] rounded animate-pulse"></div>
-                          </div>
-                        ))}
-                      </>
-                    ) : countdown.isEmpty ? (
-                      <div className="text-center py-3.5 w-full">
-                        <p className="text-white/80 text-xs sm:text-sm font-medium">Belum ada siaran yang dijadwalkan</p>
-                        <p className="text-[#a89ec0] text-[11px] mt-0.5">Jadwal siaran terbaru akan segera diperbarui</p>
-                      </div>
-                    ) : (
-                      <>
-                        {[
-                          { value: countdown.hours, label: 'JAM', pulse: false },
-                          { value: countdown.minutes, label: 'MIN', pulse: false },
-                          { value: countdown.seconds, label: 'DET', pulse: true },
+                  {/* Countdown */}
+                  {!countdown.isEmpty && (
+                    <div className="flex items-center gap-1.5">
+                      {loading ? (
+                        [1, 2, 3].map(i => (
+                          <div key={i} className="flex-1 h-9 bg-[rgba(61,53,96,0.3)] rounded-lg animate-pulse" />
+                        ))
+                      ) : (
+                        [
+                          { value: countdown.hours,   label: 'JAM', pulse: false },
+                          { value: countdown.minutes,  label: 'MIN', pulse: false },
+                          { value: countdown.seconds,  label: 'DET', pulse: true  },
                         ].map((unit) => (
-                          <div key={unit.label} className="flex flex-col items-center px-1.5 sm:px-2.5 py-2 sm:py-2.5 rounded-lg bg-[rgba(24,19,43,0.6)] border border-[rgba(61,53,96,0.5)] flex-1 min-w-0 max-w-[90px] lg:max-w-[110px]">
-                            <span className={`font-bold text-[#7ee0d2] text-xl sm:text-[28px] lg:text-[32px] tracking-tight font-display text-center w-full ${unit.pulse ? 'animate-pulse' : ''}`}>
+                          <div
+                            key={unit.label}
+                            className="flex-1 flex flex-col items-center py-1.5 rounded-lg bg-[rgba(20,15,40,0.8)] border border-[rgba(61,53,96,0.45)]"
+                          >
+                            <span className={`font-bold text-[#7ee0d2] text-base sm:text-lg tracking-tight font-display leading-none ${unit.pulse ? 'animate-pulse' : ''}`}>
                               {unit.value}
                             </span>
-                            <span className="pt-1 sm:pt-1.5 font-bold text-[#a89ec0] text-[9px] sm:text-[10px] tracking-widest uppercase text-center font-sans whitespace-nowrap">
+                            <span className="text-[#a89ec0] text-[7px] tracking-widest uppercase font-sans mt-1">
                               {unit.label}
                             </span>
                           </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Section - Stream Info */}
-                <div className="border-t border-[rgba(61,53,96,0.4)] pt-3 sm:pt-3.5">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex flex-col gap-1 sm:gap-1.5">
-                      {/* Title dari database */}
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2]" />
-                        <span className="font-normal text-[#94a3b8] text-[10px] sm:text-xs font-body line-clamp-1">
-                          {loading ? (
-                            <span className="inline-block w-32 h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse"></span>
-                          ) : nextSchedule?.title ? (
-                            nextSchedule.title
-                          ) : (
-                            'Tidak ada jadwal'
-                          )}
-                        </span>
-                      </div>
-
-                      {/* Platform & Duration */}
-                      {!loading && nextSchedule && (
-                        <div className="flex items-center gap-2 ml-5 sm:ml-6">
-                          {/* Platform Badge */}
-                          <div className="flex items-center gap-1">
-                            <YouTubeIcon size={12} className="text-red-500" />
-                            <span className="text-[#a89ec0] text-[10px]">
-                              {nextSchedule.stream_platform || 'YouTube'}
-                            </span>
-                          </div>
-
-                          {/* Duration */}
-                          <div className="flex items-center gap-1">
-                            <ClockIcon />
-                            <span className="text-[#a89ec0] text-[10px]">
-                              ±{nextSchedule.estimated_duration || '2-3 Jam'}
-                            </span>
-                          </div>
-                        </div>
+                        ))
                       )}
                     </div>
-
-                    {/* CTA Button */}
-                    <Link
-                      to={nextSchedule?.youtube_url || '/content'}
-                      className={`font-bold text-[#7ee0d2] text-[9px] sm:text-[11px] tracking-wider uppercase font-sans hover:underline hover:text-white transition-colors ${countdown.isEmpty || !nextSchedule?.youtube_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                      target={nextSchedule?.youtube_url ? '_blank' : '_self'}
-                      rel={nextSchedule?.youtube_url ? 'noopener noreferrer' : ''}
-                    >
-                      RESERVE
-                    </Link>
-                  </div>
+                  )}
                 </div>
+
+                {/* ── Footer: platform + CTA ── */}
+                {!loading && nextSchedule && !countdown.isEmpty && (
+                  <div className="flex items-center justify-between px-3.5 py-2 border-t border-white/[0.05]">
+                    <div className="flex items-center gap-1.5">
+                      <YouTubeIcon size={11} className="text-red-500 flex-shrink-0" />
+                      <span className="text-[#a89ec0] text-[10px] font-medium">
+                        {nextSchedule.stream_platform || 'YouTube'}
+                      </span>
+                    </div>
+
+                    {nextSchedule.youtube_url ? (
+                      <a
+                        href={nextSchedule.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 hover:text-red-300 transition-all duration-200 font-semibold text-[10px] whitespace-nowrap"
+                      >
+                        <span>Tonton di YouTube</span>
+                        <ArrowRight className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={2.5} />
+                      </a>
+                    ) : (
+                      <span className="text-[#a89ec0] text-[10px] opacity-40">Link segera tersedia</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!loading && countdown.isEmpty && (
+                  <div className="px-3.5 pb-3">
+                    <p className="text-[#a89ec0] text-[10px] text-center">
+                      Jadwal terbaru akan segera diperbarui
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboard.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
 
-// All audit log routes are protected
-router.use(authMiddleware);
+// All audit log routes are restricted to authenticated admins
+router.use(authMiddleware, adminOnly);
 
 // GET /api/audit-logs - Get audit logs
 router.get('/', dashboardController.getAuditLogs);

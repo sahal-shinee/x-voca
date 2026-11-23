@@ -14,7 +14,8 @@ const CollabRequest = require('./CollabRequest');
 // User - Schedule (One-to-Many)
 User.hasMany(Schedule, {
   foreignKey: 'user_id',
-  as: 'schedules'
+  as: 'schedules',
+  onDelete: 'CASCADE'
 });
 Schedule.belongsTo(User, {
   foreignKey: 'user_id',
@@ -24,7 +25,8 @@ Schedule.belongsTo(User, {
 // User - ContentGuide (One-to-Many)
 User.hasMany(ContentGuide, {
   foreignKey: 'user_id',
-  as: 'contentGuides'
+  as: 'contentGuides',
+  onDelete: 'SET NULL'
 });
 ContentGuide.belongsTo(User, {
   foreignKey: 'user_id',
@@ -34,7 +36,8 @@ ContentGuide.belongsTo(User, {
 // User - Todo (One-to-Many)
 User.hasMany(Todo, {
   foreignKey: 'user_id',
-  as: 'todos'
+  as: 'todos',
+  onDelete: 'CASCADE'
 });
 Todo.belongsTo(User, {
   foreignKey: 'user_id',
@@ -44,7 +47,8 @@ Todo.belongsTo(User, {
 // Game - Vote (One-to-Many)
 Game.hasMany(Vote, {
   foreignKey: 'game_id',
-  as: 'votes'
+  as: 'votes',
+  onDelete: 'CASCADE'
 });
 Vote.belongsTo(Game, {
   foreignKey: 'game_id',
@@ -54,7 +58,8 @@ Vote.belongsTo(Game, {
 // User - CollabRequest (One-to-Many as reviewer)
 User.hasMany(CollabRequest, {
   foreignKey: 'reviewed_by',
-  as: 'reviewedCollabs'
+  as: 'reviewedCollabs',
+  onDelete: 'SET NULL'
 });
 CollabRequest.belongsTo(User, {
   foreignKey: 'reviewed_by',

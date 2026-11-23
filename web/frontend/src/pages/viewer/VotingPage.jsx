@@ -5,6 +5,7 @@ import { useVotes } from '../../hooks/useFirebase';
 import GameCard, { GameCardSkeleton } from '../../components/viewer/GameCard';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
+import SkipToContent from '../../components/common/SkipToContent';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
 
@@ -637,6 +638,9 @@ function VotingPage() {
 
   return (
     <div className="min-h-screen bg-[#0D0B1A] relative overflow-x-hidden text-white">
+      {/* Keyboard Accessibility Bypass Link */}
+      <SkipToContent targetId="main-content" />
+
       {/* Calm Ambient Background */}
       <AmbientBackground />
 
@@ -657,6 +661,9 @@ function VotingPage() {
 
       {/* Top Navigation Bar */}
       <TopNav />
+
+      {/* ========== MAIN CONTENT CONTAINER ========== */}
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
 
       {/* ========== HEADER ========== */}
       <header className="relative bg-gradient-to-b from-[#141126] to-[#0D0B1A] pt-24 pb-8 px-4 sm:px-6 lg:px-12 z-10 border-b border-white/5">
@@ -966,6 +973,7 @@ function VotingPage() {
           )}
         </div>
       </section>
+      </main>
 
       {/* ========== FOOTER ========== */}
       <Footer />

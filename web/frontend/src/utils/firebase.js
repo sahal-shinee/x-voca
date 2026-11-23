@@ -186,7 +186,7 @@ export function listenForegroundMessages(callback) {
         callback(payload);
       }
     });
-  } catch (_) {
+  } catch {
     return () => {};
   }
 }

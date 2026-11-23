@@ -3,6 +3,31 @@ const { updateNextSchedule, clearNextSchedule, updateBroadcastingStatus, sendTop
 const { updateScheduleStatuses } = require('../utils/scheduleCron');
 const { Op } = require('sequelize');
 
+/**
+ * Ekstrak video ID dari URL YouTube dan kembalikan URL thumbnail mqdefault.
+ * Mendukung: youtube.com/watch?v=ID, youtube.com/live/ID, youtu.be/ID, youtube.com/embed/ID
+ */
+const deriveYouTubeThumbnail = (youtubeUrl) => {
+  if (!youtubeUrl) return null;
+  try {
+    const patterns = [
+      /youtu\.be\/([^?&#]+)/,
+      /youtube\.com\/live\/([^?&#]+)/,
+      /youtube\.com\/embed\/([^?&#]+)/,
+      /[?&]v=([^&#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = youtubeUrl.match(pattern);
+      if (match && match[1]) {
+        return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+};
+
 // Lazy Cron Throttle (runs at most once every 30 seconds on serverless requests)
 let lastLazyCronRun = 0;
 const runLazyCronCheck = async () => {
@@ -252,7 +277,7 @@ const createSchedule = async (req, res) => {
       scheduled_at: new Date(scheduled_at),
       description,
       youtube_url,
-      thumbnail_url,
+      thumbnail_url: thumbnail_url || deriveYouTubeThumbnail(youtube_url),
       stream_platform,
       countdown_enabled,
       status,
@@ -342,6 +367,13 @@ const updateSchedule = async (req, res) => {
         }
       }
     });
+
+    // Auto-derive thumbnail dari youtube_url jika thumbnail_url masih kosong
+    const finalYoutubeUrl = schedule.youtube_url;
+    if (!schedule.thumbnail_url && finalYoutubeUrl) {
+      const derived = deriveYouTubeThumbnail(finalYoutubeUrl);
+      if (derived) schedule.thumbnail_url = derived;
+    }
 
     await schedule.save();
 

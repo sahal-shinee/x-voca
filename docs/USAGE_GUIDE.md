@@ -10,20 +10,18 @@
 
 ```
 docs/
-├── PROJECT_CONTEXT.md    → Ringkasan proyek, stack, keputusan teknis
-├── PRD.md                → Daftar lengkap fitur yang harus dibuat
-├── ARCHITECTURE.md       → Struktur folder project
-├── API_CONTRACT.md       → Semua endpoint API (format request & response)
-├── DATABASE_SCHEMA.md    → Struktur tabel MySQL + SQL siap pakai
-├── DESIGN_TOKENS.md      → Warna, font, spacing (Tailwind config)
-├── UI_SPEC_WEB.md        → Spesifikasi visual detail semua halaman web
-├── UI_SPEC_MOBILE.md     → Spesifikasi visual detail semua screen Flutter
-├── AI_RULES_WEB.md       → Aturan coding untuk agent Sahal (dibaca agent otomatis)
-├── AI_RULES_MOBILE.md    → Aturan coding untuk Gemini Choirul (ada di template bawah)
-├── MOCK_DATA.json        → Data dummy semua endpoint untuk Choirul
-├── SETUP_GUIDE_SAHAL.md  → Langkah setup environment Sahal
-├── SETUP_GUIDE_CHOIRUL.md→ Langkah setup environment Choirul
-└── USAGE_GUIDE.md        → File ini — satu-satunya yang perlu dibaca manusia
+├── PROJECT_CONTEXT.md         → Ringkasan proyek, stack, keputusan teknis
+├── PRD.md                     → Daftar lengkap fitur yang harus dibuat
+├── ARCHITECTURE.md            → Struktur folder project & arsitektur sistem
+├── DATABASE_SCHEMA.md         → Struktur tabel MySQL + SQL siap pakai
+├── DESIGN_TOKENS.md           → Warna, font, spacing (Tailwind config)
+├── UI_SPEC_WEB.md             → Spesifikasi visual detail semua halaman web
+├── UI_SPEC_MOBILE.md          → Spesifikasi visual detail semua screen Flutter
+├── AI_RULES_WEB.md            → Aturan coding untuk agent Sahal (dibaca agent otomatis)
+├── AI_RULES_MOBILE.md         → Aturan coding untuk Gemini Choirul
+├── PLANNING_DOCUMENT.md       → Dokumen perencanaan arsitektur fitur (Collab, Theme, dll.)
+├── PANDUAN_PENJELASAN_KODE.md → Panduan bedah kode & persiapan presentasi / sidang
+└── USAGE_GUIDE.md             → Panduan alur pengembangan
 ```
 
 **Catatan penting:**

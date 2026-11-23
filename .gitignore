@@ -1,9 +1,15 @@
 .env
 .env.*
+!.env.example
+!*.env.example
 node_modules/
 firebase-service-account.json
 serviceAccountKey.json
 google-services.json
 GoogleService-Info.plist
+*base64.txt
+serviceAccountKey*.txt
+firebase_rtdb*.txt
 build/
+*.sql
 .DS_Store

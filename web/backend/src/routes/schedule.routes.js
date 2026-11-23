@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/schedule.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
 
 // GET /api/schedules - Get all schedules (public)
 router.get('/', scheduleController.getSchedules);
@@ -12,14 +12,14 @@ router.get('/next', scheduleController.getNextSchedule);
 // GET /api/schedules/:id - Get schedule by ID (public)
 router.get('/:id', scheduleController.getScheduleById);
 
-// POST /api/schedules - Create new schedule (protected)
-router.post('/', authMiddleware, scheduleController.createSchedule);
+// POST /api/schedules - Create new schedule (admin only)
+router.post('/', authMiddleware, adminOnly, scheduleController.createSchedule);
 
-// PATCH /api/schedules/:id - Update schedule (protected)
-router.patch('/:id', authMiddleware, scheduleController.updateSchedule);
-router.put('/:id', authMiddleware, scheduleController.updateSchedule);
+// PATCH /api/schedules/:id - Update schedule (admin only)
+router.patch('/:id', authMiddleware, adminOnly, scheduleController.updateSchedule);
+router.put('/:id', authMiddleware, adminOnly, scheduleController.updateSchedule);
 
-// DELETE /api/schedules/:id - Delete schedule (protected)
-router.delete('/:id', authMiddleware, scheduleController.deleteSchedule);
+// DELETE /api/schedules/:id - Delete schedule (admin only)
+router.delete('/:id', authMiddleware, adminOnly, scheduleController.deleteSchedule);
 
 module.exports = router;

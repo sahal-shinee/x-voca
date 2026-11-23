@@ -82,7 +82,11 @@ function ToastContainer({ toasts, removeToast }) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
+    <div
+      className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"
+      role="region"
+      aria-label="Pemberitahuan Sistem"
+    >
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
@@ -137,34 +141,40 @@ function Toast({ toast, onClose }) {
   };
 
   const styles = typeStyles[toast.type] || typeStyles.info;
+  const isAlert = toast.type === 'error' || toast.type === 'warning';
 
   return (
     <div
+      role={isAlert ? 'alert' : 'status'}
+      aria-live={isAlert ? 'assertive' : 'polite'}
+      aria-atomic="true"
       className={`
         pointer-events-auto
         flex items-center gap-3
         px-4 py-3
         bg-bg-card border ${styles.border}
-        rounded-lg shadow-lg
+        rounded-xl shadow-xl
         min-w-[280px] max-w-md
         transition-all duration-200 ease-out
         ${isVisible && !isLeaving ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
       `}
     >
       {/* Icon */}
-      <div className={`w-8 h-8 rounded-full ${styles.iconBg} flex items-center justify-center flex-shrink-0`}>
+      <div className={`w-8 h-8 rounded-full ${styles.iconBg} flex items-center justify-center flex-shrink-0`} aria-hidden="true">
         <span className={`${styles.iconColor} text-sm font-bold`}>{styles.icon}</span>
       </div>
 
       {/* Message */}
-      <p className="flex-1 text-sm text-text-primary">{toast.message}</p>
+      <p className="flex-1 text-sm text-text-primary leading-snug">{toast.message}</p>
 
       {/* Close button */}
       <button
+        type="button"
         onClick={handleClose}
-        className="w-6 h-6 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card-hover transition-colors flex-shrink-0"
+        aria-label="Tutup notifikasi"
+        className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card-hover transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-accent-cyan/40"
       >
-        <span className="text-xs">✕</span>
+        <span className="text-xs font-bold leading-none" aria-hidden="true">✕</span>
       </button>
     </div>
   );

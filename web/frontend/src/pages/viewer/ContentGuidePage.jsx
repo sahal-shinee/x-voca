@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getContent, getFeatured } from '../../services/contentService';
 import { useToast } from '../../components/common/Toast';
+import SkipToContent from '../../components/common/SkipToContent';
 import TopNav from '../../components/viewer/TopNav';
 import Footer from '../../components/viewer/Footer';
 import api from '../../services/api';
@@ -390,11 +391,16 @@ function ContentGuidePage() {
 
   return (
     <div className="min-h-screen bg-[#0D0B1A] relative overflow-x-hidden text-white">
+      {/* Keyboard Accessibility Bypass Link */}
+      <SkipToContent targetId="main-content" />
+
       {/* Top Navigation */}
       <TopNav />
 
-      {/* ========== HEADER ========== */}
-      <header className="relative pt-28 pb-8 px-4 sm:px-6 lg:px-12 border-b border-white/5 bg-gradient-to-b from-[#141126] to-[#0D0B1A]">
+      {/* ========== MAIN CONTENT CONTAINER ========== */}
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
+        {/* ========== HEADER ========== */}
+        <header className="relative pt-28 pb-8 px-4 sm:px-6 lg:px-12 border-b border-white/5 bg-gradient-to-b from-[#141126] to-[#0D0B1A]">
         {/* Ambient glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 right-1/4 w-[500px] h-[500px] rounded-full bg-[#7ee0d2]/[0.025] blur-[140px]" />
@@ -894,6 +900,7 @@ function ContentGuidePage() {
           )}
         </div>
       </section>
+      </main>
 
       {/* ========== FOOTER ========== */}
       <Footer />

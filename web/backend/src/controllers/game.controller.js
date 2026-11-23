@@ -300,8 +300,46 @@ const deleteGame = async (req, res) => {
   }
 };
 
+/**
+ * Get distinct available periods
+ * GET /api/games/periods
+ */
+const getPeriods = async (req, res) => {
+  try {
+    const currentPeriod = new Date().toISOString().slice(0, 7);
+
+    const games = await Game.findAll({
+      attributes: ['period_key'],
+      group: ['period_key'],
+      raw: true
+    });
+
+    const periodSet = new Set(games.map(g => g.period_key).filter(Boolean));
+    periodSet.add(currentPeriod);
+
+    const sortedPeriods = Array.from(periodSet).sort().reverse();
+
+    return res.status(200).json({
+      success: true,
+      data: sortedPeriods,
+      current_period: currentPeriod,
+      message: 'Daftar periode berhasil diambil.'
+    });
+  } catch (error) {
+    console.error('Get periods error:', error);
+    const currentPeriod = new Date().toISOString().slice(0, 7);
+    return res.status(200).json({
+      success: true,
+      data: [currentPeriod],
+      current_period: currentPeriod,
+      message: 'Menggunakan periode aktif.'
+    });
+  }
+};
+
 module.exports = {
   getGames,
+  getPeriods,
   getGameById,
   createGame,
   updateGameStatus,

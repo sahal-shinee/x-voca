@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboard.controller');
 const authController = require('../controllers/auth.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
 
-// All dashboard routes are protected
-router.use(authMiddleware);
+// All dashboard routes are restricted to authenticated admins
+router.use(authMiddleware, adminOnly);
 
 // GET /api/dashboard/stats - Get dashboard statistics
 router.get('/stats', dashboardController.getDashboardStats);

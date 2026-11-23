@@ -11,12 +11,30 @@ export const getGames = async (params = {}) => {
     if (params.status && params.status !== 'all') {
       queryParams.append('status', params.status);
     }
+    if (params.period_key) {
+      queryParams.append('period_key', params.period_key);
+    }
 
     const response = await api.get(`/api/games?${queryParams.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching games:', error);
     throw error;
+  }
+};
+
+// Ambil daftar periode voting yang tersedia (aktif + arsip)
+export const getVotingPeriods = async () => {
+  try {
+    const response = await api.get('/api/games/periods');
+    return response.data;
+  } catch (error) {
+    console.warn('Error fetching voting periods, fallback to current:', error);
+    return {
+      success: false,
+      data: [new Date().toISOString().slice(0, 7)],
+      current_period: new Date().toISOString().slice(0, 7)
+    };
   }
 };
 

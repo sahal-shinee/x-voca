@@ -86,9 +86,9 @@ const submitVote = async (req, res) => {
       period_key
     });
 
-    // Update game vote count
-    game.vote_count += 1;
-    await game.save();
+    // Update game vote count atomically (ACID / Distributed SQL safe for TiDB)
+    await game.increment('vote_count', { by: 1 });
+    await game.reload();
 
     // Calculate new percentage and sync audit log + Firebase in parallel for faster response
     const totalVotes = await Game.sum('vote_count', { where: { period_key } }) || 0;

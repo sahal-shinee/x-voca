@@ -3,6 +3,7 @@ import { useLocation, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SearchModal from './SearchModal';
+import SkipToContent from '../common/SkipToContent';
 import { useTheme } from '../../hooks/useTheme';
 
 /**
@@ -44,6 +45,9 @@ export function AdminLayout() {
       data-theme={theme}
       className="min-h-screen bg-bg-base flex text-text-primary antialiased transition-colors duration-200"
     >
+      {/* Keyboard Accessibility Bypass Link */}
+      <SkipToContent targetId="main-content" />
+
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (
         <div
@@ -70,7 +74,7 @@ export function AdminLayout() {
         />
 
         {/* Routed Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-4 lg:p-6 overflow-y-auto focus:outline-none">
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>

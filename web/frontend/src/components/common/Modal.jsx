@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, AlertTriangle, Info } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
@@ -38,33 +38,85 @@ function Modal({
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const modalRef = useRef(null);
+  const previousActiveElement = useRef(null);
 
-  // Handle open/close animations
+  // Handle open/close animations and focus management
   useEffect(() => {
     if (isOpen) {
+      previousActiveElement.current = document.activeElement;
       setIsVisible(true);
       setIsAnimatingOut(false);
       document.body.style.overflow = 'hidden';
+
+      // Auto focus first focusable element inside modal
+      const timer = setTimeout(() => {
+        if (modalRef.current) {
+          const focusable = modalRef.current.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length > 0) {
+            focusable[0].focus();
+          }
+        }
+      }, 50);
+      return () => clearTimeout(timer);
     } else {
       setIsAnimatingOut(true);
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsAnimatingOut(false);
         document.body.style.overflow = '';
+        if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
+          previousActiveElement.current.focus();
+        }
       }, 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  // Handle escape key
+  // Handle keyboard: Escape key & Focus Trap (Tab / Shift+Tab)
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+    const handleKeyDown = (e) => {
+      if (!isOpen) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusables = Array.from(
+          modalRef.current.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        );
+
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   // Handle backdrop click
@@ -139,6 +191,11 @@ function Modal({
 
       {/* Modal Content */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        tabIndex={-1}
         className={`
           relative w-full ${modalSize} max-h-[90dvh]
           bg-bg-card border border-border-subtle
@@ -154,7 +211,7 @@ function Modal({
             <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl aspect-square flex items-center justify-center shrink-0 shadow-xs ${styles.iconBox}`}>
               {icon || styles.defaultIcon}
             </div>
-            <h2 className="text-base sm:text-lg font-bold font-display text-text-primary leading-tight truncate">{title}</h2>
+            <h2 id="modal-title" className="text-base sm:text-lg font-bold font-display text-text-primary leading-tight truncate">{title}</h2>
           </div>
 
           {/* Close Button */}

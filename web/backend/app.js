@@ -27,8 +27,11 @@ const firebaseDb = require('./src/config/firebase');
 const app = express();
 
 // ============================================================
-// SECURITY HEADERS
+// SECURITY HARDENING & HEADERS
 // ============================================================
+// Disable fingerprinting header
+app.disable('x-powered-by');
+
 app.use((req, res, next) => {
   // Prevent XSS
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -38,6 +41,12 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   // Referrer policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Restrict unused browser sensors / permissions
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // Enforce HTTPS in production via HSTS (Strict-Transport-Security)
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   // Content Security Policy
   res.setHeader('Content-Security-Policy', "default-src 'self'");
   next();
@@ -73,7 +82,8 @@ const corsOptions = {
     if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+    // Reject unknown origin cleanly without throwing 500 error in server logs
+    return callback(null, false);
   },
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'x-user-id'],
