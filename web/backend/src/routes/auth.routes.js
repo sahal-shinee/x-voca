@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/auth.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Deklarasi rute API autentikasi: login admin, verifikasi profil aktif, dan perubahan password.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');

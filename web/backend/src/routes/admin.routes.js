@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/admin.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute payung khusus Studio Admin. Seluruh endpoint di dalam berkas ini dilindungi oleh
+ * `authMiddleware` dan `adminOnly` sehingga hanya admin sah ber-token JWT yang dapat mengakses.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 

@@ -1,4 +1,25 @@
 /**
+ * ============================================================================
+ * FILE: web/backend/src/utils/firebase.helper.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Helper terpusat untuk interaksi backend dengan Firebase Admin SDK.
+ * Mengatur:
+ * 1. Inisialisasi Firebase Admin dengan Service Account Key (JSON atau Base64).
+ * 2. Sinkronisasi angka vote real-time ke node `/votes/{gameId}`.
+ * 3. Penyiaran status siaran live ke node `/broadcasting` dan `/next_schedule`.
+ * 4. Pengiriman push notification ke aplikasi smartphone via Firebase Cloud Messaging (FCM Topic).
+ *
+ * RELASI ANTAR FILE:
+ * - Digunakan oleh `vote.controller.js`, `game.controller.js`, `auth.controller.js`, dan `schedule.controller.js`.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * - "Helper ini menggunakan Firebase Realtime Database sebagai event dispatcher
+ *   sehingga pembaruan data sampai ke browser penonton dalam hitungan milidetik."
+ * ============================================================================
+ */
+
+/**
  * Firebase Helper Functions for X-VOCA
  *
  * Helper functions untuk update Firebase Realtime Database

@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/DashboardPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Layar ringkasan analitik utama Creator Studio.
+ * Menampilkan metrik cepat:
+ * 1. Total suara voting yang terkumpul pada periode bulan berjalan.
+ * 2. Status siaran langsung saat ini (Broadcasting status toggle).
+ * 3. Agenda siaran terdekat dan pintasan cepat ke modul manajemen.
+ * 4. Daftar 10 aktivitas log terbaru (AuditLogViewer) untuk memantau keamanan operasional.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
@@ -255,13 +269,15 @@ function DashboardPage() {
     }
   }, []);
 
-  // ── Initiate toggle broadcasting (open modal for confirmation) ─────────────
+  // ── Minta konfirmasi pengubahan status siaran langsung (buka modal konfirmasi) ──
   const requestToggleBroadcasting = (newVal) => {
+    // Simpan nilai target (true = Go Live, false = Standby)
     setPendingBroadcastVal(newVal);
+    // Buka dialog konfirmasi agar kreator tidak sengaja menyalakan/mematikan status siaran
     setShowBroadcastModal(true);
   };
 
-  // ── Execute broadcasting status change upon confirmation ───────────────────
+  // ── Eksekusi pengubahan status siaran setelah konfirmasi disetujui ───────────
   const confirmToggleBroadcasting = async () => {
     const targetVal = pendingBroadcastVal;
     const prevBroadcasting = isBroadcasting;
@@ -270,13 +286,16 @@ function DashboardPage() {
     setShowBroadcastModal(false);
     setLoadingBroadcasting(true);
 
-    // Optimistic instant UI update (no wait & no stale activeBroadcast blocking OFF state)
+    // Optimistic UI update: ubah UI secara instan tanpa menunggu round-trip jaringan
     setIsBroadcasting(targetVal);
     if (!targetVal) {
       setStats((prev) => ({ ...prev, activeBroadcast: null }));
     }
 
     try {
+      // Panggil backend API PATCH /api/auth/broadcasting
+      // Backend akan memperbarui database MySQL, menyinkronkan status ke Firebase RTDB,
+      // dan menyiarkan notifikasi FCM jika siaran dimulai
       await authAPI.toggleBroadcasting(targetVal);
 
       if (targetVal) {
@@ -285,11 +304,12 @@ function DashboardPage() {
         toast.info('Status siaran dinonaktifkan (STANDBY).');
       }
 
-      // Silently re-sync stats & upcoming schedules so activeBroadcast and Room link stay accurate
+      // Muat ulang metrik statistik dan jadwal siaran mendatang secara senyap (silent)
       await Promise.all([fetchStats(true), fetchUpcomingStreams(true)]);
     } catch (error) {
       console.error('Error toggling broadcasting:', error);
       toast.error('Gagal memperbarui status siaran. Silakan coba lagi.');
+      // Rollback ke state sebelumnya jika terjadi error pada API backend
       setIsBroadcasting(prevBroadcasting);
       setStats((prev) => ({ ...prev, activeBroadcast: prevActiveBroadcast }));
     } finally {

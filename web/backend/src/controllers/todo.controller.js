@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/todo.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengendali fitur to-do list internal kreator untuk persiapan agenda siaran.
+ * Mengatur operasi CRUD (Create, Read, Update, Delete) catatan kerja dan checklist prioritas.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `Todo` dari `../models`.
+ * - Dipanggil oleh rute `src/routes/todo.routes.js`.
+ * ============================================================================
+ */
+
 const { Todo, AuditLog } = require('../models');
 const { Op } = require('sequelize');
 const { sendTopicNotification } = require('../utils/firebase.helper');

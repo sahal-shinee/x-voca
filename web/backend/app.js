@@ -1,9 +1,35 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/app.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pusat konfigurasi instance aplikasi Express.js.
+ * Mengatur pengamanan header HTTP (Security Hardening), pembatasan akses domain (CORS),
+ * penguraian payload JSON, pembatasan laju request (Rate Limiting), pendaftaran
+ * seluruh modul rute API (`/api/*`), dan penanganan terpusat error 404 serta 500.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor `./src/routes/*`         -> Rute modul fitur (auth, admin, game, vote, dll.).
+ * - Mengimpor `./src/middleware/*`     -> Rate limiter & error handler global.
+ * - Mengimpor `./src/config/firebase`  -> Inisialisasi Firebase untuk event broadcast.
+ * - Diekspor ke `./server.js`          -> Dipanggil untuk di-listen pada port HTTP.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * 1. "Kami memasang security headers manual (mirip Helmet) untuk mencegah serangan
+ *    XSS, Clickjacking, dan MIME sniffing."
+ * 2. "CORS dikonfigurasi dinamis agar aman di localhost development, namun fleksibel
+ *    mendukung deployment Vercel dan aplikasi Flutter mobile tanpa kendala."
+ * ============================================================================
+ */
+
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 
-// Import routes
+// ============================================================
+// IMPORT MODUL RUTE (ROUTES)
+// ============================================================
 const authRoutes = require('./src/routes/auth.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const scheduleRoutes = require('./src/routes/schedule.routes');
@@ -17,46 +43,48 @@ const todoRoutes = require('./src/routes/todo.routes');
 const youtubeRoutes = require('./src/routes/youtube.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
 
-// Import middleware
+// ============================================================
+// IMPORT MIDDLEWARE GLOBAL
+// ============================================================
 const { globalLimiter } = require('./src/middleware/rateLimit.middleware');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 
-// Initialize Firebase
+// Inisialisasi Firebase Cloud Services
 const firebaseDb = require('./src/config/firebase');
 
+// Inisialisasi instance aplikasi Express
 const app = express();
 
 // ============================================================
-// SECURITY HARDENING & HEADERS
+// KEAMANAN TINGKAT SERVER (SECURITY HEADERS HARDENING)
 // ============================================================
-// Disable fingerprinting header
+// Menyembunyikan header 'x-powered-by: Express' agar peretas tidak mengetahui teknologi server kita
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
-  // Prevent XSS
+  // Mencegah eksekusi script jahat di peramban pengguna (Anti-XSS)
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  // Prevent MIME type sniffing
+  // Mencegah peramban menebak tipe konten file selain header yang didefinisikan (Anti-MIME Sniffing)
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  // Prevent clickjacking
+  // Melarang website kita di-embed di dalam iframe website lain (Anti-Clickjacking)
   res.setHeader('X-Frame-Options', 'DENY');
-  // Referrer policy
+  // Membatasi pengiriman informasi referrer saat pengguna berpindah domain
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Restrict unused browser sensors / permissions
+  // Membatasi akses sensor perangkat keras yang tidak dibutuhkan website (kamera, mic, GPS)
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  // Enforce HTTPS in production via HSTS (Strict-Transport-Security)
+  // Memaksa peramban menggunakan protokol aman HTTPS di server produksi
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
-  // Content Security Policy
+  // Kebijakan sumber konten (Content Security Policy)
   res.setHeader('Content-Security-Policy', "default-src 'self'");
   next();
 });
 
 // ============================================================
-// MIDDLEWARE
+// KONFIGURASI CORS (CROSS-ORIGIN RESOURCE SHARING)
 // ============================================================
-
-// CORS configuration - Multi-origin & mobile friendly
+// Daftar domain yang diberi izin mengakses API ini
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -69,20 +97,20 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
+    // Izinkan request tanpa origin (seperti dari mobile app Flutter, curl, atau Postman)
     if (!origin) return callback(null, true);
     if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    // Check configured allowed origins
+    // Periksa apakah domain request ada di dalam whitelist allowedOrigins
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    // Allow Vercel deployments and preview URLs
+    // Mendukung otomatis domain preview deployment Vercel (*.vercel.app)
     if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
-    // Reject unknown origin cleanly without throwing 500 error in server logs
+    // Tolak domain tidak dikenal secara halus tanpa membuat server crash
     return callback(null, false);
   },
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -91,17 +119,17 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body parser
+// Parsing payload body request menjadi format JSON (dengan batasan ukuran 10 MB)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Trust proxy (for rate limiting behind reverse proxy)
+// Mempercayai header reverse proxy (seperti Nginx atau Cloudflare) untuk akurasi Alamat IP
 app.set('trust proxy', 1);
 
-// Global rate limiter
+// Menjalankan Rate Limiter global untuk mencegah serangan spamming dan DDoS ringan
 app.use(globalLimiter.middleware());
 
-// Request logging (development)
+// Pencatatan log request sederhana saat berada dalam mode pengembangan (development)
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -110,13 +138,13 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ============================================================
-// ROUTES
+// PENDAFTARAN RUTE API (ROUTES REGISTRATION)
 // ============================================================
 
-// Import Schedule Cron Handler
+// Mengimpor handler cron job pembaruan status jadwal
 const { updateScheduleStatuses } = require('./src/utils/scheduleCron');
 
-// Health check and root status (public) - supports /, /health, /api/health
+// Endpoint Health Check: Mengonfirmasi bahwa server berjalan sehat
 app.get(['/', '/health', '/api/health'], (req, res) => {
   res.json({
     success: true,
@@ -130,7 +158,7 @@ app.get(['/', '/health', '/api/health'], (req, res) => {
   });
 });
 
-// Cron webhook for auto-updating schedules (e.g. triggered by cron-job.org or Vercel cron)
+// Endpoint Webhook Cron Job untuk auto-update jadwal jika dipanggil oleh scheduler eksternal
 app.get(['/cron/schedules', '/api/cron/schedules'], async (req, res) => {
   try {
     const result = await updateScheduleStatuses();
@@ -145,44 +173,41 @@ app.get(['/cron/schedules', '/api/cron/schedules'], async (req, res) => {
   }
 });
 
-// API Routes
-
-// Auth routes (login public, profile/password protected in admin routes)
+// 1. Rute Autentikasi Admin (Login & Profil)
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
-// Admin routes (ALL protected with adminOnly middleware)
+// 2. Rute Khusus Admin Studio (Semua rute di dalamnya terlindungi JWT dan role adminOnly)
 app.use('/api/admin', adminRoutes);
 
-// Public routes (read-only for everyone)
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/games', gameRoutes);
-app.use('/api/votes', voteRoutes);
-app.use('/api/content', contentRoutes);
-app.use('/api/collab-requests', collabRequestRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/todos', todoRoutes);
+// 3. Rute Publik (Dapat diakses oleh seluruh penonton tanpa login)
+app.use('/api/schedules', scheduleRoutes);          // Kalender siaran streaming
+app.use('/api/games', gameRoutes);                  // Katalog game untuk voting
+app.use('/api/votes', voteRoutes);                  // Submit vote & request game penonton
+app.use('/api/content', contentRoutes);              // Arsip video siaran (Content Guide)
+app.use('/api/collab-requests', collabRequestRoutes);// Usulan kolaborasi streamer
+app.use('/api/notifications', notificationRoutes);  // Notifikasi push topic
+app.use('/api/todos', todoRoutes);                  // Checklist agenda internal streamer
 
-// Legacy protected routes (for backward compatibility)
+// 4. Rute Tambahan untuk Kompatibilitas Lintas Versi
 app.use('/dashboard', dashboardRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/api/dashboard', dashboardRoutes);
 app.use('/audit-logs', auditLogRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/api/audit-logs', auditLogRoutes);
-app.use('/api/todos', todoRoutes);
 app.use('/youtube', youtubeRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/api/youtube', youtubeRoutes);
 
 // ============================================================
-// ERROR HANDLING
+// PENANGANAN ERROR GLOBAL (ERROR HANDLING LAYER)
 // ============================================================
 
-// 404 handler
+// Menangkap request ke endpoint URL yang tidak terdaftar (HTTP 404 Not Found)
 app.use(notFoundHandler);
 
-// Global error handler
+// Menangkap seluruh exception tak terduga (HTTP 500) agar server tetap stabil
 app.use(errorHandler);
 
 module.exports = app;

@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/content.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Deklarasi rute API katalog arsip video Content Guide (VOD).
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const contentController = require('../controllers/content.controller');

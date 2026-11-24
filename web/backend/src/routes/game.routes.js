@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/game.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Deklarasi rute API untuk pengelolaan katalog game.
+ * Endpoints publik untuk penonton (GET) dan endpoints terproteksi untuk admin (POST, PATCH, DELETE).
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const gameController = require('../controllers/game.controller');

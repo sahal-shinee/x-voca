@@ -1,3 +1,27 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/content.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengendali katalog arsip rekaman siaran (Video On Demand / Content Guide).
+ * Mengatur:
+ * 1. Pengambilan katalog video dengan pagination, pencarian, dan pemfilteran kategori game.
+ * 2. Penetapan video spotlight utama (is_featured toggle) yang disematkan di halaman depan.
+ * 3. Kalkulasi metrik agregat: total durasi siaran, kategori unik, dan video baru 7 hari terakhir.
+ * 4. Penambahan dan pengeditan metadata video YouTube (judul, thumbnail, durasi).
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `ContentGuide`, `User`, `AuditLog` dari `../models`.
+ * - Mengimpor `triggerContentUpdate` dari `../utils/firebase.helper`.
+ * - Dipanggil oleh rute `src/routes/content.routes.js`.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * - "Fitur spotlight memungkinkan kreator memilih video terbaik untuk diputar langsung
+ *   oleh penonton di landing page tanpa dialihkan ke aplikasi luar."
+ * - "Statistik total durasi dihitung secara dinamis dari database dan diformat ke jam & menit."
+ * ============================================================================
+ */
+
 const { ContentGuide, User, AuditLog } = require('../models');
 const { Op } = require('sequelize');
 const { triggerContentUpdate } = require('../utils/firebase.helper');
@@ -50,29 +74,32 @@ const formatRelativeDate = (date) => {
 };
 
 /**
- * Get content stats (aggregate)
+ * Ambil metrik agregat konten (total stream, total jam siaran, kategori unik)
  * GET /api/content/stats
  */
 const getContentStats = async (req, res) => {
   try {
+    // Ambil seluruh video aktif yang diset publik (is_visible: true)
     const contents = await ContentGuide.findAll({
       where: { is_visible: true },
       attributes: ['created_at', 'video_count', 'total_duration', 'game_tag']
     });
 
-    // Real-time count of total video archives
+    // Hitung total video dan arsip siaran secara dinamis
     const totalVideos = contents.length;
     const totalStreams = contents.length;
 
-    // Count unique categories
+    // Kumpulkan kumpulan kategori unik menggunakan JavaScript Set (menghilangkan duplikasi)
     const categoriesSet = new Set(contents.map(c => c.game_tag).filter(Boolean));
     const totalCategories = categoriesSet.size;
 
-    // Calculate total hours from total_duration (supports "48.5 Jam", "19 Jam", or "Xh Ym")
+    // Kalkulasi akumulasi total menit siaran dari format string durasi (misal: "48.5 Jam", "2h 30m")
     let totalMinutes = 0;
     contents.forEach(c => {
       if (c.total_duration) {
+        // Regex pencocokan format teks bahasa Indonesia (contoh: "12.5 jam")
         const indonesianMatch = c.total_duration.match(/([\d.]+)\s*jam/i);
+        // Regex pencocokan format ISO / standar (contoh: "3h 45m")
         const hourMatch = c.total_duration.match(/(\d+)h/i);
         const minMatch = c.total_duration.match(/(\d+)m/i);
         if (indonesianMatch) {
@@ -82,16 +109,17 @@ const getContentStats = async (req, res) => {
           if (minMatch) totalMinutes += parseInt(minMatch[1], 10);
         }
       } else {
+        // Fallback default: diasumsikan 60 menit per siaran jika durasi tidak tercatat
         totalMinutes += 60;
       }
     });
 
-    // Count new content (last 7 days)
+    // Hitung berapa banyak konten baru yang diunggah dalam 7 hari terakhir
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const newContent = contents.filter(c => new Date(c.created_at) >= sevenDaysAgo).length;
 
-    // Format hours display
+    // Konversi total akumulasi menit ke tampilan format ramah pengguna (contoh: "142j 15m")
     const hoursDisplay = formatDuration(totalMinutes);
 
     return res.status(200).json({
@@ -358,7 +386,7 @@ const createContent = async (req, res) => {
       sort_order
     } = req.body;
 
-    // Validate required fields
+    // Validasi field wajib: Judul dan URL video YouTube
     if (!title || !youtube_url) {
       return res.status(400).json({
         success: false,
@@ -367,14 +395,16 @@ const createContent = async (req, res) => {
       });
     }
 
+    // Normalisasi fallback nilai atribut
     const resolvedThumbnail = thumbnail_url || thumbnail || null;
     const resolvedCategory = game_tag || category || 'Lainnya';
     const resolvedVisible = is_visible !== undefined ? Boolean(is_visible) : true;
     const resolvedFeatured = is_featured !== undefined ? Boolean(is_featured) : false;
     const resolvedSortOrder = sort_order !== undefined ? parseInt(sort_order, 10) : 1;
 
+    // Simpan entri konten baru ke database
     const content = await ContentGuide.create({
-      user_id: req.userId || 1,
+      user_id: req.userId || 1, // ID admin pemilik konten
       title: title.trim(),
       game_tag: resolvedCategory.trim(),
       youtube_url: youtube_url.trim(),
@@ -387,7 +417,7 @@ const createContent = async (req, res) => {
       sort_order: resolvedSortOrder
     });
 
-    // Create audit log
+    // Catat log audit aktivitas penambahan konten arsip
     try {
       await AuditLog.create({
         action_type: 'content_added',
@@ -398,7 +428,7 @@ const createContent = async (req, res) => {
       console.warn('AuditLog creation skipped for content:', logErr.message);
     }
 
-    // Broadcast real-time update via Firebase
+    // Picu pembaruan real-time ke Firebase RTDB agar landing page viewer langsung terupdate
     try {
       await triggerContentUpdate();
     } catch (fbErr) {

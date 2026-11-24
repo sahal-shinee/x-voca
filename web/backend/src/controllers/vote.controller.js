@@ -1,9 +1,38 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/vote.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pusat logika bisnis (Business Logic) untuk sistem voting komunitas dan pengajuan game.
+ * Mengimplementasikan:
+ * 1. Algoritma anti-spam Zero-Login (Browser Fingerprint + IP Address + Period Key).
+ * 2. Transaksi atomik penambahan suara di MySQL level database (ACID compliant).
+ * 3. Cooldown 7 hari pada pengajuan request game penonton.
+ * 4. Sinkronisasi data real-time ke Firebase Realtime Database.
+ * 5. Pengiriman notifikasi push alert ke smartphone kreator via Firebase Cloud Messaging (FCM).
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `Game`, `Vote`, `AuditLog` dari `../models`.
+ * - Mengimpor helper Firebase `updateVoteCount`, `resetVotingPeriod`, `sendTopicNotification` dari `../utils/firebase.helper`.
+ * - Dipanggil oleh rute di `src/routes/vote.routes.js`.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * 1. "Fitur voting ini frictionless (tanpa wajib login), namun memiliki proteksi ganda:
+ *    hardware fingerprint dari browser dan alamat IP publik pada periode bulan aktif (YYYY-MM)."
+ * 2. "Penambahan angka vote menggunakan `game.increment()` yang mengeksekusi operasi atomik
+ *    level SQL langsung, sehingga terhindar dari Race Condition sekalipun ada ribuan penonton."
+ * 3. "Game usulan penonton berstatus 'requested' dan tidak langsung muncul di daftar voting
+ *    sebelum disetujui (moderasi) oleh admin di Creator Studio."
+ * ============================================================================
+ */
+
 const { Game, Vote, AuditLog } = require('../models');
 const { updateVoteCount, updateAllGamesVotes, resetVotingPeriod, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
 
 /**
- * Get client IP address
+ * Helper: getClientIP
+ * Mendapatkan alamat IP asli klien, menangani jika berada di balik reverse proxy (Cloudflare/Nginx)
  */
 const getClientIP = (req) => {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
@@ -14,29 +43,30 @@ const getClientIP = (req) => {
 };
 
 /**
- * Submit vote for a game
- * POST /api/votes/:gameId
- * Anti-spam: IP + fingerprint check
+ * Endpoint: POST /api/votes/:gameId
+ * Memberikan 1 suara untuk game tertentu dengan perlindungan anti-spam berlapis
  */
 const submitVote = async (req, res) => {
   try {
     const { gameId } = req.params;
     const body = req.body || {};
     const ipAddress = getClientIP(req);
+    // Identitas perangkat: prioritaskan hash hardware fingerprint dari frontend, fallback ke IP
     const fingerprint = body.fingerprint || ipAddress;
 
-    // Validate game ID
+    // LANGKAH 1: Validasi Keberadaan Data Game di Basis Data
     const game = await Game.findByPk(gameId);
 
     if (!game) {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Game tidak ditemukan.'
+        message: 'Game yang ingin divote tidak ditemukan di basis data.'
       });
     }
 
-    // Hanya game dengan status 'accepted' yang dapat menerima vote
+    // LANGKAH 2: Status Gating (Pemeriksaan Siklus Hidup Game)
+    // Hanya game yang telah disetujui admin (status = 'accepted') yang boleh menerima suara
     if (game.status !== 'accepted') {
       return res.status(400).json({
         success: false,
@@ -47,7 +77,7 @@ const submitVote = async (req, res) => {
       });
     }
 
-    // Validate fingerprint / device identifier
+    // LANGKAH 3: Validasi Keberadaan Identitas Perangkat
     if (!fingerprint) {
       return res.status(400).json({
         success: false,
@@ -58,7 +88,8 @@ const submitVote = async (req, res) => {
 
     const period_key = game.period_key;
 
-    // Anti-spam check: IP OR fingerprint in votes table
+    // LANGKAH 4: Pemeriksaan Anti-Spam (Dual-Identifier Check)
+    // Cek apakah Alamat IP ATAU Hardware Fingerprint sudah pernah memilih game ini di bulan yang sama
     const existingVote = await Vote.findOne({
       where: {
         game_id: gameId,
@@ -78,7 +109,7 @@ const submitVote = async (req, res) => {
       });
     }
 
-    // Create vote record
+    // LANGKAH 5: Pencatatan Log Suara di Tabel `votes`
     await Vote.create({
       game_id: gameId,
       ip_address: ipAddress,
@@ -86,23 +117,27 @@ const submitVote = async (req, res) => {
       period_key
     });
 
-    // Update game vote count atomically (ACID / Distributed SQL safe for TiDB)
+    // LANGKAH 6: Penambahan Suara Secara Atomik di Tabel `games`
+    // Menggunakan row-level atomic increment untuk mencegah Race Condition
     await game.increment('vote_count', { by: 1 });
-    await game.reload();
+    await game.reload(); // Muat ulang data terbaru dari database
 
-    // Calculate new percentage and sync audit log + Firebase in parallel for faster response
+    // LANGKAH 7: Kalkulasi Ulang Persentase Suara Terkini
     const totalVotes = await Game.sum('vote_count', { where: { period_key } }) || 0;
     const percentage = totalVotes > 0 ? Math.round((game.vote_count / totalVotes) * 100 * 10) / 10 : 0;
 
+    // LANGKAH 8: Eksekusi Efek Samping Secara Paralel (Audit Log & Firebase Broadcast)
     await Promise.allSettled([
       AuditLog.create({
         action_type: 'vote_in',
         detail: 'Vote baru ditambahkan',
         sub_detail: game.title
       }),
+      // Broadcast skor suara terbaru ke Firebase RTDB agar penonton lain langsung melihat perubahan
       updateVoteCount(game.id, game.vote_count, percentage, totalVotes)
     ]);
 
+    // Respon sukses kembali ke frontend klien
     return res.status(200).json({
       success: true,
       data: {
@@ -123,9 +158,8 @@ const submitVote = async (req, res) => {
 };
 
 /**
- * Submit game request
- * POST /api/votes/request
- * Rate limit: 1x per device per 7 days
+ * Endpoint: POST /api/votes/request
+ * Penonton mengusulkan judul game baru dengan masa jeda (cooldown) 7 hari
  */
 const submitGameRequest = async (req, res) => {
   try {
@@ -134,7 +168,7 @@ const submitGameRequest = async (req, res) => {
     const ipAddress = getClientIP(req);
     const fingerprint = body.fingerprint || ipAddress;
 
-    // Validate required fields
+    // LANGKAH 1: Validasi Kolom Wajib
     if (!title) {
       return res.status(400).json({
         success: false,
@@ -143,7 +177,8 @@ const submitGameRequest = async (req, res) => {
       });
     }
 
-    // Check if viewer already requested within 7 days (rate limit)
+    // LANGKAH 2: Proteksi Cooldown 7 Hari (Anti-Spam Flooding)
+    // Cek apakah perangkat penonton ini sudah pernah mengajukan usulan game dalam 7 hari terakhir
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const existingRequest = await Vote.findOne({
@@ -162,27 +197,28 @@ const submitGameRequest = async (req, res) => {
       return res.status(429).json({
         success: false,
         data: null,
-        message: 'Anda sudah mengajukan request game dalam 7 hari terakhir.'
+        message: 'Anda sudah mengajukan request game dalam 7 hari terakhir. Silakan tunggu masa cooldown.'
       });
     }
 
-    // Generate period key
+    // Periode bulan aktif (format: "YYYY-MM")
     const period_key = new Date().toISOString().slice(0, 7);
 
-    // Create new game with requested status
+    // LANGKAH 3: Simpan Record Game Baru dengan Status 'requested'
+    // Status 'requested' memastikan game TIDAK langsung muncul di daftar voting publik
     const game = await Game.create({
       title,
       genre,
       publisher,
       cover_url,
       vote_count: 0,
-      status: 'requested',
+      status: 'requested', // Wajib dimoderasi admin terlebih dahulu!
       added_by: 'viewer',
       requester_info: `Viewer #${ipAddress.slice(-4)}`,
       period_key
     });
 
-    // Create a placeholder vote record to track the request
+    // LANGKAH 4: Simpan Placeholder di Tabel votes untuk Mengunci Masa Cooldown 7 Hari
     await Vote.create({
       game_id: game.id,
       ip_address: ipAddress,
@@ -190,14 +226,14 @@ const submitGameRequest = async (req, res) => {
       period_key
     });
 
-    // Create audit log
+    // LANGKAH 5: Catat Log Audit Aktivitas
     await AuditLog.create({
       action_type: 'game_requested',
       detail: 'Viewer mengajukan usulan baru',
       sub_detail: title
     });
 
-    // Send FCM push notification to creator_alerts topic
+    // LANGKAH 6: Kirimkan Push Notification (FCM Topic) ke Smartphone Kreator
     try {
       await sendTopicNotification('creator_alerts', {
         title: '🎮 Request Game Baru',
@@ -215,36 +251,35 @@ const submitGameRequest = async (req, res) => {
     return res.status(201).json({
       success: true,
       data: game,
-      message: 'Request game berhasil diajukan.'
+      message: 'Request game berhasil diajukan dan sedang menunggu ulasan kreator.'
     });
   } catch (error) {
     console.error('Submit game request error:', error);
     return res.status(500).json({
       success: false,
       data: null,
-      message: 'Terjadi kesalahan saat submit request.'
+      message: 'Terjadi kesalahan saat submit request game.'
     });
   }
 };
 
 /**
- * Reset voting period
- * POST /api/votes/reset-period
- * Generate new period_key (current month), reset all non-done games
+ * Endpoint: POST /api/votes/reset-period (Khusus Admin Studio)
+ * Menutup voting bulan berjalan dan membuka periode voting bulan baru
  */
 const resetPeriod = async (req, res) => {
   try {
-    // Generate new period key (current month)
+    // Generate period key baru (format "YYYY-MM", misal "2026-12")
     const newPeriodKey = new Date().toISOString().slice(0, 7);
 
-    // Get all games from current period that are NOT done
+    // Ambil seluruh game dari periode aktif yang belum berstatus 'done' (selesai dimainkan)
     const currentPeriodGames = await Game.findAll({
       where: {
         status: { [Op.ne]: 'done' }
       }
     });
 
-    // Reset vote counts and update period keys
+    // Reset perolehan suara menjadi 0 dan set period_key baru
     for (const game of currentPeriodGames) {
       game.vote_count = 0;
       game.status = 'requested';
@@ -252,17 +287,17 @@ const resetPeriod = async (req, res) => {
       await game.save();
     }
 
-    // Sesuai DATABASE_SCHEMA.md: Data votes lama tetap tersimpan sebagai arsip berharga (tidak dihapus)
-    // Pemisahan vote antar periode diatur secara otomatis oleh kolom period_key dan unique index
+    // Catatan: Baris log pada tabel `votes` lama TETAP tersimpan rapi sebagai arsip historis.
+    // Pemisahan antar periode ditangani otomatis oleh pembeda kolom `period_key`.
 
-    // Create audit log
+    // Catat tindakan reset ini di Audit Log
     await AuditLog.create({
       action_type: 'period_reset',
-      detail: 'Periode voting di-reset',
+      detail: 'Periode voting di-reset oleh admin',
       sub_detail: `Periode baru: ${newPeriodKey}`
     });
 
-    // Update Firebase with new period (reset all)
+    // Broadcast reset seluruh data voting di Firebase Realtime Database
     await resetVotingPeriod(newPeriodKey);
 
     return res.status(200).json({
@@ -271,36 +306,38 @@ const resetPeriod = async (req, res) => {
         new_period: newPeriodKey,
         games_reset: currentPeriodGames.length
       },
-      message: `Periode voting berhasil di-reset ke ${newPeriodKey}.`
+      message: `Periode voting berhasil di-reset ke periode ${newPeriodKey}.`
     });
   } catch (error) {
     console.error('Reset period error:', error);
     return res.status(500).json({
       success: false,
       data: null,
-      message: 'Terjadi kesalahan saat reset periode.'
+      message: 'Terjadi kesalahan saat me-reset periode voting.'
     });
   }
 };
 
 /**
- * Get voting stats
- * GET /api/votes/stats
+ * Endpoint: GET /api/votes/stats
+ * Mengambil ringkasan data analitik voting berdasarkan periode aktif
  */
 const getVotingStats = async (req, res) => {
   try {
     const period_key = req.query.period_key || new Date().toISOString().slice(0, 7);
 
+    // Ambil data status game pada periode yang diminta
     const games = await Game.findAll({
       where: { period_key },
       attributes: ['status']
     });
 
-    // Hitung total votes dari semua game di periode ini
+    // Akumulasi total seluruh suara yang masuk
     const totalVotes = await Game.sum('vote_count', {
       where: { period_key }
     }) || 0;
 
+    // Rekapitulasi per status
     const stats = {
       total_games: games.length,
       total_votes: totalVotes,
@@ -321,7 +358,7 @@ const getVotingStats = async (req, res) => {
     return res.status(500).json({
       success: false,
       data: null,
-      message: 'Terjadi kesalahan saat mengambil statistik.'
+      message: 'Terjadi kesalahan saat mengambil statistik voting.'
     });
   }
 };

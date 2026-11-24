@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/Todo.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `todos` (Checklist Agenda Internal Streamer).
+ * Menyimpan daftar tugas, status penyelesaian (`is_completed`), prioritas, dan tenggat waktu.
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

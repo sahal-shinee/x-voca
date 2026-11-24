@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/AuditLog.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `audit_logs` (Rekam Jejak Aktivitas Sistem).
+ * Mencatat jenis aksi (`action_type`), detail kejadian, sub-detail, ID user pelaku,
+ * dan stempel waktu (`created_at`) untuk audit forensik dan keamanan sistem.
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

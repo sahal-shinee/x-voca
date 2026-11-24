@@ -36,10 +36,19 @@ const TopNav = () => {
       Notification.permission === 'granted'
   );
 
-  // Live broadcast status from Firebase RTDB
+  // Status siaran langsung dari Firebase RTDB
   const { isLive } = useBroadcastingStatus();
   const { schedule: nextSchedule } = useNextSchedule();
-  const isCurrentlyLive = isLive || nextSchedule?.status === 'live';
+
+  // Validasi status live yang aman & akurat:
+  // Siaran hanya dianggap live jika Master Broadcast aktif (isLive) ATAU
+  // terdapat jadwal siaran berstatus 'live' yang waktu mulainya belum kedaluwarsa (maksimal 12 jam)
+  const isNextScheduleLive = Boolean(
+    nextSchedule?.status === 'live' &&
+    nextSchedule?.datetime &&
+    (Date.now() - new Date(nextSchedule.datetime).getTime()) < 12 * 60 * 60 * 1000
+  );
+  const isCurrentlyLive = Boolean(isLive || isNextScheduleLive);
 
   // Fluid sliding indicator for desktop nav tabs
   const tabRefs = useRef([]);

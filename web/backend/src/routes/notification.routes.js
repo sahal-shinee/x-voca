@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/notification.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute manajemen langganan notifikasi push FCM ke topik tertentu ('stream_alerts', 'creator_alerts').
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const {

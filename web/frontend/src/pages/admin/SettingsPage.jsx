@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/SettingsPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengaturan akun admin: ganti nama profil, rig version, dan pergantian kata sandi (Change Password).
+ * ============================================================================
+ */
+
 import { useState, useEffect } from 'react';
 import {
   User,

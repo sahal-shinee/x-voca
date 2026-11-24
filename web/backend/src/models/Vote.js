@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/Vote.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `votes` (Bukti Pencatatan Suara & Log Anti-Spam).
+ * Mencatat relasi `game_id`, Alamat IP (`ip_address`), `fingerprint` perangkat unik,
+ * dan `period_key`. Berfungsi ganda untuk validasi anti-spam voting dan cooldown 7 hari request game.
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

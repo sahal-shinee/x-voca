@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/services/contentService.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Layanan pemanggil API arsip video VOD Content Guide (fetch katalog, toggle spotlight).
+ * ============================================================================
+ */
+
 import api from './api';
 
 /**

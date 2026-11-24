@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/vote.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Deklarasi rute API untuk pemungutan suara (Voting) dan pengajuan request game.
+ * Menyematkan middleware `voteLimiter` untuk menangkal serangan bot spamming.
+ * Endpoints:
+ * - GET  /api/votes/stats         -> Statistik suara periode aktif (Publik)
+ * - POST /api/votes/request       -> Pengajuan game baru dengan cooldown 7 hari (Publik + Limiter)
+ * - POST /api/votes/reset-period  -> Reset periode bulanan (Khusus Admin)
+ * - POST /api/votes/:gameId       -> Memberikan 1 suara dengan proteksi fingerprint (Publik + Limiter)
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const voteController = require('../controllers/vote.controller');

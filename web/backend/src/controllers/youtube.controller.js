@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/youtube.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Jembatan penghubung backend dengan Google YouTube Data API v3.
+ * Mengatur:
+ * 1. Ekstraksi ID video dari beragam format URL YouTube (watch?v=, live/, youtu.be, embed/).
+ * 2. Pengambilan metadata otomatis dari API YouTube resmi: judul video, deskripsi, thumbnail HD,
+ *    dan durasi format ISO 8601 (dikonversi ke menit & jam).
+ * 3. Mekanisme fallback cerdas jika kuota Google API limit atau offline.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor helper `youtube.helper.js`.
+ * - Dipanggil oleh rute `src/routes/youtube.routes.js`.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * - "Admin tidak perlu mengetik judul dan mencari gambar thumbnail manual.
+ *   Cukup tempelkan link YouTube, sistem akan otomatis mengambil data via Google API."
+ * ============================================================================
+ */
+
 const axios = require('axios');
 
 // Cache memori sederhana (15 menit) agar hemat kuota Google API
@@ -33,13 +55,14 @@ const extractPlaylistId = (url) => {
 };
 
 /**
- * Fetch YouTube video info
+ * Ambil metadata video atau playlist dari YouTube Data API v3
  * POST /api/youtube/fetch
  */
 const fetchYouTubeInfo = async (req, res) => {
   try {
     const { url } = req.body;
 
+    // Validasi URL tidak boleh kosong
     if (!url) {
       return res.status(400).json({
         success: false,
@@ -48,10 +71,14 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
+    // Ambil API Key dari environment variable (.env) atau fallback key
     const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAzSEpeZu2_bSqopF5N5piIy2Ww87G4oD8';
+    
+    // Ekstraksi ID video atau ID playlist menggunakan helper regex
     const videoId = extractVideoId(url);
     const playlistId = extractPlaylistId(url);
 
+    // Jika URL bukan tautan YouTube yang dikenali, tolak permintaan
     if (!videoId && !playlistId) {
       return res.status(400).json({
         success: false,
@@ -60,10 +87,12 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
+    // Buat URL thumbnail fallback langsung dari server statis img.youtube.com
     const fallbackThumbnail = videoId
       ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
       : null;
 
+    // Jika API Key tidak tersedia, berikan thumbnail fallback tanpa memanggil Google API
     if (!apiKey) {
       return res.status(200).json({
         success: true,
@@ -77,8 +106,10 @@ const fetchYouTubeInfo = async (req, res) => {
       });
     }
 
+    // Kasus 1: Tautan adalah Playlist YouTube
     if (playlistId && (!videoId || url.includes('/playlist'))) {
       try {
+        // Panggil endpoint resmi YouTube Data API v3 untuk playlist
         const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
           params: {
             part: 'snippet,contentDetails',
@@ -95,9 +126,9 @@ const fetchYouTubeInfo = async (req, res) => {
           return res.status(200).json({
             success: true,
             data: {
-              title: snippet.title,
+              title: snippet.title, // Judul playlist otomatis
               thumbnail_url: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url,
-              video_count: contentDetails?.itemCount || 1,
+              video_count: contentDetails?.itemCount || 1, // Jumlah item video di playlist
               type: 'playlist',
               published_at: snippet.publishedAt
             },
@@ -109,8 +140,10 @@ const fetchYouTubeInfo = async (req, res) => {
       }
     }
 
+    // Kasus 2: Tautan adalah Video Tunggal atau Siaran Live
     if (videoId) {
       try {
+        // Panggil endpoint resmi YouTube Data API v3 untuk video
         const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
           params: {
             part: 'snippet,contentDetails',

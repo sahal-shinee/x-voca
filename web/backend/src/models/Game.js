@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/Game.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `games` (Kandidat Game Voting Komunitas).
+ * Menyimpan judul, genre, URL cover art, perolehan suara (`vote_count`),
+ * status siklus hidup ('requested', 'accepted', 'playing', 'done'), dan `period_key` (YYYY-MM).
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

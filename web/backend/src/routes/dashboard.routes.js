@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/dashboard.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute pengembalian statistik dan data ringkasan analitik Studio Admin.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboard.controller');

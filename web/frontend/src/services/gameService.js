@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/services/gameService.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Layanan pemanggil API untuk katalog game dan voting:
+ * - `getGames()`: Mengambil daftar kandidat game.
+ * - `submitVote(gameId, fingerprint)`: Mengirim suara penonton beserta hardware fingerprint.
+ * - `submitGameRequest(gameData)`: Mengajukan usulan game baru penonton.
+ * - `updateGameStatus(id, status)`: Moderasi admin mengubah siklus status game.
+ * ============================================================================
+ */
+
 import api from './api';
 
 /**

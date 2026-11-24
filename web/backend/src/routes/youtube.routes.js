@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/youtube.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute pengambilan metadata YouTube via Google YouTube Data API v3.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const youtubeController = require('../controllers/youtube.controller');

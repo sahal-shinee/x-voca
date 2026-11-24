@@ -1,5 +1,18 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/viewer/HeroSection.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Komponen showcase kartu profil utama Xion Regalia di landing page:
+ * - Selector aura/mood visual karakter interaktif.
+ * - Indikator status Live Ready.
+ * - Integrasi dengan kartu Countdown Timer.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { Maximize2, X, ArrowRight } from 'lucide-react';
 import heroCharacter from '../../assets/hero-character.webp';
 import TopNav from './TopNav';
@@ -1060,40 +1073,40 @@ function HeroSection({ onRequestCollab }) {
                 </a>
               </div>
 
-              {/* Next Stream Card — pure info, no thumbnail */}
+              {/* Next Stream Card — Tampilan Jelas, Kontras Tinggi, Nyaman Dibaca & Prominen */}
               <div
-                className="w-full max-w-[300px] sm:max-w-[360px] lg:max-w-[400px] mt-5 sm:mt-6 rounded-xl bg-[#181333]/90 border border-white/[0.08] shadow-lg overflow-hidden animate-fade-in"
+                className="w-full max-w-[360px] sm:max-w-[430px] lg:max-w-[460px] mt-6 rounded-2xl bg-[#191338] border-2 border-[#7ee0d2]/40 shadow-[0_12px_36px_rgba(0,0,0,0.65),0_0_24px_rgba(126,224,210,0.18)] overflow-hidden animate-fade-in"
                 style={{ animationDelay: '0.4s' }}
               >
                 {/* ── Top bar: label + status ── */}
-                <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[#7ee0d2]/20 bg-[#120d28]/90">
+                  <div className="flex items-center gap-2">
                     <CalendarIcon />
-                    <span className="font-semibold text-[#94a3b8] text-[9px] tracking-widest uppercase font-mono">
+                    <span className="font-extrabold text-[#7ee0d2] text-xs sm:text-sm tracking-wider uppercase font-mono drop-shadow-[0_0_8px_rgba(126,224,210,0.3)]">
                       Next Stream
                     </span>
                   </div>
 
                   {/* Status badge */}
                   {loading ? (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8] animate-pulse" />
-                      <span className="text-[#94a3b8] text-[8px] tracking-wider font-mono">LOADING</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
+                      <div className="w-2 h-2 rounded-full bg-[#94a3b8] animate-pulse" />
+                      <span className="text-white text-xs tracking-wider font-mono font-bold">LOADING</span>
                     </div>
                   ) : countdown.isEmpty ? (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]" />
-                      <span className="text-[#94a3b8] text-[8px] tracking-wider font-mono">NO SCHEDULE</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/30 shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-[#e2e8f0]" />
+                      <span className="text-white text-xs tracking-wider font-mono font-bold">NO SCHEDULE</span>
                     </div>
                   ) : countdown.isLive ? (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
-                      <span className="font-bold text-[#ef4444] text-[8px] tracking-wider font-mono">LIVE NOW</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/25 border border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                      <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                      <span className="font-extrabold text-red-300 text-xs tracking-wider font-mono">LIVE NOW</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/25">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
-                      <span className="font-semibold text-[#7ee0d2] text-[8px] tracking-wider font-mono truncate max-w-[110px] sm:max-w-none">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7ee0d2]/20 border border-[#7ee0d2] shadow-[0_0_12px_rgba(126,224,210,0.3)]">
+                      <div className="w-2 h-2 rounded-full bg-[#7ee0d2] animate-pulse" />
+                      <span className="font-extrabold text-[#7ee0d2] text-xs tracking-wider font-mono truncate max-w-[140px] sm:max-w-none">
                         {scheduleDateDisplay || 'TERJADWAL'}
                       </span>
                     </div>
@@ -1101,30 +1114,35 @@ function HeroSection({ onRequestCollab }) {
                 </div>
 
                 {/* ── Body: judul + countdown ── */}
-                <div className="px-3.5 pt-3 pb-2.5 space-y-2.5">
+                <div className="p-4 sm:p-5 space-y-3.5 bg-gradient-to-b from-[#191338] to-[#140e2e]">
 
                   {/* Judul stream */}
                   {loading ? (
-                    <div className="space-y-1.5">
-                      <div className="h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse w-full" />
-                      <div className="h-4 bg-[rgba(61,53,96,0.3)] rounded animate-pulse w-3/5" />
+                    <div className="space-y-2">
+                      <div className="h-6 bg-[rgba(61,53,96,0.5)] rounded animate-pulse w-full" />
+                      <div className="h-5 bg-[rgba(61,53,96,0.35)] rounded animate-pulse w-3/5" />
                     </div>
                   ) : countdown.isEmpty ? (
-                    <p className="text-white/50 text-xs font-medium leading-snug">
-                      Belum ada siaran dijadwalkan
-                    </p>
+                    <div className="space-y-1.5">
+                      <h4 className="text-white font-extrabold text-base sm:text-lg leading-snug drop-shadow-sm">
+                        Belum Ada Siaran Dijadwalkan
+                      </h4>
+                      <p className="text-[#e2e8f0] text-xs sm:text-sm font-medium leading-relaxed">
+                        Kreator sedang menentukan jadwal. Yuk berikan voting game yang ingin kamu tonton!
+                      </p>
+                    </div>
                   ) : (
-                    <h3 className="text-white font-semibold text-xs sm:text-[13px] leading-snug line-clamp-2">
+                    <h3 className="text-white font-extrabold text-base sm:text-lg leading-snug line-clamp-2">
                       {nextSchedule?.title || 'Siaran Mendatang'}
                     </h3>
                   )}
 
-                  {/* Countdown */}
+                  {/* Countdown Timer */}
                   {!countdown.isEmpty && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 pt-1">
                       {loading ? (
                         [1, 2, 3].map(i => (
-                          <div key={i} className="flex-1 h-9 bg-[rgba(61,53,96,0.3)] rounded-lg animate-pulse" />
+                          <div key={i} className="flex-1 h-14 bg-[rgba(61,53,96,0.35)] rounded-xl animate-pulse" />
                         ))
                       ) : (
                         [
@@ -1134,12 +1152,12 @@ function HeroSection({ onRequestCollab }) {
                         ].map((unit) => (
                           <div
                             key={unit.label}
-                            className="flex-1 flex flex-col items-center py-1.5 rounded-lg bg-[rgba(20,15,40,0.8)] border border-[rgba(61,53,96,0.45)]"
+                            className="flex-1 flex flex-col items-center py-2.5 sm:py-3 rounded-xl bg-[rgba(20,15,40,0.95)] border border-[#7ee0d2]/35 shadow-inner"
                           >
-                            <span className={`font-bold text-[#7ee0d2] text-base sm:text-lg tracking-tight font-display leading-none ${unit.pulse ? 'animate-pulse' : ''}`}>
+                            <span className={`font-black text-[#7ee0d2] text-xl sm:text-3xl tracking-tight font-mono leading-none ${unit.pulse ? 'animate-pulse' : ''}`}>
                               {unit.value}
                             </span>
-                            <span className="text-[#a89ec0] text-[7px] tracking-widest uppercase font-sans mt-1">
+                            <span className="text-[#e2e8f0] text-[10px] sm:text-xs font-bold tracking-widest uppercase font-mono mt-1.5">
                               {unit.label}
                             </span>
                           </div>
@@ -1147,14 +1165,28 @@ function HeroSection({ onRequestCollab }) {
                       )}
                     </div>
                   )}
+
+                  {/* Empty state: Call To Action Ikut Voting Game Prominen */}
+                  {!loading && countdown.isEmpty && (
+                    <div className="pt-2">
+                      <Link
+                        to="/voting"
+                        className="w-full inline-flex items-center justify-center gap-2.5 py-3 px-5 rounded-xl bg-gradient-to-r from-[#7ee0d2] via-[#a78bfa] to-[#c084fc] hover:from-[#68d5c5] hover:to-[#b070f0] text-[#090614] font-black text-sm sm:text-[15px] tracking-wide transition-all duration-200 shadow-[0_4px_20px_rgba(126,224,210,0.4)] hover:shadow-[0_4px_28px_rgba(126,224,210,0.65)] hover:scale-[1.01] active:scale-[0.98] group/vote"
+                      >
+                        <span className="text-base">🗳️</span>
+                        <span>Ikut Voting Game Sekarang</span>
+                        <ArrowRight className="w-4 h-4 stroke-[3] transition-transform duration-200 group-hover/vote:translate-x-1 flex-shrink-0" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
 
-                {/* ── Footer: platform + CTA ── */}
+                {/* ── Footer: platform + CTA (saat ada jadwal) ── */}
                 {!loading && nextSchedule && !countdown.isEmpty && (
-                  <div className="flex items-center justify-between px-3.5 py-2 border-t border-white/[0.05]">
-                    <div className="flex items-center gap-1.5">
-                      <YouTubeIcon size={11} className="text-red-500 flex-shrink-0" />
-                      <span className="text-[#a89ec0] text-[10px] font-medium">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-white/[0.1] bg-[#120d28]/90">
+                    <div className="flex items-center gap-2">
+                      <YouTubeIcon size={16} className="text-red-500 flex-shrink-0" />
+                      <span className="text-[#e2e8f0] text-xs sm:text-sm font-bold">
                         {nextSchedule.stream_platform || 'YouTube'}
                       </span>
                     </div>
@@ -1164,23 +1196,14 @@ function HeroSection({ onRequestCollab }) {
                         href={nextSchedule.youtube_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 hover:text-red-300 transition-all duration-200 font-semibold text-[10px] whitespace-nowrap"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all duration-200 font-extrabold text-xs sm:text-sm shadow-[0_0_15px_rgba(220,38,38,0.4)] whitespace-nowrap"
                       >
                         <span>Tonton di YouTube</span>
-                        <ArrowRight className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={2.5} />
+                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 stroke-[3]" />
                       </a>
                     ) : (
-                      <span className="text-[#a89ec0] text-[10px] opacity-40">Link segera tersedia</span>
+                      <span className="text-[#94a3b8] text-xs font-semibold opacity-75">Link segera tersedia</span>
                     )}
-                  </div>
-                )}
-
-                {/* Empty state */}
-                {!loading && countdown.isEmpty && (
-                  <div className="px-3.5 pb-3">
-                    <p className="text-[#a89ec0] text-[10px] text-center">
-                      Jadwal terbaru akan segera diperbarui
-                    </p>
                   </div>
                 )}
               </div>

@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/viewer/CountdownCard.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Komponen kartu penghitung mundur waktu dinamis menuju siaran terdekat.
+ * Menggunakan hook `useCountdown` untuk update detik secara matematis.
+ * ============================================================================
+ */
+
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown';
 
 /**
@@ -18,10 +28,12 @@ const safeParseDate = (dateString) => {
 };
 
 const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
+  // Hitung sisa waktu mundur secara matematis (jam, menit, detik) menggunakan custom hook
   const timeLeft = useCountdown(schedule?.scheduled_at);
+  // Evaluasi apakah waktu target sudah tercapai (isLive = true jika sekarang >= scheduled_at)
   const { display, isLive } = formatCountdown(timeLeft);
 
-  // Format WIB time (safe version)
+  // Format tanggal target ke format jam dan menit Waktu Indonesia Barat (WIB)
   const formatWIB = (dateString) => {
     const date = safeParseDate(dateString);
     if (!date) return '';
@@ -37,7 +49,7 @@ const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
     }
   };
 
-  // Loading state
+  // State 1: Skeleton Loading saat data jadwal sedang di-fetch dari API / Firebase
   if (isLoading) {
     return (
       <div className="bg-bg-card border border-border-subtle rounded-xl p-5">
@@ -59,7 +71,7 @@ const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
     );
   }
 
-  // Error state
+  // State 2: Penanganan Error jika gagal tersambung ke backend
   if (error) {
     return (
       <div className="bg-bg-card border border-status-live/40 rounded-xl p-5">
@@ -76,7 +88,7 @@ const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
     );
   }
 
-  // No schedule state
+  // State 3: Tampilan Kosong jika belum ada agenda siaran yang dibuat oleh kreator
   if (!schedule) {
     return (
       <div className="bg-bg-card border border-border-subtle rounded-xl p-5">
@@ -94,7 +106,8 @@ const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
     );
   }
 
-  // Live state
+  // State 4: Tampilan Siaran Sedang Berlangsung (LIVE NOW)
+  // Menampilkan tombol tonton langsung yang mengarahkan ke YouTube Live stream
   if (isLive) {
     return (
       <div className="bg-bg-card border-l-4 border-status-live rounded-xl p-5">
@@ -121,7 +134,7 @@ const CountdownCard = ({ schedule, isLoading = false, error = null }) => {
     );
   }
 
-  // Countdown state - sesuai mockup
+  // State 5: Tampilan Countdown Timer Mundur (Jam, Menit, Detik)
   return (
     <div className="bg-bg-card border border-border-subtle rounded-xl p-5">
       {/* Header - sesuai mockup */}

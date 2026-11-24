@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/dashboard.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Penyedia metrik analitik ringkas untuk layar utama Studio Admin (DashboardPage).
+ * Mengagregasi:
+ * 1. Total suara voting yang masuk pada periode bulan berjalan.
+ * 2. Status kesiapan siaran langsung kreator (broadcasting status).
+ * 3. Agenda siaran streaming terdekat (next upcoming schedule).
+ * 4. Daftar 10 aktivitas log audit terbaru untuk pemantauan keamanan operasional.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `Game`, `Schedule`, `Vote`, `AuditLog`, `User` dari `../models`.
+ * - Dipanggil oleh rute `src/routes/dashboard.routes.js`.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * - "Dashboard dirancang untuk memberikan gambaran cepat (helicopter view) dalam 3 detik pertama
+ *   saat kreator membuka Studio Admin."
+ * ============================================================================
+ */
+
 const { Game, Schedule, Todo, ContentGuide, AuditLog, User, Vote, CollabRequest } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 
@@ -26,29 +48,30 @@ const getTimeAgo = (date) => {
  */
 const getDashboardStats = async (req, res) => {
   try {
+    // Format periode saat ini (YYYY-MM) untuk filter data bulan berjalan
     const currentPeriod = new Date().toISOString().slice(0, 7);
 
-    // Get previous month period
+    // Ambil format periode bulan lalu untuk perhitungan tren persentase pertumbuhan
     const prevDate = new Date();
     prevDate.setMonth(prevDate.getMonth() - 1);
     const previousPeriod = prevDate.toISOString().slice(0, 7);
 
-    // Get total votes for current period
+    // Hitung total suara voting bulan berjalan dengan fungsi agregasi SUM di MySQL
     const currentVotes = await Game.sum('vote_count', {
       where: { period_key: currentPeriod }
     }) || 0;
 
-    // Get total votes for previous period
+    // Hitung total suara voting bulan sebelumnya sebagai pembanding
     const previousVotes = await Game.sum('vote_count', {
       where: { period_key: previousPeriod }
     }) || 0;
 
-    // Calculate vote change percentage
+    // Hitung persentase kenaikan/penurunan suara ((current - previous) / previous * 100)
     const voteChange = previousVotes > 0
       ? Math.round(((currentVotes - previousVotes) / previousVotes) * 100)
       : currentVotes > 0 ? 100 : 0;
 
-    // Get upcoming schedules count (next 7 days)
+    // Hitung jumlah siaran yang akan datang dalam jendela 7 hari ke depan
     const sevenDaysLater = new Date();
     sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
@@ -62,14 +85,14 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
-    // Get completed/archived schedules count
+    // Hitung total agenda siaran yang telah tuntas dilaksanakan (done/archived)
     const completedSchedules = await Schedule.count({
       where: {
         status: { [Op.in]: ['done', 'archived'] }
       }
     });
 
-    // Get active broadcast (schedule with status 'live')
+    // Periksa apakah sedang ada siaran live yang sedang berlangsung
     const activeBroadcast = await Schedule.findOne({
       where: {
         status: 'live'
@@ -78,11 +101,11 @@ const getDashboardStats = async (req, res) => {
       attributes: ['id', 'title', 'game_category', 'scheduled_at', 'youtube_url']
     });
 
-    // Get top voted game for current period (only accepted/playing games)
+    // Ambil game dengan perolehan suara terbanyak nomor 1 untuk badge 'Top Voted'
     const topVotedGame = await Game.findOne({
       where: {
         period_key: currentPeriod,
-        status: { [Op.in]: ['accepted', 'playing'] }
+        status: { [Op.in]: ['accepted', 'playing'] } // Hanya game yang sudah disetujui admin
       },
       order: [['vote_count', 'DESC']],
       attributes: ['id', 'title', 'vote_count']

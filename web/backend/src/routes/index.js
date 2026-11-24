@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/index.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Indeks sentral penggabungan seluruh router modular backend X-VOCA.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 

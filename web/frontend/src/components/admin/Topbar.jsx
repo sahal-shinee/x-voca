@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/admin/Topbar.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Baris navigasi atas Studio Admin: menampilkan profil streamer, toggle live broadcasting,
+ * lonceng notifikasi (NotificationBell), dan tombol keluar (Logout).
+ * ============================================================================
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {

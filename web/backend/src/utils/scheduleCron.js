@@ -1,4 +1,21 @@
 /**
+ * ============================================================================
+ * FILE: web/backend/src/utils/scheduleCron.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Mesin penjadwalan otomatis (Cron Job) untuk status siaran langsung.
+ * Mengatur:
+ * 1. Pengecekan berkala (tiap 1 menit) terhadap jadwal berstatus 'upcoming'.
+ * 2. Jika waktu jadwal sudah tercapai (`scheduled_at <= now`), status otomatis beralih ke 'live'.
+ * 3. Sinkronisasi jadwal live yang baru aktif ke Firebase Realtime Database.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `Schedule` dari `../models`.
+ * - Dijalankan pada saat booting di `server.js` dan dipanggil secara lazy di `app.js`.
+ * ============================================================================
+ */
+
+/**
  * Schedule Cron Jobs
  *
  * Automatically update schedule statuses based on time:
@@ -11,7 +28,7 @@
  */
 
 const { Schedule, Game, Todo } = require('../models');
-const { updateNextSchedule, sendTopicNotification } = require('./firebase.helper');
+const { updateNextSchedule, clearNextSchedule, sendTopicNotification } = require('./firebase.helper');
 const { Op } = require('sequelize');
 
 // Stream duration before auto-archive (in hours)
@@ -228,6 +245,26 @@ const updateScheduleStatuses = async () => {
         }
       } else {
         console.log(`[Cron] No game found for archive category: "${schedule.game_category}"`);
+      }
+    }
+
+    // Sinkronkan jadwal aktif/mendatang berikutnya ke Firebase jika ada siaran yang selesai (toDone)
+    if (changes.toDone > 0) {
+      const nextRemaining = await Schedule.findOne({
+        where: { status: 'live' },
+        order: [['scheduled_at', 'DESC']]
+      }) || await Schedule.findOne({
+        where: {
+          status: 'upcoming',
+          scheduled_at: { [Op.gt]: now }
+        },
+        order: [['scheduled_at', 'ASC']]
+      });
+
+      if (nextRemaining) {
+        await updateNextSchedule(nextRemaining);
+      } else {
+        await clearNextSchedule();
       }
     }
 

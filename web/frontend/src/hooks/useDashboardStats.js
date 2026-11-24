@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/hooks/useDashboardStats.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Hook pengambil metrik statistik analitik Studio Admin (total suara, jadwal terdekat, log aktivitas).
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { getFirebaseDatabase, isFirebaseConfigured } from '../utils/firebase';

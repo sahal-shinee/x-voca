@@ -1,4 +1,16 @@
 /**
+ * ============================================================================
+ * FILE: web/frontend/src/utils/pdfExport.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Helper ekspor dokumen laporan resmi rekapitulasi voting bulanan ke dalam format PDF.
+ * Memanfaatkan pustaka:
+ * - `html2canvas`: Menangkap tangkapan visual elemen tabel HTML dengan fidelitas tinggi.
+ * - `jspdf`: Menyusun tata letak lembar cetak dokumen A4 dan menghasilkan file PDF siap unduh.
+ * ============================================================================
+ */
+
+/**
  * PDF Export Utility for X-VOCA Voting Results
  *
  * Creates a clean, professional, highly readable PDF report:
@@ -11,7 +23,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Helper to run autoTable safely across different bundlers
+// Helper untuk menjalankan plugin autoTable secara aman di berbagai bundler Vite/Rollup
 const runAutoTable = (doc, options) => {
   if (typeof doc.autoTable === 'function') {
     return doc.autoTable(options);
@@ -25,7 +37,7 @@ const runAutoTable = (doc, options) => {
   throw new Error('Plugin autoTable tidak dapat dimuat.');
 };
 
-// Format period key like "2026-10" to Indonesian string "Oktober 2026"
+// Mengonversi kunci periode (contoh: "2026-11") menjadi teks Bahasa Indonesia resmi: "November 2026"
 const formatPeriodString = (periodKey) => {
   if (!periodKey) return '-';
   try {
@@ -37,7 +49,7 @@ const formatPeriodString = (periodKey) => {
   }
 };
 
-// Format timestamp in WIB
+// Menghasilkan stempel waktu pencetakan dokumen dalam zona Waktu Indonesia Barat (WIB)
 const formatDateTimeWIB = () => {
   return new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -49,7 +61,7 @@ const formatDateTimeWIB = () => {
   }) + ' WIB';
 };
 
-// Map database status to clean Indonesian label
+// Pemetaan status database ke label Bahasa Indonesia formal untuk dokumen cetak
 const STATUS_LABELS = {
   requested: 'Menunggu Review',
   accepted: 'Diterima',
@@ -58,15 +70,12 @@ const STATUS_LABELS = {
 };
 
 /**
- * Generate PDF report for voting results
- *
- * @param {Object} options
- * @param {Array} options.games - Array of game objects
- * @param {string} options.periodKey - Period key (e.g., '2026-10')
- * @param {Object} options.stats - Summary statistics
- * @param {Function} options.onProgress - Progress callback (0-100)
+ * FUNGSI UTAMA: generateVotingPDF
+ * Membuat dokumen PDF laporan resmi rekapitulasi voting langsung di sisi peramban pengguna
+ * tanpa membebani server backend (Client-side Document Rendering).
  */
 export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onProgress }) => {
+  // 1. Inisialisasi lembar kerja jsPDF format A4 tegak (portrait) satuan milimeter (mm)
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -82,8 +91,8 @@ export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onP
 
   if (onProgress) onProgress(15);
 
-  // ── 1. Top Decorative Bar ──────────────────────────────────────────
-  doc.setFillColor(30, 27, 46); // deep dark slate / indigo
+  // 2. Render Garis Aksen Dekoratif Atas (Kop Laporan)
+  doc.setFillColor(30, 27, 46); // Warna tema Cyberpunk Midnight Dark Slate
   doc.rect(margin, yPos, contentWidth, 3, 'F');
   yPos += 9;
 

@@ -1,50 +1,75 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/services/api.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Klien HTTP terpusat berbasis pustaka Axios.
+ * Mengatur:
+ * 1. Base URL dinamis (localhost:3001 saat lokal, atau URL hosting dari `VITE_API_URL`).
+ * 2. Request Interceptor: Otomatis menyisipkan header `Authorization: Bearer <token>`
+ *    pada setiap request yang ditujukan ke endpoint privat.
+ * 3. Response Interceptor: Menangkap kode status HTTP 401 Unauthorized dan otomatis
+ *    membersihkan token kadaluwarsa serta mengarahkan admin ke `/admin/login`.
+ * 4. Pustaka modular pemanggil API: `authAPI`, `scheduleAPI`, `gameAPI`, `voteAPI`,
+ *    `contentAPI`, `todoAPI`, `dashboardAPI`, dan `youtubeAPI`.
+ * ============================================================================
+ */
+
 import axios from 'axios';
 
+// 1. Inisialisasi instance Axios dengan konfigurasi dasar
 const api = axios.create({
+  // Ambil URL backend dari file .env frontend (VITE_API_URL), default ke port 3001
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // Increased timeout for slower connections
+  // Batas waktu tunggu request maksimal 15 detik sebelum timeout
+  timeout: 15000,
 });
 
-// Track if we're already handling a 401 to prevent multiple logout calls
+// Flag penanda untuk mencegah pemanggilan redirect logout berulang kali saat banyak request 401 bersamaan
 let isHandling401 = false;
 
 /**
- * Clear auth and redirect to login
- * Separated to allow both request interceptor (for retry logic) and response interceptor to use
+ * Helper: clearAuthAndRedirect
+ * Membersihkan sesi login yang kedaluwarsa dan mengalihkan peramban ke halaman login
  */
 const clearAuthAndRedirect = () => {
-  // Prevent multiple calls
+  // Jika sedang dalam proses redirect, abaikan panggilan kedua
   if (isHandling401) return;
   isHandling401 = true;
 
+  // Hapus token JWT dari localStorage
   localStorage.removeItem('xvoca_admin_token');
 
-  // Use setTimeout to avoid React state update during render
+  // Gunakan setTimeout 0ms agar transisi halaman tidak memicu konflik render di React
   setTimeout(() => {
-    // Redirect to login
+    // Alihkan paksa ke halaman login admin
     window.location.href = '/admin/login';
 
-    // Reset flag after a delay to allow future 401s to be handled
+    // Reset flag setelah jeda 1 detik
     setTimeout(() => {
       isHandling401 = false;
     }, 1000);
   }, 0);
 };
 
-// Request interceptor - attach JWT token
+// ============================================================
+// REQUEST INTERCEPTOR (Pencegat Request Keluar)
+// ============================================================
+// Dijalankan secara otomatis sebelum setiap request HTTP dikirimkan ke backend
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
+    // 1. Ambil token JWT dari localStorage
     const token = localStorage.getItem('xvoca_admin_token');
 
+    // 2. Jika token ditemukan, tempelkan ke HTTP Header Authorization dengan skema Bearer
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // For protected routes, check if we have a token
+    // 3. Deteksi apakah request ini ditujukan ke endpoint privat yang memerlukan login
     const isProtectedRoute = config.url?.startsWith('/api/admin') ||
                              config.url?.startsWith('/api/dashboard') ||
                              config.url?.startsWith('/api/auth/me') ||
@@ -52,17 +77,18 @@ api.interceptors.request.use(
                              config.url?.startsWith('/api/auth/profile') ||
                              config.url?.startsWith('/api/auth/password');
 
+    // Jika endpoint privat tapi tidak ada token, batalkan request langsung di sisi klien
     if (isProtectedRoute && !token) {
-      // Clear any queued requests
       return Promise.reject({
         response: {
           status: 401,
-          data: { message: 'No token available' }
+          data: { message: 'Token tidak tersedia di penyimpanan lokal.' }
         },
         __handled: true
       });
     }
 
+    // Teruskan konfigurasi request yang sudah disisipi token ke server
     return config;
   },
   (error) => {
@@ -70,22 +96,26 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle 401 unauthorized and network errors
+// ============================================================
+// RESPONSE INTERCEPTOR (Pencegat Respons Masuk)
+// ============================================================
+// Dijalankan secara otomatis setelah respons diterima dari server backend
 api.interceptors.response.use(
   (response) => {
+    // Respons dengan status kode 2xx langsung dikembalikan tanpa halangan
     return response;
   },
   (error) => {
-    // Handle network errors (no response)
+    // KONDISI 1: Terjadi kendala jaringan fisik (server mati / offline)
     if (!error.response) {
-      console.error('Network error:', error.message);
+      console.error('Network error terdeteksi:', error.message);
 
-      // Check if it's a timeout
+      // Tangani kondisi request timeout (melebihi 15 detik)
       if (error.code === 'ECONNABORTED') {
         return Promise.reject({
           response: {
             status: 408,
-            data: { message: 'Request timeout. Silakan coba lagi.' }
+            data: { message: 'Waktu request habis (Timeout). Silakan periksa koneksi Anda.' }
           }
         });
       }
@@ -93,43 +123,42 @@ api.interceptors.response.use(
       return Promise.reject({
         response: {
           status: 0,
-          data: { message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.' }
+          data: { message: 'Tidak dapat terhubung ke server backend. Pastikan server Node.js aktif.' }
         }
       });
     }
 
-    // Handle 401 Unauthorized
+    // KONDISI 2: Server merespons dengan status HTTP 401 Unauthorized (Token Kedaluwarsa)
     if (error.response?.status === 401) {
-      // Don't redirect if already handled or if it's the login endpoint
+      // Jangan redirect jika error 401 terjadi saat mencoba login dengan password salah
       if (error.config?.url?.includes('/api/auth/login')) {
         return Promise.reject(error);
       }
 
-      console.log('401 Unauthorized - clearing session and redirecting...');
+      console.log('401 Unauthorized terdeteksi - sesi kedaluwarsa, membersihkan token...');
       clearAuthAndRedirect();
 
-      // Return a rejected promise with a user-friendly error
       return Promise.reject({
         response: {
           status: 401,
           data: {
             success: false,
-            message: 'Sesi Anda telah berakhir. Silakan login kembali.'
+            message: 'Sesi login Anda telah berakhir. Silakan login kembali.'
           }
         },
         __redirected: true
       });
     }
 
-    // Handle 403 Forbidden (access denied)
+    // KONDISI 3: Server merespons dengan status HTTP 403 Forbidden (Akses Ditolak)
     if (error.response?.status === 403) {
-      console.log('403 Forbidden - access denied');
+      console.log('403 Forbidden - akses ke fitur ini ditolak');
       return Promise.reject({
         response: {
           status: 403,
           data: {
             success: false,
-            message: 'Anda tidak memiliki akses ke resource ini.'
+            message: 'Akses ditolak. Akun Anda tidak memiliki hak izin untuk fitur ini.'
           }
         }
       });
@@ -141,7 +170,11 @@ api.interceptors.response.use(
 
 export default api;
 
-// Auth API
+// ============================================================
+// MODUL LAYANAN API SPESIFIK FITUR (FEATURE API SERVICES)
+// ============================================================
+
+// 1. Layanan API Autentikasi
 export const authAPI = {
   login: (email, password) =>
     api.post('/api/auth/login', { email, password }),
@@ -155,7 +188,7 @@ export const authAPI = {
     api.patch('/api/auth/password', { current_password, new_password }),
 };
 
-// Schedule API
+// 2. Layanan API Jadwal Streaming
 export const scheduleAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -173,7 +206,7 @@ export const scheduleAPI = {
     api.delete(`/api/schedules/${id}`),
 };
 
-// Game API
+// 3. Layanan API Katalog Game
 export const gameAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -189,21 +222,24 @@ export const gameAPI = {
     api.delete(`/api/games/${id}`),
 };
 
-// Vote API
+// 4. Layanan API Voting & Request
 export const voteAPI = {
   getStats: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return api.get(`/api/votes/stats${queryString ? `?${queryString}` : ''}`);
   },
+  // Submit vote dengan payload fingerprint hardware
   vote: (gameId, fingerprint) =>
     api.post(`/api/votes/${gameId}`, { fingerprint }),
+  // Submit usulan game baru dengan batas 7 hari
   request: (data) =>
     api.post('/api/votes/request', data),
+  // Reset periode bulanan oleh admin
   resetPeriod: () =>
     api.post('/api/votes/reset-period'),
 };
 
-// Content API
+// 5. Layanan API Content Guide (VOD)
 export const contentAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -219,7 +255,7 @@ export const contentAPI = {
     api.delete(`/api/content/${id}`),
 };
 
-// Todo API
+// 6. Layanan API To-Do List Internal
 export const todoAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -235,7 +271,7 @@ export const todoAPI = {
     api.delete(`/api/todos/${id}`),
 };
 
-// Dashboard API
+// 7. Layanan API Dashboard Analitik & Audit Log
 export const dashboardAPI = {
   getStats: () =>
     api.get('/api/dashboard/stats'),
@@ -245,7 +281,7 @@ export const dashboardAPI = {
   },
 };
 
-// YouTube API
+// 8. Layanan API YouTube Metadata Fetch
 export const youtubeAPI = {
   fetch: (url) =>
     api.post('/api/youtube/fetch', { url }),

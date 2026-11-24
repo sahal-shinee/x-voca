@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/viewer/ContentGuidePage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Halaman katalog arsip rekaman siaran (Content Guide / VOD Catalog).
+ * Menampilkan:
+ * 1. Strip Statistik Real-time: Total video, total kategori aktif, dan konten baru 7 hari terakhir.
+ * 2. Featured Video Spotlight: Cuplikan siaran terbaik yang disematkan kreator.
+ * 3. Filter Kategori Game: Menyaring video berdasarkan genre/game tertentu.
+ * 4. Modal Pemutar Video YouTube: Menonton rekaman siaran langsung tanpa meninggalkan website.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getContent, getFeatured } from '../../services/contentService';
@@ -208,12 +222,20 @@ function ContentGuidePage() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [copiedId, setCopiedId] = useState(null);
 
-  // Fetch real data
+  /**
+   * PENGAMBILAN DATA ARSIP KONTEN (HYDRATION):
+   * Mengambil 4 endpoint data secara paralel menggunakan `Promise.allSettled`:
+   * 1. Video Spotlight Utama (`getFeatured`)
+   * 2. Katalog Daftar Video (`getContent`)
+   * 3. Statistik Agregat Konten (`/api/content/stats`)
+   * 4. Daftar Kategori Game Aktif (`/api/content/categories`)
+   */
   const fetchData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
 
+      // Eksekusi pemanggilan 4 API secara paralel agar waktu tunggu halaman sangat singkat
       const [featuredRes, contentsRes, statsRes, categoriesRes] = await Promise.allSettled([
         getFeatured(),
         getContent({ limit: 50 }),
@@ -221,7 +243,7 @@ function ContentGuidePage() {
         api.get('/api/content/categories')
       ]);
 
-      // Featured Content
+      // 1. Ekstrak data Featured Video Spotlight jika tersedia
       if (featuredRes.status === 'fulfilled' && featuredRes.value?.success && featuredRes.value?.data) {
         const fc = featuredRes.value.data;
         setFeatured({
@@ -241,13 +263,13 @@ function ContentGuidePage() {
         setFeatured(null);
       }
 
-      // Content list
+      // 2. Ekstrak daftar array video arsip
       if (contentsRes.status === 'fulfilled' && contentsRes.value?.success) {
         const contentsData = contentsRes.value.data || [];
         setContents(Array.isArray(contentsData) ? contentsData : []);
       }
 
-      // Stats
+      // 3. Ekstrak ringkasan metrik statistik (Total Video, Kategori Aktif, Konten Baru)
       if (statsRes.status === 'fulfilled' && statsRes.value?.data?.data) {
         const s = statsRes.value.data.data;
         const totalVideoCount = s.totalVideos || String(contentsData.length) || "0";
@@ -267,7 +289,7 @@ function ContentGuidePage() {
         ]);
       }
 
-      // Categories
+      // 4. Ekstrak daftar kategori game untuk filter pill UI
       if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.data?.data && Array.isArray(categoriesRes.value.data.data)) {
         setCategories(categoriesRes.value.data.data);
       } else {

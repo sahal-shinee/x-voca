@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/viewer/CollabRequestModal.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Dialog modal formulir publik bagi penonton untuk merekomendasikan kolaborasi streamer.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { X, CheckCircle, Loader2, Radio, User, Link as LinkIcon, MessageSquare } from 'lucide-react';
 import { collabRequestService } from '../../services/collabRequestService';
@@ -77,25 +86,26 @@ export function CollabRequestModal({ isOpen, onClose, onSuccess }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle submit
+  // Eksekusi pengiriman formulir usulan kolaborasi penonton
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError(null);
 
+    // Validasi input di sisi klien terlebih dahulu (nama minimal 2 karakter, format URL/handle valid)
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // Get visitor fingerprint
+      // Ambil fingerprint unik perangkat browser pengunjung via FingerprintJS (anti-spam identifikasi)
       const fingerprint = await getFingerprint();
 
-      // Submit via API
+      // Kirim data usulan ke backend API POST /api/collab-requests
       const response = await collabRequestService.submitCollabRequest({
         requested_streamer_name: streamerName.trim(),
         requested_streamer_social: socialLink.trim(),
         message: message.trim() || undefined,
-        viewer_identifier: fingerprint
+        viewer_identifier: fingerprint // Dikirimkan untuk pelacakan limit dan deteksi bot
       });
 
       if (response.data?.success) {
@@ -104,7 +114,7 @@ export function CollabRequestModal({ isOpen, onClose, onSuccess }) {
           onSuccess(response.data.data);
         }
 
-        // Auto close after 2 seconds
+        // Tampilkan pesan sukses dan tutup modal secara halus setelah 2 detik
         setTimeout(() => {
           handleClose();
         }, 2000);
@@ -113,6 +123,7 @@ export function CollabRequestModal({ isOpen, onClose, onSuccess }) {
       }
     } catch (err) {
       console.error('Submit collab request error:', err);
+      // Tangkap pesan error dari rate limiter backend (misal: "Terlalu banyak permintaan...")
       const msg = err.response?.data?.message || err.message || 'Terjadi kesalahan saat mengirim request.';
       setApiError(msg);
     } finally {

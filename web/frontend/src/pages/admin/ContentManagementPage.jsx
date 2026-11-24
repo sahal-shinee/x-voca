@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/ContentManagementPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengelolaan katalog arsip video rekaman VOD:
+ * 1. Menambah video baru dengan deteksi otomatis judul & thumbnail dari Google YouTube Data API.
+ * 2. Mengatur video mana yang dijadikan pin spotlight utama (`is_featured`).
+ * 3. Mengatur visibilitas publik video (publik / tersembunyi).
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -268,18 +280,22 @@ function ContentManagementPage() {
     setFormPanelOpen(true);
   };
 
+  // Simpan konten video baru atau perbarui metadata video yang sudah ada
   const handleSaveContent = async (data) => {
     setFormLoading(true);
     try {
       if (editingContent) {
+        // Mode edit: panggil API PATCH /api/content/:id
         await updateContent(editingContent.id, data);
         toast.success('Konten katalog berhasil diperbarui.');
       } else {
+        // Mode buat baru: panggil API POST /api/content
         await createContent(data);
         toast.success('Konten katalog baru berhasil ditambahkan.');
       }
       setFormPanelOpen(false);
       setEditingContent(null);
+      // Muat ulang daftar konten katalog
       fetchContents(currentPage);
     } catch (error) {
       console.error('Error saving content:', error);
@@ -290,9 +306,11 @@ function ContentManagementPage() {
     }
   };
 
+  // Toggle visibilitas konten: Publik (muncul di landing page penonton) vs Hidden/Draft
   const handleToggleVisibility = async (content) => {
     try {
       const nextVisible = !content.is_visible;
+      // Panggil backend API PATCH /api/content/:id/visibility
       await toggleContentVisibility(content.id, nextVisible);
       toast.success(nextVisible ? 'Konten kini tayang di portal publik.' : 'Konten dialihkan ke status Draft / Hidden.');
       fetchContents(currentPage);
@@ -302,9 +320,11 @@ function ContentManagementPage() {
     }
   };
 
+  // Toggle sorotan utama (Featured Pin): Menjadikan video sebagai sorotan besar di portal VOD
   const handleToggleFeatured = async (content) => {
     try {
       const nextFeatured = !content.is_featured;
+      // Panggil backend API PATCH /api/content/:id/featured
       await toggleContentFeatured(content.id, nextFeatured);
       toast.success(nextFeatured ? 'Konten dijadikan Sorotan Utama (Featured Banner).' : 'Konten dicopot dari Sorotan Utama.');
       fetchContents(currentPage);

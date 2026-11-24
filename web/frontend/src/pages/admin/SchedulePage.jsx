@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/SchedulePage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengelolaan jadwal siaran streaming (Schedule Manager):
+ * 1. Menambah, mengedit, dan menghapus jadwal siaran mingguan.
+ * 2. Mengubah status jadwal menjadi 'live' secara manual.
+ * 3. Fitur One-Click Archive: Menyalin siaran yang telah selesai langsung ke arsip Content Guide.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/dashboardService';
@@ -202,11 +214,13 @@ function SchedulePage() {
     fetchSchedules(activeFilter);
   }, [fetchSummaryStats, fetchSchedules, activeFilter]);
 
-  // Handle URL query parameters (e.g. ?action=create&game=Title from Voting Moderation)
+  // Listener query parameter URL:
+  // Mendukung integrasi lintas modul saat tombol "Jadwalkan Stream" diklik di modul Voting Moderation (?action=create&game=Title)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'create') {
       const game = params.get('game') || '';
+      // Prefill otomatis judul dan kategori game yang di-vote oleh penonton
       setEditingSchedule({
         title: game ? `Stream: ${game}` : '',
         game_category: game,
@@ -214,6 +228,7 @@ function SchedulePage() {
         countdown_enabled: true,
       });
       setFormPanelOpen(true);
+      // Bersihkan query string dari URL browser agar form tidak terbuka ulang saat di-refresh
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -223,22 +238,23 @@ function SchedulePage() {
     setActiveFilter(filter);
   };
 
-  // Open form for new schedule
+  // Buka panel form modal untuk pembuatan jadwal siaran baru
   const handleAddSchedule = () => {
     setEditingSchedule(null);
     setFormPanelOpen(true);
   };
 
-  // Open form for edit
+  // Buka panel form modal untuk mengedit jadwal siaran yang sudah ada
   const handleEditSchedule = (schedule) => {
     setEditingSchedule(schedule);
     setFormPanelOpen(true);
   };
 
-  // Handle save schedule
+  // Simpan data jadwal (Create atau Update ke API backend)
   const handleSaveSchedule = async (data) => {
     setFormLoading(true);
     try {
+      // Jika terdapat ID, lakukan update (PATCH /api/schedules/:id), jika tidak lakukan create (POST /api/schedules)
       if (editingSchedule && editingSchedule.id) {
         await updateSchedule(editingSchedule.id, data);
       } else {
@@ -246,6 +262,7 @@ function SchedulePage() {
       }
       setFormPanelOpen(false);
       setEditingSchedule(null);
+      // Muat ulang daftar jadwal dan metrik ringkasan kartu
       fetchSchedules(activeFilter);
       fetchSummaryStats();
     } catch (error) {
@@ -261,11 +278,13 @@ function SchedulePage() {
     setDeleteModal({ open: true, schedule });
   };
 
+  // Konfirmasi penghapusan jadwal ke backend
   const handleDeleteConfirm = async () => {
     if (!deleteModal.schedule) return;
 
     setDeleteLoading(true);
     try {
+      // Panggil API DELETE /api/schedules/:id
       await deleteSchedule(deleteModal.schedule.id);
       setDeleteModal({ open: false, schedule: null });
       fetchSchedules(activeFilter);
@@ -281,23 +300,25 @@ function SchedulePage() {
     setDeleteModal({ open: false, schedule: null });
   };
 
-  // Handle end stream
+  // Buka modal konfirmasi untuk mengakhiri siaran langsung
   const handleEndStreamClick = (schedule) => {
     setEndStreamModal({ open: true, schedule });
   };
 
+  // Eksekusi penghentian siaran langsung (End Stream)
   const handleEndStreamConfirm = async () => {
     if (!endStreamModal.schedule) return;
     const endedSchedule = endStreamModal.schedule;
 
     setEndStreamLoading(true);
     try {
+      // Panggil backend untuk mengubah status siaran menjadi 'done' dan reset status live Firebase
       await endStream(endedSchedule.id);
       setEndStreamModal({ open: false, schedule: null });
       fetchSchedules(activeFilter);
       fetchSummaryStats();
 
-      // Offer to immediately convert finished stream to Content Guide
+      // Fitur UX Pintar: Tawarkan langsung kepada kreator untuk mengonversi jadwal selesai ke arsip Content Guide
       setConvertModal({
         open: true,
         schedule: endedSchedule,
@@ -314,9 +335,10 @@ function SchedulePage() {
     setEndStreamModal({ open: false, schedule: null });
   };
 
-  // Handle direct navigation to Content Guide with prefill
+  // Navigasi langsung ke Content Guide dengan membawa state prefill (One-Click Convert)
   const handleDirectConvertToContent = (schedule) => {
     if (!schedule) return;
+    // Bawa metadata siaran (judul, game_tag, youtube_url, thumbnail) via state React Router
     navigate('/admin/content', {
       state: {
         prefillSchedule: {

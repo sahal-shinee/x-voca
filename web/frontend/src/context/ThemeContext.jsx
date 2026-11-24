@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/context/ThemeContext.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Mengatur konsistensi tema antarmuka Midnight Cyberpunk di seluruh komponen React.
+ * ============================================================================
+ */
+
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 
@@ -10,8 +19,8 @@ export const ThemeContext = createContext();
  * Applies 'data-theme' attribute to <html> element
  */
 export function ThemeProvider({ children }) {
+  // Inisialisasi state tema: periksa localStorage terlebih dahulu, default ke tema 'dark'
   const [theme, setTheme] = useState(() => {
-    // Check localStorage first, default to 'dark'
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('xvoc-admin-theme');
       return stored === 'light' ? 'light' : 'dark';
@@ -19,19 +28,21 @@ export function ThemeProvider({ children }) {
     return 'dark';
   });
 
-  // Persist theme to localStorage and keep documentElement dark for viewer pages
+  // Efek samping: Simpan preferensi tema ke localStorage dan kunci elemen <html> tetap dark
   useEffect(() => {
-    // Keep document root dark so viewer pages never turn white
+    // Memastikan elemen root dokumen selalu beraksen dark midnight agar halaman fansite tidak silau
     document.documentElement.setAttribute('data-theme', 'dark');
     if (typeof window !== 'undefined') {
       localStorage.setItem('xvoc-admin-theme', theme);
     }
   }, [theme]);
 
+  // Fungsi toggle peralihan antara mode dark dan light
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  // Fungsi set mode tema secara eksplisit ('dark' atau 'light')
   const setThemeMode = (mode) => {
     if (mode === 'dark' || mode === 'light') {
       setTheme(mode);

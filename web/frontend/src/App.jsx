@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/App.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pusat rute aplikasi React (React Router DOM v6).
+ * Memetakan jalur URL dengan komponen halaman yang sesuai:
+ * - Rute Publik Penonton: `/` (HomePage), `/voting` (VotingPage), `/content-guide` (ContentGuidePage).
+ * - Rute Autentikasi: `/admin/login` (LoginPage).
+ * - Rute Privat Studio Admin: Seluruh rute `/admin/*` dibungkus komponen `ProtectedRoute`
+ *   agar tidak bisa dimasuki tanpa token JWT yang sah.
+ * ============================================================================
+ */
+
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';

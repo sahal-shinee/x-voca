@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/todo.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute pengelolaan to-do list internal kreator.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const todoController = require('../controllers/todo.controller');

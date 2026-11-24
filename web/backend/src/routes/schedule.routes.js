@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/schedule.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Deklarasi rute API jadwal siaran streaming (GET publik, CRUD terproteksi admin).
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/schedule.controller');

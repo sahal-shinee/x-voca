@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/VotingModerationPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Panel moderasi voting game untuk kreator/admin:
+ * 1. Meninjau usulan game penonton yang berstatus 'requested' dan menyetujuinya ('accepted')
+ *    agar muncul di halaman voting publik.
+ * 2. Memperbarui siklus hidup game yang sedang dimainkan ('playing') dan selesai ('done').
+ * 3. Reset Periode Voting: Membuka periode bulan baru dan mengarsipkan suara lama.
+ * 4. Ekspor Laporan Resmi: Mencetak rekapitulasi perolehan suara bulanan ke format dokumen PDF resmi.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/dashboardService';
@@ -326,12 +340,17 @@ function VotingModerationPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // ============================================================================
+  // LOGIKA HANDLER AKSI MODERASI & SIKLUS HIDUP GAME
+  // ============================================================================
+
+  // Membuka panel form untuk menambahkan game baru secara manual oleh kreator
   const handleAddGame = () => {
     setEditingGame(null);
     setGameFormOpen(true);
   };
 
+  // Menyimpan data game baru ke backend via API POST /api/games
   const handleSaveGame = async (data) => {
     setGameFormLoading(true);
     try {
@@ -347,11 +366,20 @@ function VotingModerationPage() {
     }
   };
 
+  /**
+   * MODERASI SIKLUS HIDUP GAME (LIFECYCLE TRANSITION):
+   * Mengubah status game:
+   * - 'requested' -> 'accepted': Menyetujui usulan penonton agar muncul di daftar voting publik.
+   * - 'accepted' -> 'playing': Menandai bahwa game terpilih sedang dimainkan streamer saat live.
+   * - 'playing' -> 'done': Menandai penamatan game (arsip selesai).
+   */
   const handleStatusAction = async (game, newStatus) => {
     setLoadingAction(true);
     try {
+      // Panggil backend PATCH /api/games/:id/status
       await updateGameStatus(game.id, newStatus);
       setActionModal({ open: false, game: null, action: null });
+      // Refresh daftar game setelah status diperbarui
       fetchAllGames();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -360,6 +388,7 @@ function VotingModerationPage() {
     }
   };
 
+  // Menghapus data game dari basis data (Soft/Hard delete via DELETE /api/games/:id)
   const handleDelete = async () => {
     if (!deleteModal.game) return;
     setLoadingAction(true);
@@ -374,9 +403,15 @@ function VotingModerationPage() {
     }
   };
 
+  /**
+   * RESET PERIODE VOTING BULANAN (MONTHLY PERIOD RESET):
+   * Membuka periode voting bulan baru (misal "2026-12") dan mereset hitungan vote game
+   * yang belum selesai ('done') kembali ke 0. Suara lama tetap tersimpan di arsip database.
+   */
   const handleResetPeriod = async () => {
     setLoadingAction(true);
     try {
+      // Panggil backend POST /api/votes/reset-period
       const response = await resetVotingPeriod();
       setResetModal({ open: false });
       const newPeriod = response?.data?.new_period || response?.periodKey || new Date().toISOString().slice(0, 7);
@@ -392,10 +427,14 @@ function VotingModerationPage() {
     }
   };
 
+  /**
+   * BULK ACCEPT: Menyetujui banyak game usulan penonton sekaligus secara massal (Batch Approval)
+   */
   const handleBulkAccept = async () => {
     setLoadingAction(true);
     try {
       const targets = filteredGames.filter((g) => selectedIds.has(g.id) && g.status === 'requested');
+      // Eksekusi pembaruan status 'accepted' secara paralel dengan Promise.all
       await Promise.all(targets.map((g) => updateGameStatus(g.id, 'accepted')));
       clearSelection();
       fetchAllGames();

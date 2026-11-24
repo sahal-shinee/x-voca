@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/CollabRequest.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `collab_requests` (Usulan Kolaborasi dari Komunitas).
+ * Menyimpan nama streamer usulan penonton, tautan kanal, alasan kolaborasi,
+ * informasi pengusul, dan status moderasi ('pending', 'reviewed', 'accepted', 'rejected').
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/LoginPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Formulir otentikasi login khusus administrator/kreator Studio X-VOCA.
+ * Memvalidasi input email dan password, mengirim request POST ke `/api/auth/login`,
+ * dan menyimpan token JWT ke `AuthContext` serta `localStorage` sebelum mengarahkan ke dashboard.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -67,23 +78,32 @@ function LoginPage() {
     return () => clearTimeout(t);
   }, [error]);
 
+  /**
+   * Handler: handleSubmit
+   * Mengirim kredensial form login ke AuthContext dan backend Express
+   */
   const handleSubmit = async (e) => {
+    // 1. Mencegah reload halaman bawaan tag HTML form (SPA behavior)
     e.preventDefault();
     setError('');
     setExpiredMessage('');
+    // 2. Aktifkan status loading (mengubah animasi roda radar menjadi 'VERIFYING...')
     setLoading(true);
 
     try {
+      // 3. Panggil fungsi `login` dari AuthContext (mengirim POST /api/auth/login)
       const result = await login(email, password);
 
       if (result.success) {
+        // 4. Jika login berhasil, arahkan admin ke Dashboard Studio atau halaman asal sebelum terlempar
         const from = location.state?.from || '/admin/dashboard';
         navigate(from, { replace: true });
       } else {
-        setError(result.message || 'Email atau password salah');
+        // 5. Jika password atau email salah, tangkap pesan error dan picu efek getar kartu (shake)
+        setError(result.message || 'Email atau password salah. Silakan coba lagi.');
       }
     } catch {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
+      setError('Terjadi kesalahan pada server. Pastikan backend aktif.');
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/Schedule.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `schedules` (Agenda Siaran Streaming Mingguan).
+ * Menyimpan judul, deskripsi, waktu mulai (`scheduled_at` format UTC),
+ * kategori game, status siaran ('upcoming', 'live', 'done'), dan tautan streaming YouTube.
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

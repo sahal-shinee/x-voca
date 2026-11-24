@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/TodoPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Catatan kerja dan checklist persiapan operasional internal streamer.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../hooks/useTheme';

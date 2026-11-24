@@ -1,4 +1,14 @@
 /**
+ * ============================================================================
+ * FILE: web/frontend/src/utils/firebase.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Konfigurasi inisialisasi Firebase Web SDK di sisi peramban klien.
+ * Mengatur koneksi ke Firebase Realtime Database menggunakan API Key dan Database URL dari .env.
+ * ============================================================================
+ */
+
+/**
  * Firebase Configuration and Initialization
  *
  * Inisialisasi Firebase Realtime Database untuk X-VOCA

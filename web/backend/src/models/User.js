@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/User.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `users` (Akun Administrator & Streamer).
+ * Menyimpan nama, email unik, password_hash (Bcrypt), role ('admin'/'superadmin'),
+ * serta status live broadcasting ('is_broadcasting').
+ * Dilengkapi instance method `verifyPassword()` untuk perbandingan aman kata sandi.
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const bcrypt = require('bcrypt');

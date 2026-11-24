@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/services/scheduleService.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Layanan pemanggil API jadwal siaran streaming (CRUD jadwal, update status live).
+ * ============================================================================
+ */
+
 import api from './api';
 
 /**

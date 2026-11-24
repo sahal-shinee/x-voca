@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/admin/AdminLayout.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Kerangka tata letak utama (Layout Shell) Studio Admin X-VOCA.
+ * Menggabungkan `Sidebar` di sebelah kiri, `Topbar` di bagian atas, dan area konten dinamis
+ * yang responsif baik di desktop maupun tablet/smartphone.
+ * ============================================================================
+ */
+
 import { useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';

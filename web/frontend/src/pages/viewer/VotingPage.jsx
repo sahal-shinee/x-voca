@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/viewer/VotingPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pusat interaksi voting game bulanan komunitas penonton X-VOCA.
+ * Fitur Andalan:
+ * 1. Quick Vote (Top 3): Menampilkan 3 kandidat game teratas untuk voting instan.
+ * 2. Daftar Game Lengkap: Filter status game (Requested, Accepted, Playing, Done) dan pencarian judul.
+ * 3. Ekstraksi Fingerprint: Mengambil hash hardware browser untuk validasi anti-spam zero-login.
+ * 4. Real-time Firebase Sync: Menggunakan hook `useFirebase('votes')` sehingga persentase
+ *    dan jumlah suara ter-update live tanpa reload saat ada suara baru masuk.
+ * 5. Tombol '+ Request Game': Membuka formulir pengajuan game baru dengan cooldown 7 hari.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getGames, voteGame, requestGame } from '../../services/gameService';
 import { getFingerprint, hasVoted, markVoted, getCurrentPeriodKey } from '../../utils/fingerprint';
@@ -340,16 +356,25 @@ function CustomDropdown({
 
 // ========== MAIN VOTING PAGE ==========
 function VotingPage() {
+  // Inisialisasi hook notifikasi toast interaktif
   const toast = useToast();
 
+  // State: Menyimpan array data master game yang diambil dari API MySQL backend
   const [games, setGames] = useState([]);
+  // State: Penanda status loading saat data sedang di-fetch dari server
   const [loading, setLoading] = useState(true);
+  // State: Menyimpan pesan error jika koneksi API backend gagal
   const [error, setError] = useState(null);
+  // State: Kunci periode bulan voting aktif (format: "YYYY-MM", misal "2026-11")
   const [periodKey, setPeriodKey] = useState(getCurrentPeriodKey());
+  // State: Akumulasi total suara yang masuk dari seluruh game di periode aktif
   const [totalVotesGlobal, setTotalVotesGlobal] = useState(0);
+  // State: Menampilkan popup efek selebrasi animasi saat penonton berhasil vote
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationGame, setCelebrationGame] = useState(null);
 
+  // REALTIME SYNC HOOK: Mendengarkan perubahan data node '/votes' di Firebase RTDB secara live via WebSocket
+  // firebaseVotes: objek skor vote per ID game yang terus ter-update tanpa reload halaman
   const { votes: firebaseVotes, period: firebasePeriod, totalVotes: firebaseTotal } = useVotes();
 
   const [filter, setFilter] = useState('all');
@@ -429,13 +454,22 @@ function VotingPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Merge API votes with Firebase real-time data
+  /**
+   * SINKRONISASI DATA HYBRID (MySQL + Firebase RTDB):
+   * Menggabungkan data katalog game dari MySQL (judul, genre, cover_url)
+   * dengan perolehan suara live milidetik dari Firebase Realtime Database.
+   * Jika ada suara baru masuk di Firebase, angka `votes` dan `percentage` langsung naik
+   * tanpa perlu menunggu request fetch API ulang.
+   */
   const gamesWithVotes = useMemo(() => {
     return games.map((game) => {
+      // 1. Ambil data suara realtime game ini dari objek listener Firebase
       const firebaseVote = firebaseVotes?.[game.id];
       const firebaseVoteCount = firebaseVote?.voteCount;
+      // 2. Prioritaskan angka dari Firebase jika ada, fallback ke data MySQL awal
       const voteCount = firebaseVoteCount !== undefined ? firebaseVoteCount : game.vote_count || 0;
       const total = firebaseTotal || totalVotesGlobal || 1;
+      // 3. Hitung persentase suara terhadap total akumulasi suara periode ini
       const percentage = total > 0 ? (voteCount / total) * 100 : 0;
 
       return {
@@ -446,7 +480,11 @@ function VotingPage() {
     });
   }, [games, firebaseVotes, firebaseTotal, totalVotesGlobal]);
 
-  // Top 3 games for quick voting (only approved/accepted games open for voting)
+  /**
+   * Quick Vote Section (Top 3 Games):
+   * Menyaring hanya game yang berstatus 'accepted' (bukan requested/playing/done),
+   * mengurutkannya berdasarkan suara terbanyak, dan mengambil 3 game teratas.
+   */
   const topGames = useMemo(() => {
     return [...gamesWithVotes]
       .filter((g) => g.status === 'accepted')
@@ -516,42 +554,59 @@ function VotingPage() {
     return counts;
   }, [games]);
 
-  // Handle vote
+  /**
+   * Handler: handleVote
+   * Validasi awal saat tombol 'Vote' ditekan penonton di antarmuka
+   */
   const handleVote = useCallback((game) => {
+    // 1. Status Gating: Hanya game yang sudah berstatus 'accepted' yang boleh divote
     if (game.status !== 'accepted') {
       toast.error('Game ini belum dibuka untuk sesi voting.');
       return;
     }
+    // 2. Anti-Spam Cepat: Cek apakah penonton pada browser ini sudah pernah vote game ini di bulan aktif
     if (hasVoted(game.id, periodKey)) {
-      toast.error('Kamu sudah vote game ini');
+      toast.error('Kamu sudah vote game ini di periode bulan ini.');
       return;
     }
+    // 3. Tampilkan modal konfirmasi sebelum eksekusi vote
     setConfirmData(game);
     setShowConfirmModal(true);
   }, [periodKey, toast]);
 
-  // Confirm vote after modal
+  /**
+   * Handler: confirmVote
+   * Eksekusi pengiriman suara ke backend setelah penonton mengonfirmasi modal
+   */
   const confirmVote = useCallback(async () => {
     if (!confirmData) return;
     const game = confirmData;
     setShowConfirmModal(false);
 
     try {
+      // 1. EKSTRAKSI HARDWARE FINGERPRINT (Zero-Login Identity)
+      // Mengekstrak hash fisik kartu grafis, canvas, dan audio browser penonton
       const fingerprint = await getFingerprint();
       setVotingGameId(game.id);
+
+      // 2. Kirim request POST ke backend: /api/votes/:gameId dengan payload fingerprint
       const response = await voteGame(game.id, fingerprint);
 
       if (response.success) {
+        // 3. Tandai di localStorage bahwa browser ini sudah vote game ini
         markVoted(game.id, periodKey);
+        // 4. Picu visual perayaan (celebration animation & toast sukses)
         setCelebrationGame(game);
         setShowCelebration(true);
         toast.success(`Terima kasih! Vote untuk "${game.title}" sudah tercatat.`);
         
         setTimeout(() => setShowCelebration(false), 2400);
+        // Refresh data latar belakang
         fetchGames();
       } else if (response.alreadyVoted) {
+        // Backend mendeteksi IP atau Fingerprint sudah pernah memilih di periode ini
         markVoted(game.id, periodKey);
-        toast.error('Kamu sudah vote game ini');
+        toast.error('Kamu sudah vote game ini di periode bulan ini.');
       } else {
         toast.error(response.message || 'Gagal mengirim vote');
       }
@@ -564,9 +619,13 @@ function VotingPage() {
     }
   }, [confirmData, periodKey, toast, fetchGames]);
 
-  // Handle game request
+  /**
+   * Handler: handleSubmitRequest
+   * Mengirimkan usulan judul game baru oleh penonton ke backend
+   */
   const handleSubmitRequest = useCallback(async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    // 1. Validasi input judul wajib diisi
     if (!requestForm.title.trim()) {
       toast.error('Judul game harus diisi');
       return;
@@ -574,18 +633,22 @@ function VotingPage() {
 
     try {
       setSubmittingRequest(true);
+      // 2. Ekstrak hardware fingerprint penonton untuk penguncian masa jeda (Cooldown 7 Hari)
       const fingerprint = await getFingerprint();
       const resolvedGenre =
         requestForm.genre === 'Lainnya'
           ? (requestForm.customGenre.trim() || 'Lainnya')
           : requestForm.genre;
+
+      // 3. Panggil API POST /api/votes/request
       const resp = await requestGame({
         title: requestForm.title.trim(),
         genre: resolvedGenre,
-        fingerprint,
+        fingerprint, // Dikirim agar backend mengunci limit 1 request per 7 hari
       });
 
       if (resp.success) {
+        // Berhasil diajukan: tutup form modal, tampilkan modal sukses
         setShowRequestModal(false);
         setShowRequestSuccessModal(true);
         setRequestForm({ title: '', genre: '', customGenre: '' });

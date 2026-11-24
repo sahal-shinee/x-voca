@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/ContentGuide.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Definisi skema tabel `content_guides` (Katalog Arsip Rekaman Video VOD).
+ * Menyimpan ID video YouTube (`youtube_id`), judul, thumbnail URL, kategori tag,
+ * durasi, serta flag spotlight utama (`is_featured`).
+ * ============================================================================
+ */
+
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

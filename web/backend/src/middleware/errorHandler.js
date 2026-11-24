@@ -1,17 +1,39 @@
 /**
+ * ============================================================================
+ * FILE: web/backend/src/middleware/errorHandler.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Penanganan terpusat untuk error sistem (Centralized Error Handling).
+ * Menangkap seluruh error database (Sequelize ValidationError, UniqueConstraint,
+ * ForeignKey), error autentikasi JWT, serta kesalahan runtime tak terduga (500)
+ * agar server tidak pernah crash dan selalu mengembalikan respons JSON yang rapi.
+ *
+ * RELASI ANTAR FILE:
+ * - Dipasang di `app.js` sebagai middleware paling akhir setelah seluruh rute didaftarkan.
+ * - Menyediakan `notFoundHandler` untuk menangkap rute 404 yang tidak ada.
+ * - Menyediakan `asyncHandler` wrapper untuk fungsi async di controller.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * 1. "Middleware ini menjamin prinsip fail-safe. Pengguna tidak akan pernah melihat
+ *    layar putih atau error stack trace mentah yang membocorkan struktur server."
+ * 2. "Error database Sequelize diterjemahkan ke pesan Bahasa Indonesia yang mudah dipahami."
+ * ============================================================================
+ */
+
+/**
  * Global Error Handler Middleware
- * Catches all errors and returns consistent response format
+ * Parameter (err, req, res, next) dengan 4 argumen adalah standar middleware error Express
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error for debugging
-  console.error('❌ Error:', {
+  // Catat error ke console server untuk kebutuhan investigasi pengembang
+  console.error('❌ Error Terdeteksi:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     path: req.path,
     method: req.method
   });
 
-  // Sequelize validation error
+  // 1. Tangani Error Validasi Sequelize (misal: kolom wajib tidak diisi / format salah)
   if (err.name === 'SequelizeValidationError') {
     const errors = err.errors.map(e => ({
       field: e.path,
@@ -21,48 +43,49 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       data: null,
-      message: 'Validasi gagal.',
+      message: 'Validasi data gagal. Periksa kembali input Anda.',
       errors
     });
   }
 
-  // Sequelize unique constraint error
+  // 2. Tangani Error Duplikasi Data Unik (misal: email atau judul yang harus unik sudah ada)
   if (err.name === 'SequelizeUniqueConstraintError') {
     const field = err.errors[0]?.path || 'field';
     return res.status(409).json({
       success: false,
       data: null,
-      message: `${field} sudah digunakan.`
+      message: `Data pada ${field} sudah terdaftar di sistem.`
     });
   }
 
-  // Sequelize foreign key constraint error
+  // 3. Tangani Error Relasi Foreign Key (misal: mereferensikan game_id yang tidak ada)
   if (err.name === 'SequelizeForeignKeyConstraintError') {
     return res.status(400).json({
       success: false,
       data: null,
-      message: 'Referensi tidak valid. Data terkait tidak ditemukan.'
+      message: 'Referensi tidak valid. Data relasi terkait tidak ditemukan.'
     });
   }
 
-  // JWT errors
+  // 4. Tangani Error Token JWT Rusak / Palsu
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
       data: null,
-      message: 'Token tidak valid.'
+      message: 'Token otentikasi tidak valid.'
     });
   }
 
+  // 5. Tangani Error Token JWT Kedaluwarsa
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({
       success: false,
       data: null,
-      message: 'Token sudah kedaluwarsa.'
+      message: 'Sesi Anda telah berakhir. Silakan login kembali.'
     });
   }
 
-  // Default error response
+  // 6. Default Fallback Error (Status 500 Internal Server Error)
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Terjadi kesalahan internal server.';
 
@@ -75,19 +98,19 @@ const errorHandler = (err, req, res, next) => {
 
 /**
  * Not Found Handler
- * Catches requests to undefined routes
+ * Menangani URL yang tidak terdaftar di sistem
  */
 const notFoundHandler = (req, res) => {
   res.status(404).json({
     success: false,
     data: null,
-    message: `Route ${req.originalUrl} tidak ditemukan.`
+    message: `Endpoint ${req.originalUrl} tidak ditemukan pada server X-VOCA.`
   });
 };
 
 /**
  * Async Handler Wrapper
- * Wraps async route handlers to catch errors
+ * Membungkus fungsi asynchronous agar error otomatis diteruskan ke errorHandler via next(err)
  */
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);

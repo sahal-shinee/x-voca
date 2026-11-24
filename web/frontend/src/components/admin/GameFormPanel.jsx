@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/admin/GameFormPanel.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Panel formulir tambah dan edit data master game di Studio Admin.
+ * ============================================================================
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../hooks/useTheme';

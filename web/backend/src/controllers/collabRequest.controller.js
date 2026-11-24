@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/controllers/collabRequest.controller.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pengendali fitur usulan kolaborasi streamer dari komunitas penonton.
+ * Mengatur:
+ * 1. Penerimaan formulir ajuan kolaborasi dari penonton dengan rate limiting ketat.
+ * 2. Moderasi dan peninjauan ajuan oleh admin di Studio Kreator (status: pending, reviewed, accepted, rejected).
+ * 3. Pencatatan audit log saat ajuan ditinjau.
+ *
+ * RELASI ANTAR FILE:
+ * - Mengimpor model `CollabRequest` dan `AuditLog` dari `../models`.
+ * - Dipanggil oleh rute `src/routes/collabRequest.routes.js`.
+ * ============================================================================
+ */
+
 const { CollabRequest, User, AuditLog } = require('../models');
 const { pushNotification, sendTopicNotification } = require('../utils/firebase.helper');
 const { Op } = require('sequelize');
@@ -13,13 +30,14 @@ const { Op } = require('sequelize');
  */
 const createCollabRequest = async (req, res) => {
   try {
+    // Ekstraksi parameter input dari body request (mendukung variasi alias field)
     const body = req.body || {};
     const requested_streamer_name = body.requested_streamer_name || body.guest_name;
     const requested_streamer_social = body.requested_streamer_social || body.guest_channel_url || body.collab_social;
     const message = body.message || body.notes;
     const bodyViewerIdentifier = body.viewer_identifier;
 
-    // Validate required fields
+    // Validasi input: Nama streamer wajib diisi dan minimal 2 karakter
     if (!requested_streamer_name || !requested_streamer_name.trim()) {
       return res.status(400).json({
         success: false,
@@ -36,7 +54,8 @@ const createCollabRequest = async (req, res) => {
       });
     }
 
-    // Determine viewer identifier (fingerprint from frontend or client IP)
+    // Resolusi identitas viewer (keamanan & anti-spam):
+    // Gunakan fingerprint browser dari frontend jika tersedia, atau fallback ke IP client di header proxy
     const clientIp = (
       req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
       req.socket?.remoteAddress ||
@@ -47,20 +66,20 @@ const createCollabRequest = async (req, res) => {
       ? bodyViewerIdentifier.trim()
       : clientIp;
 
-    // Current period (YYYY-MM)
+    // Kunci partisi periode aktif (format YYYY-MM) untuk pengelompokan riwayat bulanan
     const period_key = new Date().toISOString().slice(0, 7);
 
-    // Create collab request record
+    // Simpan usulan kolaborasi ke tabel CollabRequest dengan status awal 'pending'
     const collabRequest = await CollabRequest.create({
       viewer_identifier,
       requested_streamer_name: requested_streamer_name.trim(),
       requested_streamer_social: requested_streamer_social ? requested_streamer_social.trim() : null,
       message: message ? message.trim() : null,
-      status: 'pending',
+      status: 'pending', // Menunggu peninjauan oleh admin
       period_key
     });
 
-    // Create audit log
+    // Catat log audit aktivitas usulan kolaborasi
     try {
       await AuditLog.create({
         action_type: 'status_changed',
@@ -71,7 +90,7 @@ const createCollabRequest = async (req, res) => {
       console.warn('AuditLog creation skipped for collab request:', logErr.message);
     }
 
-    // Push real-time notification to Firebase for admin
+    // Dorong notifikasi in-app realtime ke Firebase RTDB agar admin studio langsung melihat badge lonceng
     try {
       await pushNotification({
         userId: 'default',

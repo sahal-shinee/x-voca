@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/routes/collabRequest.routes.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Rute pengajuan kolaborasi streamer (POST publik dengan `collabLimiter`) dan peninjauan oleh admin.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const collabRequestController = require('../controllers/collabRequest.controller');

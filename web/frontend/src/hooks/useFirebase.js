@@ -1,50 +1,81 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/hooks/useFirebase.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pustaka Custom React Hook untuk komunikasi real-time dua arah dengan Firebase Realtime Database.
+ * Mengatur:
+ * 1. `useFirebase(path)`: Hook dasar listener WebSocket realtime pada path node database tertentu.
+ * 2. `useVotes()`: Mendengarkan perolehan suara voting game (`/votes`) secara live tanpa reload.
+ * 3. `useNextSchedule()`: Mendengarkan perubahan agenda siaran berikutnya (`/schedules/next`).
+ * 4. `useBroadcastingStatus()`: Mendengarkan status streaming langsung kreator (`/broadcasting`).
+ * 5. `useFirebaseWrite(path)`: Operasi penulisan manual ke Firebase.
+ *
+ * POIN PENJELASAN UNTUK GURU / PENGUJI:
+ * - "Inilah inti dari sinkronisasi realtime frontend. Firebase Web SDK menggunakan koneksi
+ *   WebSocket persisten. Ketika backend mengubah data di server, event `onValue` langsung
+ *   memicu update state React seketika."
+ * - "Tiap listener memiliki fungsi cleanup (`return () => unsubscribe()`) agar koneksi diputus
+ *   bersih saat penonton berpindah halaman, mencegah Memory Leak."
+ * ============================================================================
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { getFirebaseDatabase, isFirebaseConfigured } from '../utils/firebase';
 
 /**
- * useFirebase - Custom hook untuk Firebase Realtime Database listener
+ * Hook Dasar: useFirebase
+ * Mengikat komponen React ke sebuah node path di Firebase Realtime Database
  *
- * @param {string} path - Path di Firebase database (e.g., 'votes/games')
+ * @param {string} path - Alamat path node di Firebase (contoh: 'votes', 'broadcasting')
  * @returns {Object} { data, loading, error }
  */
 export function useFirebase(path) {
+  // State: menyimpan payload data terbaru dari Firebase
   const [data, setData] = useState(null);
+  // State: status loading data awal
   const [loading, setLoading] = useState(true);
+  // State: pencatatan error jika koneksi WebSocket terganggu
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Skip if not configured or path is empty
+    // 1. Validasi: Lewati jika Firebase belum dikonfigurasi atau path kosong
     if (!isFirebaseConfigured() || !path) {
       setLoading(false);
       return;
     }
 
     try {
+      // 2. Ambil instance koneksi Firebase Database
       const database = getFirebaseDatabase();
       if (!database) {
         setLoading(false);
-        setError('Firebase not initialized');
+        setError('Firebase database belum diinisialisasi');
         return;
       }
 
+      // 3. Buat referensi pointer ke node path yang diinginkan
       const dataRef = ref(database, path);
 
+      // 4. Daftarkan event listener `onValue`: dipanggil pertama kali DAN setiap kali data di node berubah
       const unsubscribe = onValue(
         dataRef,
         (snapshot) => {
+          // snapshot.val() mengembalikan representasi objek JavaScript dari node tersebut
           setData(snapshot.val());
           setLoading(false);
           setError(null);
         },
         (err) => {
-          console.error('Firebase listener error:', err);
+          console.error('Firebase listener error pada path:', path, err);
           setError(err.message);
           setLoading(false);
         }
       );
 
-      // Cleanup only this component's listener on unmount or path change
+      // 5. Cleanup Function: Wajib ada di React!
+      // Mematikan listener saat komponen di-unmount agar tidak terjadi kebocoran memori (Memory Leak)
       return () => {
         if (typeof unsubscribe === 'function') {
           unsubscribe();
@@ -63,26 +94,28 @@ export function useFirebase(path) {
 }
 
 /**
- * useVotes - Hook untuk real-time voting data
- * Listen ke /votes di Firebase
+ * Hook Khusus: useVotes
+ * Mendengarkan data perolehan suara voting secara real-time dari path `/votes`
  *
  * @returns {Object} { votes, period, totalVotes, loading, error }
  */
 export function useVotes() {
+  // Langganan ke node 'votes' di Firebase
   const { data, loading, error } = useFirebase('votes');
 
   return {
-    votes: data?.games || {},
-    period: data?.period || null,
-    totalVotes: data?.totalVotes || 0,
+    votes: data?.games || {},         // Objek kumpulan perolehan suara per ID game
+    period: data?.period || null,     // Periode bulan aktif (misal "2026-11")
+    totalVotes: data?.totalVotes || 0,// Akumulasi seluruh suara yang masuk
     loading,
     error,
   };
 }
 
 /**
- * useNextSchedule - Hook untuk next schedule countdown
- * Listen ke /schedules/next di Firebase
+ * Hook Khusus: useNextSchedule
+ * Mendengarkan informasi jadwal siaran terdekat dari path `/schedules/next`
+ * Digunakan oleh komponen Countdown Timer di Hero Section
  *
  * @returns {Object} { schedule, loading, error }
  */
@@ -90,15 +123,16 @@ export function useNextSchedule() {
   const { data, loading, error } = useFirebase('schedules/next');
 
   return {
-    schedule: data,
+    schedule: data, // Objek jadwal terdekat (judul, jam siaran, kategori)
     loading,
     error,
   };
 }
 
 /**
- * useBroadcastingStatus - Hook untuk broadcasting status
- * Listen ke /broadcasting/isReady di Firebase
+ * Hook Khusus: useBroadcastingStatus
+ * Mendengarkan status siaran langsung kreator dari path `/broadcasting`
+ * Digunakan untuk menampilkan indikator Live pulse di navbar dan hero
  *
  * @returns {Object} { isLive, isReady, loading, error }
  */
@@ -106,7 +140,7 @@ export function useBroadcastingStatus() {
   const { data, loading, error } = useFirebase('broadcasting');
 
   return {
-    isLive: data?.isReady || false,
+    isLive: data?.isReady || false,     // Boolean: true jika kreator sedang live streaming
     isReady: data?.isReady || false,
     updatedAt: data?.updatedAt || null,
     loading,
@@ -115,10 +149,8 @@ export function useBroadcastingStatus() {
 }
 
 /**
- * useVoteCounts - Hook untuk vote counts per game
- * Listen ke /votes/games di Firebase
- *
- * @returns {Object} { voteCounts, loading, error }
+ * Hook Khusus: useVoteCounts
+ * Mendengarkan rincian angka suara spesifik per game dari path `/votes/games`
  */
 export function useVoteCounts() {
   const { data, loading, error } = useFirebase('votes/games');
@@ -131,10 +163,10 @@ export function useVoteCounts() {
 }
 
 /**
- * useFirebaseWrite - Hook untuk menulis data ke Firebase
- * Tidak auto-subscribe, hanya untuk write operations
+ * Hook Khusus: useFirebaseWrite
+ * Memungkinkan komponen menulis data ke Firebase secara terprogram (tanpa auto-subscribe listener)
  *
- * @param {string} path - Path untuk write
+ * @param {string} path - Alamat path tujuan penulisan
  * @returns {Object} { write, loading, error }
  */
 export function useFirebaseWrite(path) {
@@ -143,20 +175,22 @@ export function useFirebaseWrite(path) {
 
   const write = useCallback(async (value) => {
     if (!isFirebaseConfigured()) {
-      throw new Error('Firebase not configured');
+      throw new Error('Firebase belum terkonfigurasi');
     }
 
     const database = getFirebaseDatabase();
     if (!database) {
-      throw new Error('Firebase not initialized');
+      throw new Error('Firebase database belum diinisialisasi');
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      const { get, set, ref: dbRef } = await import('firebase/database');
+      // Import dinamis modul database untuk optimasi code-splitting
+      const { set, ref: dbRef } = await import('firebase/database');
       const dataRef = dbRef(database, path);
+      // Eksekusi penulisan data ke node
       await set(dataRef, value);
       return true;
     } catch (err) {

@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * FILE: web/backend/src/models/index.js
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Pusat orkestrasi dan pendefinisian asosiasi relasional (Associations) seluruh Model Sequelize.
+ * Mengatur relasi antar entitas:
+ * - Game.hasMany(Vote) & Vote.belongsTo(Game) -> Integritas data voting komunitas.
+ * - User.hasMany(Schedule) & Schedule.belongsTo(User) -> Pemilik agenda siaran.
+ * - User.hasMany(ContentGuide) & ContentGuide.belongsTo(User) -> Pemilik arsip VOD.
+ * Menyediakan fungsi `testConnection()` dan `syncDatabase()`.
+ * ============================================================================
+ */
+
 // Import all models
 const { sequelize } = require('../config/database');
 const User = require('./User');

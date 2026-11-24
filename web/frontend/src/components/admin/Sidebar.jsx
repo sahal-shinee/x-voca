@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/components/admin/Sidebar.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Menu navigasi samping Studio Admin (Dashboard, Jadwal, Moderasi Voting, Konten, Kolaborasi, To-Do, Settings).
+ * Dilengkapi penanda aktif (active link styling) dan tombol cepat menuju portal penonton.
+ * ============================================================================
+ */
+
 import { useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

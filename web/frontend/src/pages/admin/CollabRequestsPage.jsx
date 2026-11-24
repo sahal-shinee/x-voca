@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * FILE: web/frontend/src/pages/admin/CollabRequestsPage.jsx
+ * ============================================================================
+ * FUNGSI UTAMA:
+ * Kotak masuk peninjauan usulan kolaborasi streamer dari komunitas penggemar.
+ * Admin dapat memverifikasi link streamer dan memperbarui status ajuan (Reviewed/Accepted/Rejected).
+ * ============================================================================
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
@@ -161,8 +171,9 @@ function CollabRequestsPage() {
     setCurrentPage(1);
   };
 
-  // Update status action (Baru, Disimpan, Dijadwalkan, Arsip)
+  // Aksi pembaruan status usulan (pending -> approved -> scheduled -> rejected)
   const handleUpdateStatus = async (id, newStatus) => {
+    // Panggil hook mutasi yang berkomunikasi dengan API PATCH /api/collab-requests/:id/status
     const res = await updateStatus(id, newStatus);
     if (res.success) {
       const label = STATUS_CONFIG[newStatus]?.label || newStatus;
@@ -172,7 +183,7 @@ function CollabRequestsPage() {
     }
   };
 
-  // Open note modal
+  // Buka modal input catatan review admin (misal: "Sudah di-DM di Twitter, menunggu konfirmasi")
   const handleOpenNoteModal = (request) => {
     setNoteModal({
       open: true,
@@ -182,11 +193,12 @@ function CollabRequestsPage() {
     });
   };
 
-  // Save note action
+  // Simpan catatan review ke database
   const handleSaveNote = async () => {
     if (!noteModal.request) return;
     setNoteModal((prev) => ({ ...prev, isSaving: true }));
     try {
+      // Panggil API PATCH /api/collab-requests/:id/notes
       const res = await updateNotes(noteModal.request.id, noteModal.notes);
       if (res.success) {
         toast.success('Catatan admin berhasil disimpan.');
