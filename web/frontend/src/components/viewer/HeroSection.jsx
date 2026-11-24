@@ -1073,101 +1073,98 @@ function HeroSection({ onRequestCollab }) {
                 </a>
               </div>
 
-              {/* Next Stream Card — pure info, no thumbnail (Desain Asli dengan Font Disesuaikan Lebih Besar & Jelas) */}
+              {/* Next Stream Card — pure info, sleek modern typography */}
               <div
                 className="w-full max-w-[300px] sm:max-w-[360px] lg:max-w-[400px] mt-5 sm:mt-6 rounded-xl bg-[#181333]/90 border border-white/[0.08] shadow-lg overflow-hidden animate-fade-in"
                 style={{ animationDelay: '0.4s' }}
               >
                 {/* ── Top bar: label + status ── */}
-                <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/[0.06]">
+                <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/[0.06]">
                   <div className="flex items-center gap-1.5">
                     <CalendarIcon />
-                    <span className="font-bold text-[#cbd5e1] text-xs sm:text-[13px] tracking-widest uppercase font-mono">
+                    <span className="font-semibold text-slate-300 text-[10px] sm:text-[11px] tracking-widest uppercase font-mono">
                       Next Stream
                     </span>
                   </div>
 
                   {/* Status badge */}
                   {loading ? (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#cbd5e1] animate-pulse" />
-                      <span className="text-[#cbd5e1] text-[10px] sm:text-xs tracking-wider font-mono font-medium">LOADING</span>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                      <span className="text-slate-400 text-[9px] tracking-wider font-mono font-medium">LOADING</span>
                     </div>
                   ) : countdown.isEmpty ? (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#cbd5e1]" />
-                      <span className="text-[#cbd5e1] text-[10px] sm:text-xs tracking-wider font-mono font-medium">NO SCHEDULE</span>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      <span className="text-slate-400 text-[9px] tracking-wider font-mono font-medium">NO SCHEDULE</span>
                     </div>
                   ) : countdown.isLive ? (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500/15 border border-red-500/30">
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444] animate-pulse" />
-                      <span className="font-bold text-[#ef4444] text-[10px] sm:text-xs tracking-wider font-mono">LIVE NOW</span>
+                      <span className="font-bold text-[#ef4444] text-[9px] tracking-wider font-mono">LIVE NOW</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#7ee0d2]/15 border border-[#7ee0d2]/30">
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#7ee0d2]/10 border border-[#7ee0d2]/25">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#7ee0d2] animate-pulse" />
-                      <span className="font-bold text-[#7ee0d2] text-[10px] sm:text-xs tracking-wider font-mono truncate max-w-[120px] sm:max-w-none">
+                      <span className="font-medium text-[#7ee0d2] text-[9px] tracking-wider font-mono truncate max-w-[120px] sm:max-w-none">
                         {scheduleDateDisplay || 'TERJADWAL'}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* ── Body: judul + countdown ── */}
-                <div className="px-3.5 pt-3.5 pb-2.5 space-y-2.5">
-
-                  {/* Judul stream */}
+                {/* ── Body: judul + countdown / empty state ── */}
+                <div className="px-3.5 py-3">
                   {loading ? (
                     <div className="space-y-1.5">
-                      <div className="h-4 bg-[rgba(61,53,96,0.4)] rounded animate-pulse w-full" />
-                      <div className="h-4 bg-[rgba(61,53,96,0.3)] rounded animate-pulse w-3/5" />
+                      <div className="h-3.5 bg-[rgba(61,53,96,0.4)] rounded animate-pulse w-full" />
+                      <div className="h-3.5 bg-[rgba(61,53,96,0.3)] rounded animate-pulse w-3/5" />
                     </div>
                   ) : countdown.isEmpty ? (
-                    <p className="text-white font-bold text-sm sm:text-base leading-snug">
-                      Belum ada siaran dijadwalkan
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-white/90 text-xs sm:text-[13px] font-medium leading-snug">
+                        Belum ada siaran dijadwalkan
+                      </p>
+                      <p className="text-slate-400 text-[11px] leading-relaxed">
+                        Jadwal terbaru akan segera diperbarui
+                      </p>
+                    </div>
                   ) : (
-                    <h3 className="text-white font-bold text-sm sm:text-base leading-snug line-clamp-2">
-                      {nextSchedule?.title || 'Siaran Mendatang'}
-                    </h3>
-                  )}
+                    <div className="space-y-2.5">
+                      <h3 className="text-white font-medium text-xs sm:text-[13px] leading-snug line-clamp-2">
+                        {nextSchedule?.title || 'Siaran Mendatang'}
+                      </h3>
 
-                  {/* Countdown */}
-                  {!countdown.isEmpty && (
-                    <div className="flex items-center gap-1.5">
-                      {loading ? (
-                        [1, 2, 3].map(i => (
-                          <div key={i} className="flex-1 h-9 bg-[rgba(61,53,96,0.3)] rounded-lg animate-pulse" />
-                        ))
-                      ) : (
-                        [
+                      {/* Countdown */}
+                      <div className="flex items-center gap-1.5">
+                        {[
                           { value: countdown.hours,   label: 'JAM', pulse: false },
                           { value: countdown.minutes,  label: 'MIN', pulse: false },
                           { value: countdown.seconds,  label: 'DET', pulse: true  },
                         ].map((unit) => (
                           <div
                             key={unit.label}
-                            className="flex-1 flex flex-col items-center py-2 rounded-lg bg-[rgba(20,15,40,0.8)] border border-[rgba(61,53,96,0.45)]"
+                            className="flex-1 flex flex-col items-center py-1.5 rounded-lg bg-[rgba(20,15,40,0.8)] border border-[rgba(61,53,96,0.45)]"
                           >
-                            <span className={`font-bold text-[#7ee0d2] text-lg sm:text-xl tracking-tight font-display leading-none ${unit.pulse ? 'animate-pulse' : ''}`}>
+                            <span className={`font-bold text-[#7ee0d2] text-base sm:text-lg tracking-tight font-display leading-none ${unit.pulse ? 'animate-pulse' : ''}`}>
                               {unit.value}
                             </span>
-                            <span className="text-[#cbd5e1] text-[9px] sm:text-[10px] font-bold tracking-widest uppercase font-mono mt-1">
+                            <span className="text-slate-400 text-[8px] tracking-widest uppercase font-mono mt-1">
                               {unit.label}
                             </span>
                           </div>
-                        ))
-                      )}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* ── Footer: platform + CTA ── */}
                 {!loading && nextSchedule && !countdown.isEmpty && (
-                  <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-white/[0.05]">
+                  <div className="flex items-center justify-between px-3.5 py-2 border-t border-white/[0.05]">
                     <div className="flex items-center gap-1.5">
-                      <YouTubeIcon size={13} className="text-red-500 flex-shrink-0" />
-                      <span className="text-[#cbd5e1] text-xs font-semibold">
+                      <YouTubeIcon size={12} className="text-red-500 flex-shrink-0" />
+                      <span className="text-slate-300 text-[11px] font-medium">
                         {nextSchedule.stream_platform || 'YouTube'}
                       </span>
                     </div>
@@ -1177,23 +1174,14 @@ function HeroSection({ onRequestCollab }) {
                         href={nextSchedule.youtube_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 hover:text-red-200 transition-all duration-200 font-bold text-xs whitespace-nowrap"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 hover:text-red-300 transition-all duration-200 font-medium text-[10px] sm:text-[11px] whitespace-nowrap"
                       >
                         <span>Tonton di YouTube</span>
-                        <ArrowRight className="w-3 h-3 flex-shrink-0" strokeWidth={2.5} />
+                        <ArrowRight className="w-2.5 h-2.5 flex-shrink-0" strokeWidth={2.5} />
                       </a>
                     ) : (
-                      <span className="text-[#cbd5e1]/60 text-xs">Link segera tersedia</span>
+                      <span className="text-slate-500 text-[10px] sm:text-[11px]">Link segera tersedia</span>
                     )}
-                  </div>
-                )}
-
-                {/* Empty state */}
-                {!loading && countdown.isEmpty && (
-                  <div className="px-3.5 pb-3 pt-1">
-                    <p className="text-[#cbd5e1] text-xs sm:text-[13px] text-center font-medium">
-                      Jadwal terbaru akan segera diperbarui
-                    </p>
                   </div>
                 )}
               </div>
