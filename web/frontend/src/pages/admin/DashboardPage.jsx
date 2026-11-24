@@ -130,7 +130,8 @@ const getCountdownText = (targetDateString) => {
 
 /** Map action code to timeline badge & centered rail dot color */
 const getActionMeta = (action) => {
-  const actionType = action?.action_type || action || '';
+  const rawType = typeof action === 'string' ? action : (action?.action_type || action?.action || '');
+  const actionType = String(rawType || '');
 
   const map = {
     VOTE_MASUK: { label: 'Vote Masuk', bg: 'bg-accent-cyan/15 border-accent-cyan/30', text: 'text-accent-cyan', dot: 'bg-accent-cyan' },
@@ -153,7 +154,7 @@ const getActionMeta = (action) => {
     todo_completed: { label: 'Todo Selesai', bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-500', dot: 'bg-emerald-500' },
   };
 
-  const found = map[actionType] || map[actionType.toUpperCase()] || map[actionType.toLowerCase()];
+  const found = map[actionType] || (actionType ? map[actionType.toUpperCase()] : null) || (actionType ? map[actionType.toLowerCase()] : null);
   if (found) return found;
 
   const formattedLabel = actionType
@@ -403,6 +404,9 @@ function DashboardPage() {
         } else if (response.data.data && Array.isArray(response.data.data)) {
           logs = response.data.data;
           total = response.data.meta?.total || logs.length;
+        } else if (response.data.data?.logs && Array.isArray(response.data.data.logs)) {
+          logs = response.data.data.logs;
+          total = response.data.data.pagination?.total || response.data.data.total || logs.length;
         } else if (response.data.logs && Array.isArray(response.data.logs)) {
           logs = response.data.logs;
           total = response.data.pagination?.total || response.data.total || logs.length;
@@ -813,7 +817,7 @@ function DashboardPage() {
                 </div>
 
                 {/* Second runner up if exists */}
-                {topGamesList.length > 1 && topGamesList[1].id !== stats.topVotedGame.id && (
+                {topGamesList.length > 1 && topGamesList[1]?.id !== stats.topVotedGame?.id && (
                   <div className="flex items-center justify-between gap-2 text-xs text-text-muted pt-2 border-t border-border-subtle">
                     <span className="truncate min-w-0 flex items-center gap-1.5">
                       <span className="text-[10px] font-mono text-text-muted shrink-0">#2</span>

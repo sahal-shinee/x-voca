@@ -42,7 +42,11 @@ function PrivateRoute({ children }) {
 
   // 2. TAHAP PEMERIKSAAN KEDALUWARSA TOKEN (Expiration Guard)
   // Jika token JWT sudah hangus (melewati batas waktu exp), tendang ke login dengan alasan 'expired'
-  if (isAuthenticated && tokenExpiresAt && isTokenExpired(tokenExpiresAt)) {
+  const isExpired = typeof isTokenExpired === 'function'
+    ? isTokenExpired(tokenExpiresAt)
+    : (tokenExpiresAt ? Date.now() >= tokenExpiresAt * 1000 : false);
+
+  if (isAuthenticated && tokenExpiresAt && isExpired) {
     return (
       <Navigate
         to="/admin/login"

@@ -139,9 +139,13 @@ export function useNextSchedule() {
 export function useBroadcastingStatus() {
   const { data, loading, error } = useFirebase('broadcasting');
 
+  const isReady = typeof data === 'object' && data !== null
+    ? Boolean(data.isReady)
+    : Boolean(data);
+
   return {
-    isLive: data?.isReady || false,     // Boolean: true jika kreator sedang live streaming
-    isReady: data?.isReady || false,
+    isLive: isReady,     // Boolean: true jika kreator sedang live streaming
+    isReady,
     updatedAt: data?.updatedAt || null,
     loading,
     error,

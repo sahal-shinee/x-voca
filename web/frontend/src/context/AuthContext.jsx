@@ -71,11 +71,31 @@ export function AuthProvider({ children }) {
    * Helper: isTokenExpired
    * Memeriksa apakah waktu saat ini sudah melewati waktu kedaluwarsa token
    */
-  const isTokenExpired = (expiresAt) => {
+  const isTokenExpired = useCallback((expiresAt) => {
     if (!expiresAt) return true;
     // Mengalikan expiresAt dengan 1000 karena Date.now() dalam milidetik sedangkan JWT exp dalam detik
     return Date.now() >= expiresAt * 1000;
-  };
+  }, []);
+
+  /**
+   * Fungsi: performLogout
+   * Eksekusi pembersihan sesi: hapus token dari localStorage, reset state, dan alihkan URL
+   */
+  const performLogout = useCallback(() => {
+    // 1. Hapus token dari browser storage
+    localStorage.removeItem('xvoca_admin_token');
+    // 2. Kosongkan seluruh state autentikasi React
+    setUser(null);
+    setIsAuthenticated(false);
+    setTokenExpiresAt(null);
+    // 3. Matikan timer auto-logout
+    if (logoutTimerRef.current) {
+      clearTimeout(logoutTimerRef.current);
+      logoutTimerRef.current = null;
+    }
+    // 4. Alihkan halaman ke formulir login admin
+    window.location.href = '/admin/login';
+  }, []);
 
   /**
    * Fungsi: setLogoutTimer
@@ -98,36 +118,16 @@ export function AuthProvider({ children }) {
     if (timeUntilExpiry > 1000) {
       logoutTimerRef.current = setTimeout(() => {
         console.log('Token expired, logging out otomatis...');
-        logout();
+        performLogout();
       }, timeUntilExpiry - 1000);
     } else if (timeUntilExpiry > 0) {
       // Jika waktu tersisa kurang dari 1 detik, logout seketika
       logoutTimerRef.current = setTimeout(() => {
         console.log('Token expired, logging out...');
-        logout();
+        performLogout();
       }, timeUntilExpiry);
     }
-  }, []);
-
-  /**
-   * Fungsi: performLogout
-   * Eksekusi pembersihan sesi: hapus token dari localStorage, reset state, dan alihkan URL
-   */
-  const performLogout = useCallback(() => {
-    // 1. Hapus token dari browser storage
-    localStorage.removeItem('xvoca_admin_token');
-    // 2. Kosongkan seluruh state autentikasi React
-    setUser(null);
-    setIsAuthenticated(false);
-    setTokenExpiresAt(null);
-    // 3. Matikan timer auto-logout
-    if (logoutTimerRef.current) {
-      clearTimeout(logoutTimerRef.current);
-      logoutTimerRef.current = null;
-    }
-    // 4. Alihkan halaman ke formulir login admin
-    window.location.href = '/admin/login';
-  }, []);
+  }, [performLogout]);
 
   /**
    * Fungsi: validateToken
@@ -288,6 +288,7 @@ export function AuthProvider({ children }) {
     logout,
     revalidateAuth,
     toggleBroadcasting,
+    isTokenExpired,
   };
 
   return (
