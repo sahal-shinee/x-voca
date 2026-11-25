@@ -242,6 +242,25 @@ def add_code_block(doc, code_str, caption=None):
     p_after.paragraph_format.space_before = Pt(2)
     p_after.paragraph_format.space_after = Pt(4)
 
+def add_image_with_caption(doc, image_path, caption=None, width=Inches(6.5)):
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(8)
+    p.paragraph_format.space_after = Pt(4)
+    run = p.add_run()
+    run.add_picture(image_path, width=width)
+    
+    if caption:
+        p_cap = doc.add_paragraph()
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.paragraph_format.space_before = Pt(2)
+        p_cap.paragraph_format.space_after = Pt(10)
+        r_cap = p_cap.add_run(f"Gambar: {caption}")
+        r_cap.font.size = Pt(9.5)
+        r_cap.font.italic = True
+        r_cap.font.color.rgb = COLOR_MUTED
+    return p
+
 def add_table_data(doc, headers, rows, col_widths=None):
     table = doc.add_table(rows=len(rows) + 1, cols=len(headers))
     table.alignment = WD_TABLE_ALIGNMENT.CENTER

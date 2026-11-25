@@ -1,0 +1,148 @@
+// ==============================================================================
+// X-VOCA DATABASE SCHEMA (DBML - Database Markup Language)
+// Gunakan script ini di web: https://dbdiagram.io
+// ==============================================================================
+
+Table users {
+  id int [pk, increment, note: 'Primary Key Admin']
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  password varchar(255) [not null, note: 'bcrypt hash 60 chars']
+  role varchar(50) [default: 'admin', note: "admin / moderator"]
+  avatar_url varchar(500)
+  bio text
+  is_broadcasting boolean [not null, default: false]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Tabel Admin Kreator & Streamer Xion Regalia'
+}
+
+Table schedules {
+  id int [pk, increment]
+  user_id int [not null, note: 'Pemilik agenda siaran']
+  title varchar(255) [not null]
+  description text
+  scheduled_at datetime [not null]
+  status varchar(50) [default: 'upcoming', note: "upcoming, live, done, cancelled"]
+  game_category varchar(100)
+  stream_platform varchar(50) [default: 'YouTube']
+  youtube_url varchar(500)
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Jadwal Siaran Live Streaming Kreator'
+}
+
+Table todos {
+  id int [pk, increment]
+  user_id int [not null, note: 'Pemilik tugas persiapan']
+  title varchar(255) [not null]
+  description text
+  status varchar(50) [default: 'pending', note: "pending, in_progress, completed"]
+  priority varchar(50) [default: 'medium', note: "low, medium, high, urgent"]
+  due_date datetime
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Daftar Checklist Persiapan Studio Sebelum Live'
+}
+
+Table content_guides {
+  id int [pk, increment]
+  user_id int [null, note: 'SET NULL jika user admin dihapus']
+  title varchar(255) [not null]
+  description text
+  category varchar(100) [not null, note: "Gameplay, Karaoke, Clip, dll"]
+  video_url varchar(500) [not null]
+  thumbnail_url text
+  duration varchar(20) [note: 'Format HH:MM:SS']
+  view_count int [default: 0]
+  is_pinned boolean [default: false]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Arsip Rekaman Siaran Video VOD & Klip Penggemar'
+}
+
+Table collab_requests {
+  id int [pk, increment]
+  streamer_name varchar(255) [not null]
+  platform varchar(50) [default: 'YouTube']
+  channel_url varchar(500) [not null]
+  contact varchar(255) [not null, note: 'Email / Discord']
+  proposed_game varchar(255) [not null]
+  proposed_date date [not null]
+  notes text
+  status varchar(50) [default: 'pending', note: "pending, approved, rejected, scheduled"]
+  reviewed_by int [null, note: 'SET NULL jika akun admin dihapus']
+  reviewed_at datetime
+  admin_notes text
+  created_at datetime [default: `now()`]
+  
+  Note: 'Formulir Pendaftaran Kolaborasi dari Streamer Luar'
+}
+
+Table games {
+  id int [pk, increment]
+  title varchar(255) [not null]
+  description text
+  genre varchar(100)
+  cover_url text
+  vote_count int [default: 0, note: 'Denormalisasi untuk performa O(1)']
+  status varchar(50) [default: 'active', note: "active, archived, pending_approval"]
+  requested_by varchar(255) [note: 'Nama penonton yang mengusulkan']
+  requested_at datetime
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Katalog Game Pilihan Kreator & Usulan Penonton'
+}
+
+Table votes {
+  id int [pk, increment]
+  game_id int [not null]
+  ip_address varchar(45) [not null, note: 'IPv4 / IPv6 penonton']
+  fingerprint varchar(255) [note: 'Hash Hardware FingerprintJS']
+  user_agent varchar(500)
+  period varchar(7) [not null, note: 'Format YYYY-MM (e.g. 2026-11)']
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+
+  indexes {
+    (ip_address, fingerprint, period) [name: 'idx_anti_spam_voting']
+  }
+  
+  Note: 'Transaksi Pemungutan Suara Penonton Publik (Anti-Spam)'
+}
+
+Table audit_logs {
+  id int [pk, increment]
+  action_type varchar(100) [not null, note: "e.g. VOTE_MASUK, BROADCASTING_TOGGLE"]
+  detail text [not null]
+  sub_detail varchar(255)
+  ip_address varchar(45)
+  user_agent varchar(500)
+  created_at datetime [default: `now()`]
+  
+  Note: 'Catatan Audit Trail Independen (Standalone Tanpa FK)'
+}
+
+// ==============================================================================
+// DEFINISI HUBUNGAN JARING-JARING RELASI (RELATIONSHIPS)
+// ==============================================================================
+
+// Relasi 1:N dari users ke schedules (CASCADE)
+Ref: users.id < schedules.user_id [delete: cascade, update: cascade]
+
+// Relasi 1:N dari users ke todos (CASCADE)
+Ref: users.id < todos.user_id [delete: cascade, update: cascade]
+
+// Relasi 1:N dari users ke content_guides (SET NULL)
+Ref: users.id < content_guides.user_id [delete: set null, update: cascade]
+
+// Relasi 1:N dari users ke collab_requests (SET NULL)
+Ref: users.id < collab_requests.reviewed_by [delete: set null, update: cascade]
+
+// Relasi 1:N dari games ke votes (CASCADE)
+Ref: games.id < votes.game_id [delete: cascade, update: cascade]
