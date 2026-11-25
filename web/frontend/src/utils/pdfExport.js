@@ -3,27 +3,31 @@
  * FILE: web/frontend/src/utils/pdfExport.js
  * ============================================================================
  * FUNGSI UTAMA:
- * Helper ekspor dokumen laporan resmi rekapitulasi voting bulanan ke dalam format PDF.
- * Memanfaatkan pustaka:
- * - `html2canvas`: Menangkap tangkapan visual elemen tabel HTML dengan fidelitas tinggi.
- * - `jspdf`: Menyusun tata letak lembar cetak dokumen A4 dan menghasilkan file PDF siap unduh.
+ * Utility ekspor dokumen laporan resmi ke format PDF (A4) untuk X-VOCA:
+ * 1. `downloadVotingPDF` — Rekapitulasi moderasi voting game bulanan.
+ * 2. `downloadCollabPDF` — Rekapitulasi usulan kolaborasi streamer komunitas.
+ * Dilengkapi header eksekutif, 3 kartu KPI, 2 grafik visual HiDPI (Donut & Bar),
+ * tabel otomatis rapi dengan autoTable, dan penomoran halaman standar.
  * ============================================================================
- */
-
-/**
- * PDF Export Utility for X-VOCA Voting Results
- *
- * Creates a clean, professional, highly readable PDF report:
- * - Executive header with period & timestamp
- * - 3 KPI summary metrics cards
- * - High-contrast, cleanly styled data table with Indonesian labels
- * - Standardized footer with page numbering
  */
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { safeFormatDate } from './dateUtils';
+import { renderDonutChartBase64, renderHorizontalBarChartBase64 } from './chartCanvas';
+import {
+  COLLAB_STATUS_META,
+  VOTING_STATUS_META,
+  getNowWIBString,
+  summarizeCollabData,
+  summarizeVotingData,
+} from './reportHelpers';
 
-// Helper untuk menjalankan plugin autoTable secara aman di berbagai bundler Vite/Rollup
+const PAGE_MARGIN = 14;
+
+/**
+ * Menjalankan plugin autoTable secara aman di berbagai bundler Vite/Rollup.
+ */
 const runAutoTable = (doc, options) => {
   if (typeof doc.autoTable === 'function') {
     return doc.autoTable(options);
@@ -37,191 +41,215 @@ const runAutoTable = (doc, options) => {
   throw new Error('Plugin autoTable tidak dapat dimuat.');
 };
 
-// Mengonversi kunci periode (contoh: "2026-11") menjadi teks Bahasa Indonesia resmi: "November 2026"
-const formatPeriodString = (periodKey) => {
-  if (!periodKey) return '-';
-  try {
-    const [year, month] = periodKey.split('-');
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  } catch {
-    return periodKey;
+/**
+ * Merender header dokumen resmi seragam dan mengembalikan posisi Y berikutnya.
+ */
+function addExecutiveHeader(doc, { title, subtitle, rightLine1, rightLine2 }) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentWidth = pageWidth - PAGE_MARGIN * 2;
+  let yPos = 15;
+
+  // Garis aksen tema Midnight Indigo
+  doc.setFillColor(30, 27, 46);
+  doc.rect(PAGE_MARGIN, yPos, contentWidth, 3, 'F');
+  yPos += 8.5;
+
+  // Judul utama
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(15, 23, 42);
+  doc.text(title, PAGE_MARGIN, yPos);
+
+  yPos += 5.2;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(subtitle, PAGE_MARGIN, yPos);
+
+  // Metadata kanan
+  doc.setFontSize(8.2);
+  doc.setTextColor(71, 85, 105);
+  if (rightLine1) {
+    doc.text(rightLine1, pageWidth - PAGE_MARGIN, yPos - 5.2, { align: 'right' });
   }
-};
+  if (rightLine2) {
+    doc.text(rightLine2, pageWidth - PAGE_MARGIN, yPos, { align: 'right' });
+  }
 
-// Menghasilkan stempel waktu pencetakan dokumen dalam zona Waktu Indonesia Barat (WIB)
-const formatDateTimeWIB = () => {
-  return new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-  }) + ' WIB';
-};
+  yPos += 5.5;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.4);
+  doc.line(PAGE_MARGIN, yPos, pageWidth - PAGE_MARGIN, yPos);
 
-// Pemetaan status database ke label Bahasa Indonesia formal untuk dokumen cetak
-const STATUS_LABELS = {
-  requested: 'Menunggu Review',
-  accepted: 'Diterima',
-  playing: 'Sedang Dimainkan',
-  done: 'Selesai',
-};
+  return yPos + 5.5;
+}
 
 /**
- * FUNGSI UTAMA: generateVotingPDF
- * Membuat dokumen PDF laporan resmi rekapitulasi voting langsung di sisi peramban pengguna
- * tanpa membebani server backend (Client-side Document Rendering).
+ * Merender 3 kartu KPI ringkasan berdampingan dan mengembalikan posisi Y berikutnya.
+ */
+function addKpiCardRow(doc, startY, cards = []) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentWidth = pageWidth - PAGE_MARGIN * 2;
+  const cardWidth = (contentWidth - 8) / 3;
+  const cardHeight = 20;
+
+  cards.slice(0, 3).forEach((card, idx) => {
+    const cx = PAGE_MARGIN + idx * (cardWidth + 4);
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(cx, startY, cardWidth, cardHeight, 2, 2, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.setTextColor(100, 116, 139);
+    doc.text(card.label || '', cx + 3.5, startY + 5.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(card.smallValue ? 9.5 : 12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(String(card.value ?? '-'), cx + 3.5, startY + 12.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(String(card.note ?? ''), cx + 3.5, startY + 17.5);
+  });
+
+  return startY + cardHeight + 6;
+}
+
+/**
+ * Merender 2 grafik visual berdampingan (Donut + Horizontal Bar) langsung ke PDF.
+ */
+function addVisualChartRow(doc, startY, { donutConfig, barConfig }) {
+  const donutB64 = donutConfig ? renderDonutChartBase64(donutConfig) : null;
+  const barB64 = barConfig ? renderHorizontalBarChartBase64(barConfig) : null;
+
+  if (!donutB64 && !barB64) {
+    return startY;
+  }
+
+  let yPos = startY;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Ringkasan Visual & Grafik Analitik', PAGE_MARGIN, yPos);
+  yPos += 3.5;
+
+  // Lebar area konten A4 = 182mm -> 86mm (Donut) + 4mm gap + 92mm (Bar) = 182mm
+  const donutW = 86;
+  const donutH = 48;
+  const barW = 92;
+  const barH = 46;
+
+  if (donutB64) {
+    doc.addImage(donutB64, 'PNG', PAGE_MARGIN, yPos, donutW, donutH);
+  }
+  if (barB64) {
+    doc.addImage(barB64, 'PNG', PAGE_MARGIN + donutW + 4, yPos + 1, barW, barH);
+  }
+
+  return yPos + donutH + 6.5;
+}
+
+/**
+ * Menambahkan garis footer dan nomor halaman ke seluruh halaman dokumen PDF.
+ */
+function addStandardFooter(doc, footerText) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageCount = doc.internal.getNumberOfPages();
+
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(PAGE_MARGIN, pageHeight - 12, pageWidth - PAGE_MARGIN, pageHeight - 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(footerText, PAGE_MARGIN, pageHeight - 7);
+    doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - PAGE_MARGIN, pageHeight - 7, { align: 'right' });
+  }
+}
+
+/**
+ * ============================================================================
+ * 1. LAPORAN PDF VOTING GAME (`generateVotingPDF` / `downloadVotingPDF`)
+ * ============================================================================
  */
 export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onProgress }) => {
-  // 1. Inisialisasi lembar kerja jsPDF format A4 tegak (portrait) satuan milimeter (mm)
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 14;
-  const contentWidth = pageWidth - (margin * 2);
-
-  let yPos = 16;
-
   if (onProgress) onProgress(15);
 
-  // 2. Render Garis Aksen Dekoratif Atas (Kop Laporan)
-  doc.setFillColor(30, 27, 46); // Warna tema Cyberpunk Midnight Dark Slate
-  doc.rect(margin, yPos, contentWidth, 3, 'F');
-  yPos += 9;
+  const {
+    sortedGames,
+    totalVotes,
+    maxVotes,
+    topGame,
+    statusCounts,
+    periodLabel,
+    donutConfig,
+    barConfig,
+  } = summarizeVotingData({ games, periodKey, stats });
 
-  // ── 2. Header Title & Subtitle ─────────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(15, 23, 42); // slate-900
-  doc.text('LAPORAN MODERASI VOTING GAME', margin, yPos);
-
-  yPos += 5.5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139); // slate-500
-  doc.text('X-VOCA STREAMING & AUDIENCE GOVERNANCE', margin, yPos);
-
-  // Period & Generation Date on the right
-  const periodLabel = formatPeriodString(periodKey);
-  const nowStr = formatDateTimeWIB();
-
-  doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Periode: ${periodLabel} (${periodKey || '-'})`, pageWidth - margin, yPos - 5.5, { align: 'right' });
-  doc.text(`Dicetak: ${nowStr}`, pageWidth - margin, yPos, { align: 'right' });
-
-  yPos += 8;
-
-  // Horizontal divider
-  doc.setDrawColor(226, 232, 240); // slate-200
-  doc.setLineWidth(0.4);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-
-  yPos += 6;
+  let yPos = addExecutiveHeader(doc, {
+    title: 'LAPORAN MODERASI VOTING GAME',
+    subtitle: 'X-VOCA STREAMING & AUDIENCE GOVERNANCE',
+    rightLine1: `Periode: ${periodLabel} (${periodKey || '-'})`,
+    rightLine2: `Dicetak: ${getNowWIBString()}`,
+  });
 
   if (onProgress) onProgress(35);
 
-  // ── 3. Summary KPI Cards (3 Columns) ──────────────────────────────
-  const totalVotes = stats?.totalVotes || games.reduce((sum, g) => sum + (g.vote_count || 0), 0) || 0;
-  const totalGames = games.length;
-  const sortedGames = [...games].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
-  const topGame = sortedGames[0] || null;
-
-  const statusCounts = games.reduce((acc, g) => {
-    const s = g.status || 'requested';
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {});
-
-  const cardWidth = (contentWidth - 8) / 3;
-  const cardHeight = 22;
-
-  // Card 1: Total Votes
-  doc.setFillColor(248, 250, 252); // slate-50
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(margin, yPos, cardWidth, cardHeight, 2, 2, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('TOTAL SUARA MASUK', margin + 4, yPos + 6);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(15, 23, 42);
-  doc.text(totalVotes.toLocaleString('id-ID'), margin + 4, yPos + 14);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Suara penonton terverifikasi', margin + 4, yPos + 19);
-
-  // Card 2: Top Voted Game
-  const card2X = margin + cardWidth + 4;
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(card2X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('GAME PERINGKAT #1', card2X + 4, yPos + 6);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
-  const topTitle = topGame ? (topGame.title.length > 20 ? topGame.title.slice(0, 19) + '...' : topGame.title) : '-';
-  doc.text(topTitle, card2X + 4, yPos + 13.5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
+  const topTitle = topGame
+    ? (topGame.title.length > 20 ? `${topGame.title.slice(0, 19)}...` : topGame.title)
+    : '-';
   const topVotesCount = topGame ? (topGame.vote_count || 0) : 0;
   const topPercent = totalVotes > 0 ? Math.round((topVotesCount / totalVotes) * 100) : 0;
-  doc.text(topGame ? `${topVotesCount.toLocaleString('id-ID')} suara (${topPercent}% dari total)` : 'Belum ada suara', card2X + 4, yPos + 19);
 
-  // Card 3: Status Distribution
-  const card3X = card2X + cardWidth + 4;
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(card3X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+  yPos = addKpiCardRow(doc, yPos, [
+    {
+      label: 'TOTAL SUARA MASUK',
+      value: totalVotes.toLocaleString('id-ID'),
+      note: 'Suara penonton terverifikasi',
+    },
+    {
+      label: 'GAME PERINGKAT #1',
+      value: topTitle,
+      smallValue: true,
+      note: topGame ? `${topVotesCount.toLocaleString('id-ID')} suara (${topPercent}% total)` : 'Belum ada suara',
+    },
+    {
+      label: 'STATUS USULAN GAME',
+      value: `${sortedGames.length} Total Game`,
+      smallValue: true,
+      note: `${statusCounts.accepted} Diterima | ${statusCounts.playing} Main | ${statusCounts.done} Selesai`,
+    },
+  ]);
+
+  yPos = addVisualChartRow(doc, yPos, { donutConfig, barConfig });
+
+  if (onProgress) onProgress(65);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('STATUS USULAN GAME', card3X + 4, yPos + 6);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(`${totalGames} Total Game`, card3X + 4, yPos + 13.5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`${statusCounts.accepted || 0} Diterima | ${statusCounts.playing || 0} Main | ${statusCounts.done || 0} Selesai`, card3X + 4, yPos + 19);
-
-  yPos += cardHeight + 8;
-
-  if (onProgress) onProgress(60);
-
-  // ── 4. Detailed Results Table ──────────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Daftar Hasil Voting Game', margin, yPos);
+  doc.text('Daftar Hasil Voting Game', PAGE_MARGIN, yPos);
   yPos += 3.5;
 
   const tableData = sortedGames.map((game, index) => {
     const votes = game.vote_count || 0;
-    const maxV = stats?.maxVotes || (sortedGames[0]?.vote_count || 1);
+    const maxV = maxVotes || (sortedGames[0]?.vote_count || 1);
     const pct = maxV > 0 ? `${Math.round((votes / maxV) * 100)}%` : '0%';
-    const statusLabel = STATUS_LABELS[game.status] || game.status || '-';
+    const statusLabel = VOTING_STATUS_META[game.status]?.label || game.status || '-';
 
     return [
       String(index + 1),
@@ -237,11 +265,11 @@ export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onP
     startY: yPos,
     head: [['#', 'Judul Game', 'Kategori / Genre', 'Status', 'Jumlah Suara', 'Rasio Suara']],
     body: tableData,
-    margin: { left: margin, right: margin, bottom: 18 },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: 18 },
     styles: {
       font: 'helvetica',
       fontSize: 8,
-      cellPadding: 2.8,
+      cellPadding: 2.6,
       lineColor: [226, 232, 240],
       lineWidth: 0.1,
       textColor: [30, 41, 59],
@@ -268,40 +296,147 @@ export const generateVotingPDF = async ({ games = [], periodKey, stats = {}, onP
 
   if (onProgress) onProgress(90);
 
-  // ── 5. Page Numbering & Footer ─────────────────────────────────────
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-
-    // Footer divider line
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.3);
-    doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184); // slate-400
-    doc.text('X-VOCA Community Platform - Laporan resmi moderasi voting game.', margin, pageHeight - 7);
-    doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
-  }
+  addStandardFooter(doc, 'X-VOCA Community Platform - Laporan resmi moderasi voting game.');
 
   if (onProgress) onProgress(100);
-
   return doc;
 };
 
-/**
- * Download PDF with formatted filename
- *
- * @param {Object} options - Same as generateVotingPDF options
- */
 export const downloadVotingPDF = async (options) => {
   const doc = await generateVotingPDF(options);
   const periodKey = options.periodKey || new Date().toISOString().slice(0, 7);
   doc.save(`laporan_voting_${periodKey}.pdf`);
 };
 
+/**
+ * ============================================================================
+ * 2. LAPORAN PDF COLLAB REQUESTS (`generateCollabPDF` / `downloadCollabPDF`)
+ * ============================================================================
+ */
+export const generateCollabPDF = async ({ requests = [], filterInfo = {}, onProgress }) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  if (onProgress) onProgress(15);
+
+  const {
+    counts,
+    uniqueStreamerCount,
+    filterSummaryText,
+    donutConfig,
+    barConfig,
+  } = summarizeCollabData({ requests, filterInfo });
+
+  const headerFilterLabel = filterSummaryText.length > 52
+    ? `${filterSummaryText.slice(0, 51)}...`
+    : filterSummaryText;
+
+  let yPos = addExecutiveHeader(doc, {
+    title: 'LAPORAN USULAN KOLABORASI STREAMER',
+    subtitle: 'X-VOCA STREAMING STUDIO • COMMUNITY COLLABORATION REPORT',
+    rightLine1: headerFilterLabel,
+    rightLine2: `Dicetak: ${getNowWIBString()}`,
+  });
+
+  if (onProgress) onProgress(35);
+
+  yPos = addKpiCardRow(doc, yPos, [
+    {
+      label: 'TOTAL USULAN',
+      value: `${requests.length.toLocaleString('id-ID')} Usulan`,
+      note: `${uniqueStreamerCount} streamer unik terdata`,
+    },
+    {
+      label: 'BARU & SHORTLIST',
+      value: `${(counts.pending + counts.approved).toLocaleString('id-ID')} Aktif`,
+      note: `${counts.pending} Baru | ${counts.approved} Shortlist`,
+    },
+    {
+      label: 'DIJADWALKAN & ARSIP',
+      value: `${counts.scheduled.toLocaleString('id-ID')} Jadwal`,
+      note: `${counts.rejected} usulan diarsipkan`,
+    },
+  ]);
+
+  yPos = addVisualChartRow(doc, yPos, { donutConfig, barConfig });
+
+  if (onProgress) onProgress(65);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Daftar Rincian Usulan Kolaborasi (${requests.length} Data)`, PAGE_MARGIN, yPos);
+  yPos += 3.5;
+
+  const tableData = requests.map((req, index) => {
+    const statusLabel = COLLAB_STATUS_META[req.status]?.label || req.status || '-';
+    const dateStr = safeFormatDate(req.created_at, { day: 'numeric', month: 'short', year: 'numeric' });
+    return [
+      String(index + 1),
+      req.requested_streamer_name || '-',
+      req.requested_streamer_social || '-',
+      statusLabel,
+      req.message || '-',
+      req.review_notes || '-',
+      dateStr,
+    ];
+  });
+
+  runAutoTable(doc, {
+    startY: yPos,
+    head: [['No', 'Nama Streamer', 'Saluran / Sosmed', 'Status', 'Pesan Penonton', 'Catatan Admin', 'Tanggal']],
+    body: tableData,
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: 18 },
+    styles: {
+      font: 'helvetica',
+      fontSize: 7.8,
+      cellPadding: 2.5,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.1,
+      textColor: [30, 41, 59],
+      overflow: 'linebreak',
+    },
+    headStyles: {
+      fillColor: [30, 27, 46],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 7.8,
+      halign: 'left',
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    columnStyles: {
+      0: { cellWidth: 9,  halign: 'center' },
+      1: { cellWidth: 28, fontStyle: 'bold' },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 23, halign: 'center' },
+      4: { cellWidth: 40 },
+      5: { cellWidth: 30 },
+      6: { cellWidth: 22, halign: 'center' },
+    },
+  });
+
+  if (onProgress) onProgress(90);
+
+  addStandardFooter(doc, 'X-VOCA Community Platform - Laporan resmi usulan kolaborasi streamer.');
+
+  if (onProgress) onProgress(100);
+  return doc;
+};
+
+export const downloadCollabPDF = async (options) => {
+  const doc = await generateCollabPDF(options);
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  doc.save(`laporan_collab_requests_${dateStamp}.pdf`);
+};
+
 export default {
   generateVotingPDF,
   downloadVotingPDF,
+  generateCollabPDF,
+  downloadCollabPDF,
 };

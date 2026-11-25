@@ -309,7 +309,7 @@ function LoginPage() {
                     if (emailInvalid && e.target.validity.valid) setEmailInvalid(false);
                   }}
                   onBlur={(e) => setEmailInvalid(e.target.value !== '' && !e.target.validity.valid)}
-                  placeholder="xion.regalia@gmail.com"
+                  placeholder="Masukkan alamat email..."
                   required
                   autoComplete="email"
                   inputMode="email"

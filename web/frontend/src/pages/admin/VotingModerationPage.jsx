@@ -17,9 +17,11 @@ import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/dashboardService';
 import { getGames, getVotingPeriods, createGame, updateGameStatus, deleteGame, resetVotingPeriod } from '../../services/gameService';
 import { downloadVotingPDF } from '../../utils/pdfExport';
+import { exportVotingResultsExcel } from '../../utils/excelExport';
 import Modal from '../../components/common/Modal';
 import GameCard from '../../components/common/GameCard';
 import GameFormPanel from '../../components/admin/GameFormPanel';
+import ExportMenuButton from '../../components/admin/ExportMenuButton';
 import {
   Gamepad2,
   Search,
@@ -30,10 +32,8 @@ import {
   CheckCircle,
   Circle,
   AlertCircle,
-  Download,
   Loader2,
   X,
-  FileText,
   BarChart3,
   CalendarDays,
   CalendarPlus,
@@ -154,10 +154,6 @@ function VotingModerationPage() {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Export dropdown
-  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
   // Modals
   const [resetModal, setResetModal] = useState({ open: false });
   const [deleteModal, setDeleteModal] = useState({ open: false, game: null });
@@ -169,15 +165,13 @@ function VotingModerationPage() {
   const [editingGame, setEditingGame] = useState(null);
   const [gameFormLoading, setGameFormLoading] = useState(false);
 
-  // PDF Export
+  // PDF & Excel Export
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [excelExporting, setExcelExporting] = useState(false);
 
-  // Close dropdowns on outside click
+  // Close period dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setExportDropdownOpen(false);
-      }
       if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
         setPeriodDropdownOpen(false);
       }
@@ -465,92 +459,28 @@ function VotingModerationPage() {
   };
 
   // ── Export Handlers ─────────────────────────────────────────────────────────
-  const handleExportCSV = () => {
-    setExportDropdownOpen(false);
+  const handleExportExcel = async () => {
     if (allGames.length === 0) {
       alert('Tidak ada data game untuk diekspor.');
       return;
     }
 
-    const periodLabel = formatPeriodLabel(selectedPeriodKey);
-    const nowStr = new Date().toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta',
-    }) + ' WIB';
-
-    const statusMap = {
-      requested: 'Menunggu Review',
-      accepted: 'Diterima',
-      playing: 'Sedang Dimainkan',
-      done: 'Selesai',
-    };
-
-    const sortedGames = [...allGames].sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
-
-    const metaRows = [
-      ['LAPORAN REKAPITULASI VOTING GAME X-VOCA'],
-      ['Periode Voting', `${periodLabel} (${selectedPeriodKey})`],
-      ['Tanggal Ekspor', nowStr],
-      ['Total Suara Terkumpul', `${totalVotes.toLocaleString('id-ID')} Suara`],
-      ['Total Usulan Game', `${allGames.length} Game`],
-      [],
-    ];
-
-    const tableHeaders = [
-      'Peringkat',
-      'Judul Game',
-      'Kategori / Genre',
-      'Status',
-      'Jumlah Suara',
-      'Rasio Suara',
-      'Diusulkan Oleh',
-    ];
-
-    const dataRows = sortedGames.map((game, index) => {
-      const votes = game.vote_count || 0;
-      const pct = maxVotes > 0 ? `${Math.round((votes / maxVotes) * 100)}%` : '0%';
-      const statusLabel = statusMap[game.status] || game.status || '-';
-      const submitter = game.isOfficial ? 'Creator (Admin)' : (game.addedBy || 'Viewer');
-
-      return [
-        index + 1,
-        game.title || '-',
-        game.genre || game.category || '-',
-        statusLabel,
-        votes,
-        pct,
-        submitter,
-      ];
-    });
-
-    const escapeCSV = (cell) => {
-      if (cell === null || cell === undefined) return '""';
-      const str = String(cell).replace(/"/g, '""');
-      return `"${str}"`;
-    };
-
-    const csvContent = '\uFEFF' + [
-      ...metaRows,
-      tableHeaders,
-      ...dataRows,
-    ].map((row) => row.map(escapeCSV).join(',')).join('\r\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `rekap_voting_${selectedPeriodKey}.csv`;
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setExcelExporting(true);
+    try {
+      await exportVotingResultsExcel({
+        games: allGames,
+        periodKey: selectedPeriodKey,
+        stats: { totalVotes, maxVotes, totalGames: allGames.length },
+      });
+    } catch (error) {
+      console.error('Error exporting Voting Excel:', error);
+      alert('Gagal mengekspor Excel: ' + (error.message || 'Terjadi kesalahan sistem'));
+    } finally {
+      setExcelExporting(false);
+    }
   };
 
   const handleExportPDF = async () => {
-    setExportDropdownOpen(false);
     if (allGames.length === 0) {
       alert('Tidak ada data game untuk diekspor.');
       return;
@@ -679,52 +609,12 @@ function VotingModerationPage() {
           </button>
 
           {/* Export Dropdown Menu */}
-          <div className="relative shrink-0" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setExportDropdownOpen((prev) => !prev)}
-              disabled={pdfExporting || allGames.length === 0}
-              className="h-10 flex items-center gap-2 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50"
-            >
-              {pdfExporting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-purple" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-accent-purple" />
-              )}
-              <span>Ekspor Data</span>
-              <ChevronDown className="w-3 h-3 text-text-muted" />
-            </button>
-
-            {exportDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-32px)] bg-bg-card border border-border-subtle rounded-xl shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
-                <div className="px-3 py-1.5 border-b border-border-subtle">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Format Laporan</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleExportCSV}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text-primary hover:bg-bg-surface transition-colors text-left"
-                >
-                  <FileText className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <div>
-                    <p className="font-semibold">Unduh Ringkasan CSV</p>
-                    <p className="text-[10px] text-text-muted">Format spreadsheet & Excel</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportPDF}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text-primary hover:bg-bg-surface transition-colors text-left"
-                >
-                  <Download className="w-4 h-4 text-accent-purple shrink-0" />
-                  <div>
-                    <p className="font-semibold">Cetak Laporan PDF</p>
-                    <p className="text-[10px] text-text-muted">Rekap resmi siap cetak</p>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
+          <ExportMenuButton
+            onExportExcel={handleExportExcel}
+            onExportPDF={handleExportPDF}
+            isExporting={pdfExporting || excelExporting}
+            disabled={allGames.length === 0}
+          />
 
           {/* Tambah Game */}
           <button
@@ -1128,7 +1018,7 @@ function VotingModerationPage() {
               <div className="flex items-center gap-2.5 min-w-0">
                 <Archive className="w-4 h-4 text-amber-400 shrink-0" />
                 <span className="truncate">
-                  Menampilkan arsip periode <strong>{formatPeriodLabel(selectedPeriodKey)}</strong>. Ekspor PDF & CSV akan memuat data resmi periode ini.
+                  Menampilkan arsip periode <strong>{formatPeriodLabel(selectedPeriodKey)}</strong>. Ekspor PDF &amp; Excel akan memuat data resmi periode ini.
                 </span>
               </div>
               <button

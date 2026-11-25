@@ -28,7 +28,6 @@ import {
   LayoutGrid,
   List,
   Plus,
-  Download,
   X,
   Sparkles,
   Loader2,
@@ -38,12 +37,15 @@ import { useCollabRequests } from '../../hooks/useCollabRequests';
 import CollabRequestRow, { STATUS_CONFIG } from '../../components/admin/CollabRequestRow';
 import CollabRequestCard from '../../components/admin/CollabRequestCard';
 import ScheduleFormPanel from '../../components/admin/ScheduleFormPanel';
+import ExportMenuButton from '../../components/admin/ExportMenuButton';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
 import CustomSelect from '../../components/common/CustomSelect';
 import { safeFormatTimeAgo, safeFormatDate } from '../../utils/dateUtils';
 import { createSchedule } from '../../services/scheduleService';
 import { collabRequestService } from '../../services/collabRequestService';
+import { exportCollabRequestsExcel } from '../../utils/excelExport';
+import { downloadCollabPDF } from '../../utils/pdfExport';
 
 /**
  * Filter status tabs (Alur Kerja Kreator)
@@ -57,7 +59,8 @@ const STATUS_TABS = [
 ];
 
 /**
- * Generate period options (current and past 6 months)
+ * Generate period options (current and past 6 months) using local calendar year/month
+ * to avoid UTC midnight conversion shifting the 1st of the month into the previous month.
  */
 function getPeriodOptions() {
   const options = [{ value: 'all', label: 'Semua Periode' }];
@@ -65,7 +68,9 @@ function getPeriodOptions() {
 
   for (let i = 0; i < 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = d.toISOString().slice(0, 7);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const value = `${year}-${month}`;
     const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     options.push({ value, label });
   }
@@ -121,6 +126,7 @@ function CollabRequestsPage() {
     collabData: null,
   });
   const [scheduleFormLoading, setScheduleFormLoading] = useState(false);
+  const [isExportingReport, setIsExportingReport] = useState(false);
 
   // Custom hook for requests & stats
   const {
@@ -300,77 +306,92 @@ function CollabRequestsPage() {
     }
   };
 
-  // Export CSV
-  const handleExportCSV = () => {
-    if (requests.length === 0) {
+  // Ambil seluruh data usulan sesuai filter aktif (tanpa terpotong pagination)
+  const fetchAllFilteredRequests = async () => {
+    const totalMatching = pagination?.total || requests.length;
+    if (totalMatching <= requests.length) {
+      return requests;
+    }
+
+    const baseParams = {};
+    if (activeStatus !== 'all') baseParams.status = activeStatus;
+    if (selectedPeriod !== 'all') baseParams.period = selectedPeriod;
+    if (activeSearch) baseParams.search = activeSearch;
+
+    const firstRes = await collabRequestService.getCollabRequests({
+      ...baseParams,
+      page: 1,
+      limit: 100,
+    });
+
+    const extractList = (res) => {
+      const d = res?.data?.data;
+      if (Array.isArray(d)) return d;
+      if (Array.isArray(d?.requests)) return d.requests;
+      return [];
+    };
+
+    const collected = [...extractList(firstRes)];
+    const totalPagesToFetch = firstRes?.data?.meta?.totalPages || 1;
+
+    if (totalPagesToFetch > 1) {
+      const pagePromises = [];
+      for (let p = 2; p <= totalPagesToFetch; p += 1) {
+        pagePromises.push(
+          collabRequestService.getCollabRequests({
+            ...baseParams,
+            page: p,
+            limit: 100,
+          })
+        );
+      }
+      const restResponses = await Promise.all(pagePromises);
+      restResponses.forEach((res) => {
+        collected.push(...extractList(res));
+      });
+    }
+
+    return collected.length > 0 ? collected : requests;
+  };
+
+  // Export Laporan (Excel .xlsx atau PDF) seragam dengan halaman Voting
+  const handleRunExport = async (format) => {
+    const totalMatching = pagination?.total || requests.length;
+    if (totalMatching === 0 && requests.length === 0) {
       toast.error('Tidak ada data usulan untuk diekspor.');
       return;
     }
 
-    const nowStr = new Date().toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta',
-    }) + ' WIB';
+    setIsExportingReport(true);
+    try {
+      const allMatchingRequests = await fetchAllFilteredRequests();
+      if (allMatchingRequests.length === 0) {
+        toast.error('Tidak ada data usulan untuk diekspor.');
+        return;
+      }
 
-    const statusMap = {
-      pending: 'Baru',
-      approved: 'Disimpan (Shortlist)',
-      scheduled: 'Dijadwalkan',
-      rejected: 'Arsip',
-    };
+      const payload = {
+        requests: allMatchingRequests,
+        filterInfo: {
+          status: activeStatus,
+          period: selectedPeriod,
+          search: activeSearch,
+        },
+      };
 
-    const metaRows = [
-      ['LAPORAN USULAN KOLABORASI STREAMER X-VOCA'],
-      ['Tanggal Ekspor', nowStr],
-      ['Total Usulan Ditampilkan', `${requests.length} Usulan`],
-      [],
-    ];
-
-    const tableHeaders = [
-      'No',
-      'Nama Streamer',
-      'Saluran / Sosmed',
-      'Status',
-      'Pesan Penonton',
-      'Catatan Admin',
-      'Waktu Usulan',
-    ];
-
-    const dataRows = requests.map((req, idx) => [
-      idx + 1,
-      req.requested_streamer_name || '-',
-      req.requested_streamer_social || '-',
-      statusMap[req.status] || req.status || '-',
-      req.message ? `"${req.message.replace(/"/g, '""')}"` : '-',
-      req.review_notes ? `"${req.review_notes.replace(/"/g, '""')}"` : '-',
-      safeFormatDate(req.created_at, { day: 'numeric', month: 'short', year: 'numeric' }),
-    ]);
-
-    const escapeCSV = (cell) => {
-      if (cell === null || cell === undefined) return '""';
-      const str = String(cell);
-      if (str.startsWith('"') && str.endsWith('"')) return str;
-      return `"${str.replace(/"/g, '""')}"`;
-    };
-
-    const csvContent = '\uFEFF' + [
-      ...metaRows,
-      tableHeaders,
-      ...dataRows,
-    ].map((row) => row.map(escapeCSV).join(',')).join('\r\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `collab_requests_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (format === 'excel') {
+        await exportCollabRequestsExcel(payload);
+        toast.success(`Laporan Excel (${allMatchingRequests.length} data) berhasil diunduh.`);
+      } else {
+        await downloadCollabPDF(payload);
+        toast.success(`Laporan PDF (${allMatchingRequests.length} data) berhasil diunduh.`);
+      }
+    } catch (err) {
+      console.error(`Error exporting Collab ${format.toUpperCase()}:`, err);
+      toast.error(`Gagal mengekspor laporan ${format.toUpperCase()}: ` + (err?.message || 'Terjadi kesalahan sistem'));
+    } finally {
+      setIsExportingReport(false);
+    }
   };
 
   return (
@@ -396,11 +417,11 @@ function CollabRequestsPage() {
 
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* View Mode Switcher */}
-          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-9">
+          <div className="flex items-center p-1 bg-bg-surface border border-border-subtle rounded-xl h-10">
             <button
               type="button"
               onClick={() => setViewMode('cards')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'cards'
                   ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
@@ -414,7 +435,7 @@ function CollabRequestsPage() {
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`h-7 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
+              className={`h-8 px-2.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
                 viewMode === 'table'
                   ? 'bg-accent-cyan text-text-on-cta font-bold shadow-sm'
                   : 'text-text-muted hover:text-text-primary'
@@ -439,17 +460,13 @@ function CollabRequestsPage() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
-          {/* Ekspor CSV */}
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            disabled={requests.length === 0}
-            className="h-10 flex items-center gap-1.5 px-3.5 text-xs font-semibold text-text-secondary bg-bg-surface border border-border-subtle rounded-xl hover:bg-bg-card-hover transition-colors disabled:opacity-50 shrink-0"
-            title="Unduh laporan usulan kolaborasi (.csv)"
-          >
-            <Download className="w-3.5 h-3.5 text-accent-purple" />
-            <span className="hidden sm:inline">Ekspor CSV</span>
-          </button>
+          {/* Export Dropdown Menu (Konsisten dengan halaman Voting) */}
+          <ExportMenuButton
+            onExportExcel={() => handleRunExport('excel')}
+            onExportPDF={() => handleRunExport('pdf')}
+            isExporting={isExportingReport}
+            disabled={loading || (pagination?.total === 0 && requests.length === 0)}
+          />
 
           {/* Tambah Usulan Manual */}
           <button
